@@ -55,19 +55,25 @@ public final class HaDangerousFeaturesScreen extends Screen {
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, y + 96, 210, 20, new LiteralText("Auto Heal"), button -> {
+        addButton(new ButtonWidget(centerX - 105, y + 96, 210, 20, new LiteralText("Ghost Wall Edit Mode: " + onOff(config.ghostWallEditMode)), button -> {
+            config.ghostWallEditMode = !config.ghostWallEditMode;
+            config.save();
+            button.setMessage(new LiteralText("Ghost Wall Edit Mode: " + onOff(config.ghostWallEditMode)));
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, y + 120, 210, 20, new LiteralText("Auto Heal"), button -> {
             if (client != null) {
                 client.openScreen(new HaAutoHealScreen(this));
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, y + 120, 210, 20, new LiteralText("Item Macro"), button -> {
+        addButton(new ButtonWidget(centerX - 105, y + 144, 210, 20, new LiteralText("Item Macro"), button -> {
             if (client != null) {
                 client.openScreen(new HaMacroListScreen(this, 0));
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, y + 144, 210, 20, new LiteralText("Chunk Containers"), button -> {
+        addButton(new ButtonWidget(centerX - 105, y + 168, 210, 20, new LiteralText("Chunk Containers"), button -> {
             if (client != null) {
                 client.openScreen(new HaChunkChestScreen(this));
             }

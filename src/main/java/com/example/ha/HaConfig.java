@@ -41,6 +41,7 @@ public final class HaConfig {
     public boolean macroStatusHudEnabled = false;
     public int macroStatusHudX = 8;
     public int macroStatusHudY = 8;
+    public boolean ghostWallEditMode = false;
     public int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
     public int cameraToggleScanCode = -1;
     public int defaultWeaponHotbarSlot = 0;
@@ -228,6 +229,7 @@ public final class HaConfig {
             macroStatusHudEnabled = saved.macroStatusHudEnabled;
             macroStatusHudX = saved.macroStatusHudX;
             macroStatusHudY = saved.macroStatusHudY;
+            ghostWallEditMode = saved.ghostWallEditMode;
             defaultWeaponHotbarSlot = saved.defaultWeaponHotbarSlot;
             chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
             chunkChestOverlayX = saved.chunkChestOverlayX;
@@ -324,6 +326,7 @@ public final class HaConfig {
             root.addProperty("macroStatusHudEnabled", macroStatusHudEnabled);
             root.addProperty("macroStatusHudX", macroStatusHudX);
             root.addProperty("macroStatusHudY", macroStatusHudY);
+            root.addProperty("ghostWallEditMode", ghostWallEditMode);
             root.addProperty("defaultWeaponHotbarSlot", defaultWeaponHotbarSlot);
             root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
             root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
@@ -399,6 +402,7 @@ public final class HaConfig {
         macroStatusHudEnabled = false;
         macroStatusHudX = 8;
         macroStatusHudY = 8;
+        ghostWallEditMode = false;
         defaultWeaponHotbarSlot = 0;
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
@@ -505,6 +509,7 @@ public final class HaConfig {
         boolean macroStatusHudEnabled = false;
         int macroStatusHudX = 8;
         int macroStatusHudY = 8;
+        boolean ghostWallEditMode = false;
         int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
         int cameraToggleScanCode = -1;
         int defaultWeaponHotbarSlot = 0;

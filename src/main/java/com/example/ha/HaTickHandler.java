@@ -58,6 +58,7 @@ public final class HaTickHandler {
         tickCameraToggle(client);
         tickChestSearchShortcut(client);
         HaChestSearchIndex.get().tick(client);
+        HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
         }
