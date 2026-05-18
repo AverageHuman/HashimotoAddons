@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "package": "com.example.ha.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "ClientPlayerEntityMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "GameMenuScreenMixin",
+    "KeyBindingAccessor",
+    "MinecraftClientDisconnectMixin",
+    "SlotAccessor",
+    "HandledScreenAccessor",
+    "HandledScreenMixin",
+    "HandledScreenRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

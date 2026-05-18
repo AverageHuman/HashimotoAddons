@@ -1,0 +1,83 @@
+plugins {
+    id 'fabric-loom' version '1.15.5'
+    id 'maven-publish'
+}
+
+def haVariant = (findProperty('haVariant') ?: 'full').toString().toLowerCase()
+def dangerousFeaturesEnabled = haVariant != 'safe'
+def variantModName = dangerousFeaturesEnabled ? 'HashimotoAddons' : 'HashimotoAddons Safe'
+def variantArchiveName = dangerousFeaturesEnabled ? project.archives_base_name : "${project.archives_base_name}-safe"
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = variantArchiveName
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+def generatedSourcesDir = layout.buildDirectory.dir("generated/sources/haBuildFlags/${haVariant}")
+
+sourceSets {
+    main {
+        java.srcDir(generatedSourcesDir)
+    }
+}
+
+tasks.register("generateHaBuildFlags") {
+    outputs.dir(generatedSourcesDir)
+    doLast {
+        def outputDir = generatedSourcesDir.get().file("com/example/ha/HaBuildFlags.java").asFile
+        outputDir.parentFile.mkdirs()
+        outputDir.text = """package com.example.ha;
+
+public final class HaBuildFlags {
+    public static final String VARIANT = "${haVariant}";
+    public static final boolean DANGEROUS_FEATURES_ENABLED = ${dangerousFeaturesEnabled};
+
+    private HaBuildFlags() {
+    }
+}
+"""
+    }
+}
+
+tasks.named("compileJava").configure {
+    inputs.property("haVariant", haVariant)
+    dependsOn("generateHaBuildFlags")
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "modName", variantModName
+    inputs.property "haVariant", haVariant
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version, "modName": variantModName
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 8
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    destinationDirectory = layout.buildDirectory.dir("libs/${project.version}")
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.named("sourcesJar").configure {
+    dependsOn("generateHaBuildFlags")
+}

@@ -1,0 +1,135 @@
+package com.example.ha;
+
+import com.mojang.brigadier.arguments.LongArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.LiteralText;
+import org.lwjgl.glfw.GLFW;
+
+public final class HaClientMod implements ClientModInitializer {
+    private static KeyBinding macroToggleKeyBinding;
+    private static KeyBinding cameraToggleKeyBinding;
+    private static KeyBinding chestSearchKeyBinding;
+    private final HaTickHandler tickHandler = new HaTickHandler(getOrCreateMacroToggleKeyBinding(), getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding());
+
+    @Override
+    public void onInitializeClient() {
+        HaConfig.get().load();
+        updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
+        updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
+        updateChestSearchBinding(HaConfig.get().getChestSearchKey());
+        registerCommand();
+        ClientTickEvents.END_CLIENT_TICK.register(tickHandler::onEndClientTick);
+        HudRenderCallback.EVENT.register(HaMacroStatusOverlay::render);
+        HudRenderCallback.EVENT.register(HaChunkChestOverlay::render);
+        HudRenderCallback.EVENT.register(HaDropTrackerOverlay::render);
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaChestSearchOverlay::render);
+    }
+
+    private void registerCommand() {
+        LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommandManager.literal("ha")
+            .executes(context -> {
+                tickHandler.requestOpenConfigScreen();
+                return 1;
+            })
+            .then(ClientCommandManager.literal("tracker")
+                .then(ClientCommandManager.literal("add")
+                    .executes(context -> registerHeldTrackerItem(0L))
+                    .then(ClientCommandManager.argument("price", LongArgumentType.longArg(0L))
+                        .executes(context -> registerHeldTrackerItem(LongArgumentType.getLong(context, "price"))))));
+
+        ClientCommandManager.DISPATCHER.register(command);
+    }
+
+    private int registerHeldTrackerItem(long price) {
+        ItemStack stack = net.minecraft.client.MinecraftClient.getInstance().player == null
+            ? ItemStack.EMPTY
+            : net.minecraft.client.MinecraftClient.getInstance().player.getMainHandStack();
+        if (stack.isEmpty()) {
+            sendTrackerMessage("\u00a7cHold an item in your main hand before using /ha tracker add.");
+            return 0;
+        }
+
+        HaDropTracker.RegisteredItem item = HaDropTracker.registerHeldItem(price);
+        if (item == null) {
+            sendTrackerMessage("\u00a7cCould not register the held item.");
+            return 0;
+        }
+
+        sendTrackerMessage("Registered " + item.displayName + " for " + item.unitPrice + " Intercoins.");
+        return 1;
+    }
+
+    private void sendTrackerMessage(String message) {
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        if (client != null && client.player != null) {
+            client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:" + message), false);
+        }
+    }
+
+    public static void updateMacroToggleBinding(InputUtil.Key key) {
+        getOrCreateMacroToggleKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
+    public static void updateCameraToggleBinding(InputUtil.Key key) {
+        getOrCreateCameraToggleKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
+    public static void updateChestSearchBinding(InputUtil.Key key) {
+        getOrCreateChestSearchKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
+    private static KeyBinding getOrCreateMacroToggleKeyBinding() {
+        if (macroToggleKeyBinding == null) {
+            macroToggleKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.toggle_macro",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_H,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return macroToggleKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateCameraToggleKeyBinding() {
+        if (cameraToggleKeyBinding == null) {
+            cameraToggleKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.toggle_camera",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_V,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return cameraToggleKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateChestSearchKeyBinding() {
+        if (chestSearchKeyBinding == null) {
+            chestSearchKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.open_chest_search",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return chestSearchKeyBinding;
+    }
+}
