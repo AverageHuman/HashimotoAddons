@@ -24,6 +24,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.registry.Registry;
 
 public final class HaGhostWall {
@@ -76,6 +77,7 @@ public final class HaGhostWall {
 
             existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
             applyGhostBlock(client, existing, false);
+            refreshManagedNeighbors(client, pos);
             save();
             useActionConsumedUntilRelease = true;
             return true;
@@ -293,6 +295,7 @@ public final class HaGhostWall {
         );
         BLOCKS.add(block);
         applyGhostBlock(client, block, false);
+        refreshManagedNeighbors(client, pos);
         save();
         return true;
     }
@@ -319,6 +322,7 @@ public final class HaGhostWall {
         );
         BLOCKS.add(block);
         applyGhostBlock(client, block, false);
+        refreshManagedNeighbors(client, pos);
         save();
         return true;
     }
@@ -343,6 +347,7 @@ public final class HaGhostWall {
         }
 
         restoreOriginalBlock(client, removedBlock);
+        refreshManagedNeighbors(client, pos);
         save();
         return true;
     }
@@ -407,10 +412,41 @@ public final class HaGhostWall {
         if (ghost == null || ghost.isAir()) {
             ghost = Blocks.BARRIER.getDefaultState();
         }
+        ghost = resolveNeighborAwareState(client, pos, ghost);
+        block.ghostStateRawId = Block.getRawIdFromState(ghost);
         if (captureCurrentAsOriginal && current != null && !isManagedVisibleState(block, current) && current != original) {
             block.originalStateRawId = Block.getRawIdFromState(current);
         }
         client.world.setBlockState(pos, ghost, 18);
+    }
+
+    private static void refreshManagedNeighbors(MinecraftClient client, BlockPos pos) {
+        if (client == null || client.world == null || pos == null) {
+            return;
+        }
+
+        for (Direction direction : Direction.values()) {
+            GhostBlock neighbor = find(client, pos.offset(direction));
+            if (neighbor != null) {
+                applyGhostBlock(client, neighbor, false);
+            }
+        }
+    }
+
+    private static BlockState resolveNeighborAwareState(MinecraftClient client, BlockPos pos, BlockState state) {
+        if (client.world == null || state == null) {
+            return state;
+        }
+
+        BlockState resolved = state;
+        for (Direction direction : Direction.values()) {
+            BlockPos neighborPos = pos.offset(direction);
+            resolved = resolved.getStateForNeighborUpdate(direction, client.world.getBlockState(neighborPos), client.world, pos, neighborPos);
+            if (resolved == null || resolved.isAir()) {
+                return state;
+            }
+        }
+        return resolved;
     }
 
     private static void restoreOriginalBlock(MinecraftClient client, GhostBlock block) {
