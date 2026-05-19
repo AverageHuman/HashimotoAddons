@@ -36,7 +36,7 @@ public final class HaConfigScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
 
-        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 9 : 8;
+        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 10 : 9;
         int maxPage = Math.max(0, (totalItems - 1) / ITEMS_PER_PAGE);
         page = Math.min(page, maxPage);
 
@@ -133,6 +133,13 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 8:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Exp Tracker"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaExpTrackerScreen(this));
+                    }
+                }));
+                break;
+            case 9:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Chat Filter"), button -> {
                     if (client != null) {
                         client.openScreen(new HaChatFilterListScreen(this, 0));

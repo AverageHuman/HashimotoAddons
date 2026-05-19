@@ -64,6 +64,10 @@ public final class HaConfig {
     public String dropTrackerMode = HaDropTracker.MODE_ALL;
     public int dropTrackerOverlayX = 8;
     public int dropTrackerOverlayY = 72;
+    public boolean expTrackerEnabled = false;
+    public long expTrackerTotal = 0L;
+    public int expTrackerOverlayX = 8;
+    public int expTrackerOverlayY = 104;
     public boolean chatFilterEnabled = false;
     public Set<Integer> lockedSlotIds = new HashSet<Integer>();
 
@@ -109,6 +113,9 @@ public final class HaConfig {
         dropTrackerMode = HaDropTracker.normalizeMode(dropTrackerMode);
         dropTrackerOverlayX = Math.max(0, dropTrackerOverlayX);
         dropTrackerOverlayY = Math.max(0, dropTrackerOverlayY);
+        expTrackerTotal = Math.max(0L, expTrackerTotal);
+        expTrackerOverlayX = Math.max(0, expTrackerOverlayX);
+        expTrackerOverlayY = Math.max(0, expTrackerOverlayY);
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
@@ -222,6 +229,10 @@ public final class HaConfig {
         dropTrackerMode = saved.dropTrackerMode;
         dropTrackerOverlayX = saved.dropTrackerOverlayX;
         dropTrackerOverlayY = saved.dropTrackerOverlayY;
+        expTrackerEnabled = saved.expTrackerEnabled;
+        expTrackerTotal = saved.expTrackerTotal;
+        expTrackerOverlayX = saved.expTrackerOverlayX;
+        expTrackerOverlayY = saved.expTrackerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
         lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
 
@@ -325,6 +336,10 @@ public final class HaConfig {
         root.addProperty("dropTrackerMode", dropTrackerMode);
         root.addProperty("dropTrackerOverlayX", dropTrackerOverlayX);
         root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
+        root.addProperty("expTrackerEnabled", expTrackerEnabled);
+        root.addProperty("expTrackerTotal", expTrackerTotal);
+        root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
+        root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
@@ -586,6 +601,10 @@ public final class HaConfig {
         String dropTrackerMode = HaDropTracker.MODE_ALL;
         int dropTrackerOverlayX = 8;
         int dropTrackerOverlayY = 72;
+        boolean expTrackerEnabled = false;
+        long expTrackerTotal = 0L;
+        int expTrackerOverlayX = 8;
+        int expTrackerOverlayY = 104;
         boolean chatFilterEnabled = false;
         Set<Integer> lockedSlotIds = new HashSet<Integer>();
         List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
