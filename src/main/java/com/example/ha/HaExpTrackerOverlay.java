@@ -15,9 +15,6 @@ public final class HaExpTrackerOverlay {
         if (client == null || HaHudVisibility.shouldHideHashimotoHud(client) || !HaConfig.get().expTrackerEnabled) {
             return;
         }
-        if (!HaExpTracker.isActiveSession()) {
-            return;
-        }
         drawPanel(matrices, HaConfig.get().expTrackerOverlayX, HaConfig.get().expTrackerOverlayY, HaConfig.get().expTrackerTotal, false);
     }
 
@@ -30,7 +27,8 @@ public final class HaExpTrackerOverlay {
 
     public static int getPanelWidth(MinecraftClient client) {
         HaConfig config = HaConfig.get();
-        int width = Math.max(116, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotal)));
+        int width = Math.max(116, 16 + client.textRenderer.getWidth("Status: " + statusText()));
+        width = Math.max(width, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotal)));
         if (config.expTrackerShowTimer) {
             width = Math.max(width, 16 + client.textRenderer.getWidth("Timer: " + formatDuration(HaExpTracker.getElapsedSeconds())));
         }
@@ -42,7 +40,7 @@ public final class HaExpTrackerOverlay {
 
     public static int getPanelHeight() {
         HaConfig config = HaConfig.get();
-        int lines = 2;
+        int lines = 3;
         if (config.expTrackerShowTimer) {
             lines++;
         }
@@ -76,6 +74,9 @@ public final class HaExpTrackerOverlay {
         DrawableHelper.fill(matrices, x, y, x + width, y + 1, 0xFF70E0FF);
         client.textRenderer.drawWithShadow(matrices, "Exp Tracker", x + 5, y + 4, 0xFFFFFF);
         int rowY = y + 18;
+        int statusColor = HaExpTracker.isActiveSession() ? 0x55FF55 : 0xFF5555;
+        client.textRenderer.drawWithShadow(matrices, "Status: " + statusText(), x + 5, rowY, statusColor);
+        rowY += 14;
         client.textRenderer.drawWithShadow(matrices, "Total XP: " + formatNumber(total), x + 5, rowY, 0xFFD166);
         rowY += 14;
         if (config.expTrackerShowTimer) {
@@ -87,5 +88,9 @@ public final class HaExpTrackerOverlay {
             long rate = preview ? 123456L : HaExpTracker.getExpPerHour();
             client.textRenderer.drawWithShadow(matrices, "EXP/hour: " + formatNumber(rate), x + 5, rowY, 0x55FF55);
         }
+    }
+
+    private static String statusText() {
+        return HaExpTracker.isActiveSession() ? "Tracking" : "Stopped";
     }
 }
