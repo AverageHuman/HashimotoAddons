@@ -66,7 +66,6 @@ public final class HaExpTrackerScreen extends Screen {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 14, 0xFFFFFF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +EXP name tags only while soulbound."), this.width / 2, 30, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Total XP: " + HaExpTrackerOverlay.formatNumber(HaConfig.get().expTrackerTotal, HaConfig.get().expTrackerCompactNumbers)), this.width / 2, 222, 0xFFD166);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
