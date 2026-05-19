@@ -64,6 +64,10 @@ public final class HaGhostWall {
         BlockPos pos = hit.getBlockPos();
         GhostBlock existing = find(client, pos);
         if (existing != null) {
+            if (client.player != null && client.player.isSneaking() && addAirPlacement(client, pos.offset(hit.getSide()))) {
+                return true;
+            }
+
             existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
             applyGhostBlock(client, existing, false);
             save();
