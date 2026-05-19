@@ -62,6 +62,7 @@ public final class HaTickHandler {
         tickSimulatedHotbarKey(client);
         tickCameraToggle(client);
         tickChestSearchShortcut(client);
+        HaDropTracker.tick(client);
         HaChestSearchIndex.get().tick(client);
         HaExpTracker.tick(client);
         HaGhostWall.tick(client);

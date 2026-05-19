@@ -62,6 +62,10 @@ public final class HaConfig {
     public int chestSearchScanCode = -1;
     public boolean dropTrackerEnabled = false;
     public String dropTrackerMode = HaDropTracker.MODE_ALL;
+    public long dropTrackerElapsedSeconds = 0L;
+    public boolean dropTrackerShowTimer = false;
+    public boolean dropTrackerShowHourlyProfit = false;
+    public boolean dropTrackerCompactNumbers = false;
     public int dropTrackerOverlayX = 8;
     public int dropTrackerOverlayY = 72;
     public boolean expTrackerEnabled = false;
@@ -114,6 +118,7 @@ public final class HaConfig {
             chestSearchQuery = chestSearchQuery.trim();
         }
         dropTrackerMode = HaDropTracker.normalizeMode(dropTrackerMode);
+        dropTrackerElapsedSeconds = Math.max(0L, dropTrackerElapsedSeconds);
         dropTrackerOverlayX = Math.max(0, dropTrackerOverlayX);
         dropTrackerOverlayY = Math.max(0, dropTrackerOverlayY);
         expTrackerTotal = Math.max(0L, expTrackerTotal);
@@ -231,6 +236,10 @@ public final class HaConfig {
         chestSearchScanCode = saved.chestSearchScanCode;
         dropTrackerEnabled = saved.dropTrackerEnabled;
         dropTrackerMode = saved.dropTrackerMode;
+        dropTrackerElapsedSeconds = saved.dropTrackerElapsedSeconds;
+        dropTrackerShowTimer = saved.dropTrackerShowTimer;
+        dropTrackerShowHourlyProfit = saved.dropTrackerShowHourlyProfit;
+        dropTrackerCompactNumbers = saved.dropTrackerCompactNumbers;
         dropTrackerOverlayX = saved.dropTrackerOverlayX;
         dropTrackerOverlayY = saved.dropTrackerOverlayY;
         expTrackerEnabled = saved.expTrackerEnabled;
@@ -341,6 +350,10 @@ public final class HaConfig {
         root.addProperty("chestSearchScanCode", chestSearchScanCode);
         root.addProperty("dropTrackerEnabled", dropTrackerEnabled);
         root.addProperty("dropTrackerMode", dropTrackerMode);
+        root.addProperty("dropTrackerElapsedSeconds", dropTrackerElapsedSeconds);
+        root.addProperty("dropTrackerShowTimer", dropTrackerShowTimer);
+        root.addProperty("dropTrackerShowHourlyProfit", dropTrackerShowHourlyProfit);
+        root.addProperty("dropTrackerCompactNumbers", dropTrackerCompactNumbers);
         root.addProperty("dropTrackerOverlayX", dropTrackerOverlayX);
         root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
         root.addProperty("expTrackerEnabled", expTrackerEnabled);
@@ -609,6 +622,10 @@ public final class HaConfig {
         int chestSearchScanCode = -1;
         boolean dropTrackerEnabled = false;
         String dropTrackerMode = HaDropTracker.MODE_ALL;
+        long dropTrackerElapsedSeconds = 0L;
+        boolean dropTrackerShowTimer = false;
+        boolean dropTrackerShowHourlyProfit = false;
+        boolean dropTrackerCompactNumbers = false;
         int dropTrackerOverlayX = 8;
         int dropTrackerOverlayY = 72;
         boolean expTrackerEnabled = false;

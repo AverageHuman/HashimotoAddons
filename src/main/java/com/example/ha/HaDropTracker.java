@@ -41,13 +41,18 @@ public final class HaDropTracker {
     private static final List<DropEntry> ENTRIES = new ArrayList<DropEntry>();
     private static final List<RegisteredItem> REGISTERED_ITEMS = new ArrayList<RegisteredItem>();
     private static boolean loaded;
+    private static boolean activeSession;
+    private static long cachedProfitPerHour;
+    private static long lastRateUpdateMillis;
+    private static long tickAccumulatorMillis;
+    private static long lastTickMillis;
 
     private HaDropTracker() {
     }
 
     public static void onItemPickup(ItemPickupAnimationS2CPacket packet) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.world == null || !HaConfig.get().dropTrackerEnabled) {
+        if (client == null || client.player == null || client.world == null || !HaConfig.get().dropTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
             return;
         }
         if (!client.isOnThread()) {
@@ -69,6 +74,19 @@ public final class HaDropTracker {
 
         int amount = Math.max(1, packet.getStackAmount());
         add(stack, amount);
+        updateHourlyProfit(HaConfig.get());
+    }
+
+    public static void tick(MinecraftClient client) {
+        HaConfig config = HaConfig.get();
+        if (client == null || client.player == null || client.world == null || !config.dropTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
+            stopSession();
+            return;
+        }
+
+        startSessionIfNeeded(config);
+        tickElapsedTime(config);
+        updateHourlyProfit(config);
     }
 
     public static List<DropEntry> getEntries() {
@@ -95,9 +113,28 @@ public final class HaDropTracker {
         return total;
     }
 
+    public static long getProfitPerHour() {
+        return cachedProfitPerHour;
+    }
+
+    public static long getElapsedSeconds() {
+        return HaConfig.get().dropTrackerElapsedSeconds;
+    }
+
+    public static boolean isActiveSession() {
+        return activeSession;
+    }
+
     public static void clear() {
         load();
         ENTRIES.clear();
+        HaConfig config = HaConfig.get();
+        config.dropTrackerElapsedSeconds = 0L;
+        tickAccumulatorMillis = 0L;
+        lastTickMillis = activeSession ? System.currentTimeMillis() : 0L;
+        cachedProfitPerHour = 0L;
+        lastRateUpdateMillis = 0L;
+        config.save();
         save();
     }
 
@@ -499,6 +536,56 @@ public final class HaDropTracker {
 
     private static String emptyToFallback(String value, String fallback) {
         return value == null || value.isEmpty() ? fallback : value;
+    }
+
+    private static void startSessionIfNeeded(HaConfig config) {
+        if (activeSession) {
+            return;
+        }
+        activeSession = true;
+        lastTickMillis = System.currentTimeMillis();
+        tickAccumulatorMillis = 0L;
+        lastRateUpdateMillis = 0L;
+        updateHourlyProfit(config);
+    }
+
+    private static void stopSession() {
+        if (!activeSession) {
+            return;
+        }
+        activeSession = false;
+        lastTickMillis = 0L;
+        tickAccumulatorMillis = 0L;
+        lastRateUpdateMillis = 0L;
+    }
+
+    private static void tickElapsedTime(HaConfig config) {
+        long now = System.currentTimeMillis();
+        if (lastTickMillis <= 0L) {
+            lastTickMillis = now;
+            return;
+        }
+
+        long elapsedMillis = Math.max(0L, now - lastTickMillis);
+        lastTickMillis = now;
+        tickAccumulatorMillis += elapsedMillis;
+        if (tickAccumulatorMillis >= 1000L) {
+            long seconds = tickAccumulatorMillis / 1000L;
+            tickAccumulatorMillis %= 1000L;
+            config.dropTrackerElapsedSeconds += seconds;
+            config.save();
+        }
+    }
+
+    private static void updateHourlyProfit(HaConfig config) {
+        long now = System.currentTimeMillis();
+        if (now - lastRateUpdateMillis < 1000L) {
+            return;
+        }
+        lastRateUpdateMillis = now;
+        long elapsedSeconds = config.dropTrackerElapsedSeconds;
+        long profit = getEstimatedProfit();
+        cachedProfitPerHour = elapsedSeconds <= 0L ? 0L : Math.round(profit * 3600.0D / elapsedSeconds);
     }
 
     private static final class SavedDropTracker {

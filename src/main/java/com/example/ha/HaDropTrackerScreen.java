@@ -11,6 +11,9 @@ public final class HaDropTrackerScreen extends Screen {
 
     private final Screen parent;
     private ButtonWidget modeButton;
+    private ButtonWidget timerButton;
+    private ButtonWidget hourlyProfitButton;
+    private ButtonWidget compactNumbersButton;
 
     public HaDropTrackerScreen(Screen parent) {
         super(TITLE);
@@ -48,7 +51,25 @@ public final class HaDropTrackerScreen extends Screen {
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 188, 210, 20, new LiteralText("Reset Counts"), button -> {
+        timerButton = addButton(new ButtonWidget(centerX - 105, top + 128, 210, 20, new LiteralText(""), button -> {
+            config.dropTrackerShowTimer = !config.dropTrackerShowTimer;
+            config.save();
+            refreshButtons();
+        }));
+
+        hourlyProfitButton = addButton(new ButtonWidget(centerX - 105, top + 152, 210, 20, new LiteralText(""), button -> {
+            config.dropTrackerShowHourlyProfit = !config.dropTrackerShowHourlyProfit;
+            config.save();
+            refreshButtons();
+        }));
+
+        compactNumbersButton = addButton(new ButtonWidget(centerX - 105, top + 176, 210, 20, new LiteralText(""), button -> {
+            config.dropTrackerCompactNumbers = !config.dropTrackerCompactNumbers;
+            config.save();
+            refreshButtons();
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, top + 200, 210, 20, new LiteralText("Reset Counts"), button -> {
             HaDropTracker.clear();
         }));
 
@@ -61,9 +82,8 @@ public final class HaDropTrackerScreen extends Screen {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 14, 0xFFFFFF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Picked up items are saved to JSON and kept across sessions."), this.width / 2, 28, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText(HaDropTracker.getModeDescription(HaConfig.get().dropTrackerMode)), this.width / 2, 180, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Registered items: " + HaDropTracker.getRegisteredItemCount()), this.width / 2, 194, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Add current held item: /ha tracker add [price]"), this.width / 2, 208, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText(HaDropTracker.getModeDescription(HaConfig.get().dropTrackerMode)), this.width / 2, 232, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Registered items: " + HaDropTracker.getRegisteredItemCount()), this.width / 2, 246, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -79,6 +99,10 @@ public final class HaDropTrackerScreen extends Screen {
     }
 
     private void refreshButtons() {
-        modeButton.setMessage(new LiteralText("Tracking Mode: " + HaDropTracker.getModeLabel(HaConfig.get().dropTrackerMode)));
+        HaConfig config = HaConfig.get();
+        modeButton.setMessage(new LiteralText("Tracking Mode: " + HaDropTracker.getModeLabel(config.dropTrackerMode)));
+        timerButton.setMessage(new LiteralText("Show Timer: " + onOff(config.dropTrackerShowTimer)));
+        hourlyProfitButton.setMessage(new LiteralText("Show Profit/hour: " + onOff(config.dropTrackerShowHourlyProfit)));
+        compactNumbersButton.setMessage(new LiteralText("Compact Profit: " + onOff(config.dropTrackerCompactNumbers)));
     }
 }
