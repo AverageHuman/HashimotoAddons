@@ -71,16 +71,18 @@ public final class HaDropTrackerOverlay {
         MinecraftClient client = MinecraftClient.getInstance();
         int rows = Math.max(1, Math.min(MAX_VISIBLE_ITEMS, entries.size()));
         int width = getPanelWidth(client);
-        int height = 14 + rows * 20 + 18;
+        int height = getPanelHeight();
+        int footerTop = y + 16 + rows * 20 + 4;
         DrawableHelper.fill(matrices, x, y, x + width, y + height, 0x90000000);
         DrawableHelper.fill(matrices, x, y, x + width, y + 1, 0xFF70E000);
         client.textRenderer.drawWithShadow(matrices, "Drop Tracker", x + 5, y + 4, 0xFFFFFF);
         int statusColor = HaDropTracker.isActiveSession() ? 0x55FF55 : 0xFF5555;
-        client.textRenderer.drawWithShadow(matrices, "Status: " + statusText(), x + 5, y + height - getFooterHeight() + 2, statusColor);
+        DrawableHelper.fill(matrices, x + 4, footerTop - 3, x + width - 4, footerTop - 2, 0x55333333);
+        client.textRenderer.drawWithShadow(matrices, "Status: " + statusText(), x + 5, footerTop, statusColor);
 
         if (entries.isEmpty()) {
             client.textRenderer.drawWithShadow(matrices, "No drops", x + 5, y + 21, 0xA0A0A0);
-            drawFooter(matrices, x, y + height - getFooterHeight() + 14, preview);
+            drawFooter(matrices, x, footerTop + 12, preview);
             return;
         }
 
@@ -93,7 +95,7 @@ public final class HaDropTrackerOverlay {
             client.textRenderer.drawWithShadow(matrices, entry.displayName, x + 26, rowY + 2, preview ? 0xD8FFE0 : 0xFFFFFF);
             client.textRenderer.drawWithShadow(matrices, "x" + entry.count, x + 26, rowY + 11, preview ? 0xD8FFE0 : 0xFFFFFF);
         }
-        drawFooter(matrices, x, y + height - getFooterHeight() + 14, preview);
+        drawFooter(matrices, x, footerTop + 12, preview);
     }
 
     private static void drawFooter(MatrixStack matrices, int x, int y, boolean preview) {
