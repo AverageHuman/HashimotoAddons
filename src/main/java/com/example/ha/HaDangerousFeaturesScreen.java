@@ -55,10 +55,10 @@ public final class HaDangerousFeaturesScreen extends Screen {
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, y + 96, 210, 20, new LiteralText("Ghost Wall Edit Mode: " + onOff(config.ghostWallEditMode)), button -> {
-            config.ghostWallEditMode = !config.ghostWallEditMode;
-            config.save();
-            button.setMessage(new LiteralText("Ghost Wall Edit Mode: " + onOff(config.ghostWallEditMode)));
+        addButton(new ButtonWidget(centerX - 105, y + 96, 210, 20, new LiteralText("Extras"), button -> {
+            if (client != null) {
+                client.openScreen(new HaExtrasScreen(this));
+            }
         }));
 
         addButton(new ButtonWidget(centerX - 105, y + 120, 210, 20, new LiteralText("Auto Heal"), button -> {

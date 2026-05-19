@@ -11,14 +11,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class MinecraftClientGhostWallMixin {
     @Inject(method = "doItemUse", at = @At("HEAD"), cancellable = true)
     private void ha$placeGhostWall(CallbackInfo ci) {
-        if (HaGhostWall.tryPlaceFromUse((MinecraftClient) (Object) this)) {
+        if (HaGhostWall.tryUse((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
     }
 
     @Inject(method = "doAttack", at = @At("HEAD"), cancellable = true)
     private void ha$breakGhostWall(CallbackInfo ci) {
-        if (HaGhostWall.tryBreakFromAttack((MinecraftClient) (Object) this)) {
+        if (HaGhostWall.tryAttack((MinecraftClient) (Object) this)) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "handleBlockBreaking", at = @At("HEAD"), cancellable = true)
+    private void ha$holdBreakGhostWall(boolean breaking, CallbackInfo ci) {
+        if (breaking && HaGhostWall.shouldCancelBlockBreaking((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
     }

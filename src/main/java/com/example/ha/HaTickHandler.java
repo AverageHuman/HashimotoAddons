@@ -328,6 +328,9 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaConfigScreen
             || client.currentScreen instanceof HaDangerousFeaturesScreen
             || client.currentScreen instanceof HaMacroStatusOverlayScreen
+            || client.currentScreen instanceof HaExtrasScreen
+            || client.currentScreen instanceof HaBlockGalleryScreen
+            || client.currentScreen instanceof HaExtrasOverlayScreen
             || client.currentScreen instanceof HaAutoHealScreen
             || client.currentScreen instanceof HaMacroListScreen
             || client.currentScreen instanceof HaMacroEditScreen

@@ -16,6 +16,9 @@ public final class HaHudVisibility {
         return screen instanceof HaConfigScreen
             || screen instanceof HaDangerousFeaturesScreen
             || screen instanceof HaMacroStatusOverlayScreen
+            || screen instanceof HaExtrasScreen
+            || screen instanceof HaBlockGalleryScreen
+            || screen instanceof HaExtrasOverlayScreen
             || screen instanceof HaAutoHealScreen
             || screen instanceof HaMacroListScreen
             || screen instanceof HaMacroEditScreen

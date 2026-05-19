@@ -41,7 +41,13 @@ public final class HaConfig {
     public boolean macroStatusHudEnabled = false;
     public int macroStatusHudX = 8;
     public int macroStatusHudY = 8;
+    public boolean extrasEnabled = true;
     public boolean ghostWallEditMode = false;
+    public boolean extrasHudEnabled = false;
+    public int extrasHudX = 8;
+    public int extrasHudY = 24;
+    public String selectedGhostBlockId = "minecraft:glass";
+    public final List<String> favoriteGhostBlockIds = new ArrayList<String>();
     public int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
     public int cameraToggleScanCode = -1;
     public int defaultWeaponHotbarSlot = 0;
@@ -85,6 +91,7 @@ public final class HaConfig {
                 chatFilterEntries.remove(i);
             }
         }
+        normalizeGhostBlockSettings();
 
         autoHealHotbarSlot = clamp(autoHealHotbarSlot, 0, 8);
         defaultWeaponHotbarSlot = clamp(defaultWeaponHotbarSlot, 0, 8);
@@ -229,7 +236,16 @@ public final class HaConfig {
             macroStatusHudEnabled = saved.macroStatusHudEnabled;
             macroStatusHudX = saved.macroStatusHudX;
             macroStatusHudY = saved.macroStatusHudY;
+            extrasEnabled = saved.extrasEnabled;
             ghostWallEditMode = saved.ghostWallEditMode;
+            extrasHudEnabled = saved.extrasHudEnabled;
+            extrasHudX = saved.extrasHudX;
+            extrasHudY = saved.extrasHudY;
+            selectedGhostBlockId = saved.selectedGhostBlockId;
+            favoriteGhostBlockIds.clear();
+            if (saved.favoriteGhostBlockIds != null) {
+                favoriteGhostBlockIds.addAll(saved.favoriteGhostBlockIds);
+            }
             defaultWeaponHotbarSlot = saved.defaultWeaponHotbarSlot;
             chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
             chunkChestOverlayX = saved.chunkChestOverlayX;
@@ -326,7 +342,13 @@ public final class HaConfig {
             root.addProperty("macroStatusHudEnabled", macroStatusHudEnabled);
             root.addProperty("macroStatusHudX", macroStatusHudX);
             root.addProperty("macroStatusHudY", macroStatusHudY);
+            root.addProperty("extrasEnabled", extrasEnabled);
             root.addProperty("ghostWallEditMode", ghostWallEditMode);
+            root.addProperty("extrasHudEnabled", extrasHudEnabled);
+            root.addProperty("extrasHudX", extrasHudX);
+            root.addProperty("extrasHudY", extrasHudY);
+            root.addProperty("selectedGhostBlockId", selectedGhostBlockId);
+            root.add("favoriteGhostBlockIds", GSON.toJsonTree(new ArrayList<String>(favoriteGhostBlockIds)));
             root.addProperty("defaultWeaponHotbarSlot", defaultWeaponHotbarSlot);
             root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
             root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
@@ -402,7 +424,13 @@ public final class HaConfig {
         macroStatusHudEnabled = false;
         macroStatusHudX = 8;
         macroStatusHudY = 8;
+        extrasEnabled = false;
         ghostWallEditMode = false;
+        extrasHudEnabled = false;
+        extrasHudX = 8;
+        extrasHudY = 24;
+        selectedGhostBlockId = "minecraft:glass";
+        favoriteGhostBlockIds.clear();
         defaultWeaponHotbarSlot = 0;
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
@@ -417,6 +445,32 @@ public final class HaConfig {
             return max;
         }
         return value;
+    }
+
+    private void normalizeGhostBlockSettings() {
+        if (selectedGhostBlockId == null || selectedGhostBlockId.trim().isEmpty()) {
+            selectedGhostBlockId = "minecraft:glass";
+        } else {
+            selectedGhostBlockId = selectedGhostBlockId.trim();
+        }
+        extrasHudX = Math.max(0, extrasHudX);
+        extrasHudY = Math.max(0, extrasHudY);
+
+        Set<String> seen = new HashSet<String>();
+        for (int i = favoriteGhostBlockIds.size() - 1; i >= 0; i--) {
+            String id = favoriteGhostBlockIds.get(i);
+            if (id == null || id.trim().isEmpty()) {
+                favoriteGhostBlockIds.remove(i);
+                continue;
+            }
+            id = id.trim();
+            if (seen.contains(id)) {
+                favoriteGhostBlockIds.remove(i);
+            } else {
+                favoriteGhostBlockIds.set(i, id);
+                seen.add(id);
+            }
+        }
     }
 
     public static final class SwapEntry {
@@ -509,7 +563,13 @@ public final class HaConfig {
         boolean macroStatusHudEnabled = false;
         int macroStatusHudX = 8;
         int macroStatusHudY = 8;
+        boolean extrasEnabled = true;
         boolean ghostWallEditMode = false;
+        boolean extrasHudEnabled = false;
+        int extrasHudX = 8;
+        int extrasHudY = 24;
+        String selectedGhostBlockId = "minecraft:glass";
+        List<String> favoriteGhostBlockIds = new ArrayList<String>();
         int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
         int cameraToggleScanCode = -1;
         int defaultWeaponHotbarSlot = 0;

@@ -30,6 +30,7 @@ public final class HaClientMod implements ClientModInitializer {
         registerCommand();
         ClientTickEvents.END_CLIENT_TICK.register(tickHandler::onEndClientTick);
         HudRenderCallback.EVENT.register(HaMacroStatusOverlay::render);
+        HudRenderCallback.EVENT.register(HaExtrasOverlay::render);
         HudRenderCallback.EVENT.register(HaChunkChestOverlay::render);
         HudRenderCallback.EVENT.register(HaDropTrackerOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaChestSearchOverlay::render);
@@ -47,7 +48,39 @@ public final class HaClientMod implements ClientModInitializer {
                     .then(ClientCommandManager.argument("price", LongArgumentType.longArg(0L))
                         .executes(context -> registerHeldTrackerItem(LongArgumentType.getLong(context, "price"))))));
 
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            command.then(ClientCommandManager.literal("extras")
+                .executes(context -> toggleExtras()));
+            command.then(ClientCommandManager.literal("em")
+                .executes(context -> toggleEditMode()));
+            command.then(ClientCommandManager.literal("bg")
+                .executes(context -> openBlockGallery()));
+        }
+
         ClientCommandManager.DISPATCHER.register(command);
+    }
+
+    private int toggleExtras() {
+        HaConfig config = HaConfig.get();
+        HaGhostWall.setExtrasEnabled(!config.extrasEnabled);
+        sendMessage("Extras Visibility " + (HaConfig.get().extrasEnabled ? "\u00a7aEnabled" : "\u00a7cDisabled"));
+        return 1;
+    }
+
+    private int toggleEditMode() {
+        HaConfig config = HaConfig.get();
+        config.ghostWallEditMode = !config.ghostWallEditMode;
+        config.save();
+        sendMessage("Edit Mode " + (config.ghostWallEditMode ? "\u00a7aEnabled" : "\u00a7cDisabled"));
+        return 1;
+    }
+
+    private int openBlockGallery() {
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        if (client != null) {
+            client.execute(() -> client.openScreen(new HaBlockGalleryScreen(null, 0)));
+        }
+        return 1;
     }
 
     private int registerHeldTrackerItem(long price) {
@@ -55,21 +88,21 @@ public final class HaClientMod implements ClientModInitializer {
             ? ItemStack.EMPTY
             : net.minecraft.client.MinecraftClient.getInstance().player.getMainHandStack();
         if (stack.isEmpty()) {
-            sendTrackerMessage("\u00a7cHold an item in your main hand before using /ha tracker add.");
+            sendMessage("\u00a7cHold an item in your main hand before using /ha tracker add.");
             return 0;
         }
 
         HaDropTracker.RegisteredItem item = HaDropTracker.registerHeldItem(price);
         if (item == null) {
-            sendTrackerMessage("\u00a7cCould not register the held item.");
+            sendMessage("\u00a7cCould not register the held item.");
             return 0;
         }
 
-        sendTrackerMessage("Registered " + item.displayName + " for " + item.unitPrice + " Intercoins.");
+        sendMessage("Registered " + item.displayName + " for " + item.unitPrice + " Intercoins.");
         return 1;
     }
 
-    private void sendTrackerMessage(String message) {
+    private void sendMessage(String message) {
         net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
         if (client != null && client.player != null) {
             client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:" + message), false);
