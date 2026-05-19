@@ -60,16 +60,20 @@ public final class HaGhostWall {
             return false;
         }
 
-        BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
+        BlockHitResult hit = (BlockHitResult) client.crosshairTarget;
+        BlockPos pos = hit.getBlockPos();
         GhostBlock existing = find(client, pos);
-        if (existing == null) {
-            return false;
+        if (existing != null) {
+            existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
+            applyGhostBlock(client, existing, false);
+            save();
+            return true;
         }
 
-        existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
-        applyGhostBlock(client, existing, false);
-        save();
-        return true;
+        if (client.player == null || !client.player.isSneaking()) {
+            return false;
+        }
+        return addAirPlacement(client, pos.offset(hit.getSide()));
     }
 
     public static boolean tryAttack(MinecraftClient client) {
@@ -265,6 +269,32 @@ public final class HaGhostWall {
             pos.getZ(),
             Block.getRawIdFromState(originalState),
             Block.getRawIdFromState(Blocks.BARRIER.getDefaultState())
+        );
+        BLOCKS.add(block);
+        applyGhostBlock(client, block, false);
+        save();
+        return true;
+    }
+
+    private static boolean addAirPlacement(MinecraftClient client, BlockPos pos) {
+        load();
+        if (client.world == null || pos == null || find(client, pos) != null) {
+            return false;
+        }
+
+        BlockState originalState = client.world.getBlockState(pos);
+        if (originalState == null || !originalState.isAir()) {
+            return false;
+        }
+
+        GhostBlock block = new GhostBlock(
+            getWorldKey(client),
+            getDimensionKey(client),
+            pos.getX(),
+            pos.getY(),
+            pos.getZ(),
+            Block.getRawIdFromState(Blocks.AIR.getDefaultState()),
+            Block.getRawIdFromState(getSelectedBlock().getDefaultState())
         );
         BLOCKS.add(block);
         applyGhostBlock(client, block, false);
