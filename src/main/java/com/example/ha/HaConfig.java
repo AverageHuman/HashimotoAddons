@@ -66,6 +66,7 @@ public final class HaConfig {
     public int dropTrackerOverlayY = 72;
     public boolean expTrackerEnabled = false;
     public long expTrackerTotal = 0L;
+    public long expTrackerElapsedSeconds = 0L;
     public boolean expTrackerShowTimer = false;
     public boolean expTrackerShowHourlyRate = false;
     public int expTrackerOverlayX = 8;
@@ -116,6 +117,7 @@ public final class HaConfig {
         dropTrackerOverlayX = Math.max(0, dropTrackerOverlayX);
         dropTrackerOverlayY = Math.max(0, dropTrackerOverlayY);
         expTrackerTotal = Math.max(0L, expTrackerTotal);
+        expTrackerElapsedSeconds = Math.max(0L, expTrackerElapsedSeconds);
         expTrackerOverlayX = Math.max(0, expTrackerOverlayX);
         expTrackerOverlayY = Math.max(0, expTrackerOverlayY);
         if (lockedSlotIds == null) {
@@ -233,6 +235,7 @@ public final class HaConfig {
         dropTrackerOverlayY = saved.dropTrackerOverlayY;
         expTrackerEnabled = saved.expTrackerEnabled;
         expTrackerTotal = saved.expTrackerTotal;
+        expTrackerElapsedSeconds = saved.expTrackerElapsedSeconds;
         expTrackerShowTimer = saved.expTrackerShowTimer;
         expTrackerShowHourlyRate = saved.expTrackerShowHourlyRate;
         expTrackerOverlayX = saved.expTrackerOverlayX;
@@ -342,6 +345,7 @@ public final class HaConfig {
         root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
         root.addProperty("expTrackerEnabled", expTrackerEnabled);
         root.addProperty("expTrackerTotal", expTrackerTotal);
+        root.addProperty("expTrackerElapsedSeconds", expTrackerElapsedSeconds);
         root.addProperty("expTrackerShowTimer", expTrackerShowTimer);
         root.addProperty("expTrackerShowHourlyRate", expTrackerShowHourlyRate);
         root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
@@ -609,6 +613,7 @@ public final class HaConfig {
         int dropTrackerOverlayY = 72;
         boolean expTrackerEnabled = false;
         long expTrackerTotal = 0L;
+        long expTrackerElapsedSeconds = 0L;
         boolean expTrackerShowTimer = false;
         boolean expTrackerShowHourlyRate = false;
         int expTrackerOverlayX = 8;

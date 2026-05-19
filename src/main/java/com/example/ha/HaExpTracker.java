@@ -16,10 +16,10 @@ public final class HaExpTracker {
     private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_ENTITIES = new HashMap<String, Integer>();
     private static boolean activeSession;
-    private static long sessionStartMillis;
-    private static long sessionStartTotal;
     private static long cachedExpPerHour;
     private static long lastRateUpdateMillis;
+    private static long tickAccumulatorMillis;
+    private static long lastTickMillis;
 
     private HaExpTracker() {
     }
@@ -33,6 +33,7 @@ public final class HaExpTracker {
         }
 
         startSessionIfNeeded(config);
+        tickElapsedTime(config);
         updateHourlyRate(config);
 
         for (Entity entity : client.world.getEntities()) {
@@ -61,12 +62,11 @@ public final class HaExpTracker {
     public static void clear() {
         HaConfig config = HaConfig.get();
         config.expTrackerTotal = 0L;
-        if (activeSession) {
-            sessionStartTotal = 0L;
-            sessionStartMillis = System.currentTimeMillis();
-            cachedExpPerHour = 0L;
-            lastRateUpdateMillis = 0L;
-        }
+        config.expTrackerElapsedSeconds = 0L;
+        tickAccumulatorMillis = 0L;
+        lastTickMillis = activeSession ? System.currentTimeMillis() : 0L;
+        cachedExpPerHour = 0L;
+        lastRateUpdateMillis = 0L;
         config.save();
         SEEN_ENTITIES.clear();
     }
@@ -76,10 +76,7 @@ public final class HaExpTracker {
     }
 
     public static long getElapsedSeconds() {
-        if (!activeSession || sessionStartMillis <= 0L) {
-            return 0L;
-        }
-        return Math.max(0L, (System.currentTimeMillis() - sessionStartMillis) / 1000L);
+        return HaConfig.get().expTrackerElapsedSeconds;
     }
 
     public static long getExpPerHour() {
@@ -146,10 +143,10 @@ public final class HaExpTracker {
             return;
         }
         activeSession = true;
-        sessionStartMillis = System.currentTimeMillis();
-        sessionStartTotal = config.expTrackerTotal;
-        cachedExpPerHour = 0L;
+        lastTickMillis = System.currentTimeMillis();
+        tickAccumulatorMillis = 0L;
         lastRateUpdateMillis = 0L;
+        updateHourlyRate(config);
         SEEN_ENTITIES.clear();
     }
 
@@ -158,11 +155,28 @@ public final class HaExpTracker {
             return;
         }
         activeSession = false;
-        sessionStartMillis = 0L;
-        sessionStartTotal = 0L;
-        cachedExpPerHour = 0L;
+        lastTickMillis = 0L;
+        tickAccumulatorMillis = 0L;
         lastRateUpdateMillis = 0L;
         SEEN_ENTITIES.clear();
+    }
+
+    private static void tickElapsedTime(HaConfig config) {
+        long now = System.currentTimeMillis();
+        if (lastTickMillis <= 0L) {
+            lastTickMillis = now;
+            return;
+        }
+
+        long elapsedMillis = Math.max(0L, now - lastTickMillis);
+        lastTickMillis = now;
+        tickAccumulatorMillis += elapsedMillis;
+        if (tickAccumulatorMillis >= 1000L) {
+            long seconds = tickAccumulatorMillis / 1000L;
+            tickAccumulatorMillis %= 1000L;
+            config.expTrackerElapsedSeconds += seconds;
+            config.save();
+        }
     }
 
     private static void updateHourlyRate(HaConfig config) {
@@ -171,8 +185,8 @@ public final class HaExpTracker {
             return;
         }
         lastRateUpdateMillis = now;
-        long elapsedSeconds = getElapsedSeconds();
-        long gained = Math.max(0L, config.expTrackerTotal - sessionStartTotal);
+        long elapsedSeconds = config.expTrackerElapsedSeconds;
+        long gained = Math.max(0L, config.expTrackerTotal);
         cachedExpPerHour = elapsedSeconds <= 0L ? 0L : Math.round(gained * 3600.0D / elapsedSeconds);
     }
 }
