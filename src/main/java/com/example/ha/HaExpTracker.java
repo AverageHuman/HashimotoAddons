@@ -13,7 +13,7 @@ import net.minecraft.util.Formatting;
 public final class HaExpTracker {
     private static final double TRACKING_DISTANCE_SQUARED = 20.0D * 20.0D;
     private static final int SEEN_TTL_TICKS = 20 * 30;
-    private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*XP\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_ENTITIES = new HashMap<String, Integer>();
 
     private HaExpTracker() {
