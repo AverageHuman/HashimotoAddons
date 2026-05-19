@@ -19,12 +19,16 @@ public final class HaClientMod implements ClientModInitializer {
     private static KeyBinding macroToggleKeyBinding;
     private static KeyBinding cameraToggleKeyBinding;
     private static KeyBinding chestSearchKeyBinding;
-    private final HaTickHandler tickHandler = new HaTickHandler(getOrCreateMacroToggleKeyBinding(), getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding());
+    private HaTickHandler tickHandler;
 
     @Override
     public void onInitializeClient() {
         HaConfig.get().load();
-        updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
+        KeyBinding macroBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateMacroToggleKeyBinding() : null;
+        tickHandler = new HaTickHandler(macroBinding, getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding());
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
+        }
         updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
         updateChestSearchBinding(HaConfig.get().getChestSearchKey());
         registerCommand();
@@ -76,10 +80,7 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int openBlockGallery() {
-        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
-        if (client != null) {
-            client.execute(() -> client.openScreen(new HaBlockGalleryScreen(null, 0)));
-        }
+        tickHandler.requestOpenBlockGalleryScreen();
         return 1;
     }
 
@@ -110,6 +111,9 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     public static void updateMacroToggleBinding(InputUtil.Key key) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return;
+        }
         getOrCreateMacroToggleKeyBinding().setBoundKey(key);
         KeyBinding.updateKeysByCode();
     }

@@ -1,5 +1,6 @@
 package com.example.ha;
 
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -61,6 +62,8 @@ public final class HaExtrasScreen extends Screen {
             }
         }));
 
+        addButton(new ButtonWidget(centerX - 105, top + 120, 210, 20, new LiteralText("\u00a7cClear All Ghost Blocks"), button -> openClearAllConfirmation()));
+
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
         refreshButtons();
     }
@@ -86,6 +89,17 @@ public final class HaExtrasScreen extends Screen {
         editModeButton.setMessage(new LiteralText("Edit Mode: " + enabledLabel(config.ghostWallEditMode)));
         blockGalleryButton.setMessage(new LiteralText("Select Ghost Block: " + HaGhostWall.getSelectedBlockName()));
         hudButton.setMessage(new LiteralText("Extras HUD: " + enabledLabel(config.extrasHudEnabled)));
+    }
+
+    private void openClearAllConfirmation() {
+        if (client != null) {
+            client.openScreen(new ConfirmScreen(result -> {
+                if (result) {
+                    HaGhostWall.clearAll();
+                }
+                client.openScreen(new HaExtrasScreen(parent));
+            }, new LiteralText("Clear All Ghost Blocks?"), new LiteralText("All saved ghost blocks will be restored and deleted."), new LiteralText("\u00a7cClear All"), new LiteralText("\u00a7aCancel")));
+        }
     }
 
     static String enabledLabel(boolean value) {

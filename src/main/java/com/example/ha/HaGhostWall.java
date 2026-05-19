@@ -142,6 +142,18 @@ public final class HaGhostWall {
         }
     }
 
+    public static void clearAll() {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return;
+        }
+
+        load();
+        MinecraftClient client = MinecraftClient.getInstance();
+        restoreCurrentWorld(client);
+        BLOCKS.clear();
+        save();
+    }
+
     public static Block getSelectedBlock() {
         HaConfig config = HaConfig.get();
         config.normalize();

@@ -29,6 +29,7 @@ public final class HaTickHandler {
     private static final int TICKS_PER_SECOND = 20;
     private static final Pattern MANA_FRACTION_PATTERN = Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*/\\s*([0-9]+(?:\\.[0-9]+)?)");
     private boolean openConfigScreenRequested;
+    private boolean openBlockGalleryScreenRequested;
     private int healCooldownTicks;
     private final KeyBinding macroToggleKeyBinding;
     private final KeyBinding cameraToggleKeyBinding;
@@ -45,6 +46,10 @@ public final class HaTickHandler {
 
     public void requestOpenConfigScreen() {
         openConfigScreenRequested = true;
+    }
+
+    public void requestOpenBlockGalleryScreen() {
+        openBlockGalleryScreenRequested = true;
     }
 
     public void onEndClientTick(MinecraftClient client) {
@@ -68,6 +73,11 @@ public final class HaTickHandler {
             client.openScreen(new HaConfigScreen(null));
             return;
         }
+        if (openBlockGalleryScreenRequested && client.currentScreen == null) {
+            openBlockGalleryScreenRequested = false;
+            client.openScreen(new HaBlockGalleryScreen(null, 0));
+            return;
+        }
 
         if (client.currentScreen != null) {
             return;
@@ -87,6 +97,9 @@ public final class HaTickHandler {
     }
 
     private void tickMacroToggle(MinecraftClient client, HaConfig config) {
+        if (macroToggleKeyBinding == null) {
+            return;
+        }
         if (isMacroToggleBlocked(client)) {
             while (macroToggleKeyBinding.wasPressed()) {
                 // Consume presses while the player is in inventory or HashimotoAddons screens.
