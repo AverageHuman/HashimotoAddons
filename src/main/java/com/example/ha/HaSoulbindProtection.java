@@ -69,6 +69,10 @@ public final class HaSoulbindProtection {
         reset();
     }
 
+    public static boolean isSoulbound() {
+        return soulbound;
+    }
+
     private static boolean shouldBlockDisconnect(MinecraftClient client) {
         return client != null
             && client.world != null

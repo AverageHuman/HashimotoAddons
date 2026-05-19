@@ -15,6 +15,11 @@ public final class HaExpTracker {
     private static final int SEEN_TTL_TICKS = 20 * 30;
     private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_ENTITIES = new HashMap<String, Integer>();
+    private static boolean activeSession;
+    private static long sessionStartMillis;
+    private static long sessionStartTotal;
+    private static long cachedExpPerHour;
+    private static long lastRateUpdateMillis;
 
     private HaExpTracker() {
     }
@@ -22,9 +27,13 @@ public final class HaExpTracker {
     public static void tick(MinecraftClient client) {
         tickSeenCache();
         HaConfig config = HaConfig.get();
-        if (client == null || client.player == null || client.world == null || !config.expTrackerEnabled) {
+        if (client == null || client.player == null || client.world == null || !config.expTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
+            stopSession();
             return;
         }
+
+        startSessionIfNeeded(config);
+        updateHourlyRate(config);
 
         for (Entity entity : client.world.getEntities()) {
             if (entity == null || entity == client.player || entity.squaredDistanceTo(client.player) > TRACKING_DISTANCE_SQUARED) {
@@ -43,6 +52,7 @@ public final class HaExpTracker {
             }
 
             config.expTrackerTotal += exp;
+            updateHourlyRate(config);
             config.save();
             SEEN_ENTITIES.put(key, SEEN_TTL_TICKS);
         }
@@ -51,8 +61,29 @@ public final class HaExpTracker {
     public static void clear() {
         HaConfig config = HaConfig.get();
         config.expTrackerTotal = 0L;
+        if (activeSession) {
+            sessionStartTotal = 0L;
+            sessionStartMillis = System.currentTimeMillis();
+            cachedExpPerHour = 0L;
+            lastRateUpdateMillis = 0L;
+        }
         config.save();
         SEEN_ENTITIES.clear();
+    }
+
+    public static boolean isActiveSession() {
+        return activeSession;
+    }
+
+    public static long getElapsedSeconds() {
+        if (!activeSession || sessionStartMillis <= 0L) {
+            return 0L;
+        }
+        return Math.max(0L, (System.currentTimeMillis() - sessionStartMillis) / 1000L);
+    }
+
+    public static long getExpPerHour() {
+        return cachedExpPerHour;
     }
 
     static long parseXp(String value) {
@@ -108,5 +139,40 @@ public final class HaExpTracker {
                 entry.setValue(nextTtl);
             }
         }
+    }
+
+    private static void startSessionIfNeeded(HaConfig config) {
+        if (activeSession) {
+            return;
+        }
+        activeSession = true;
+        sessionStartMillis = System.currentTimeMillis();
+        sessionStartTotal = config.expTrackerTotal;
+        cachedExpPerHour = 0L;
+        lastRateUpdateMillis = 0L;
+        SEEN_ENTITIES.clear();
+    }
+
+    private static void stopSession() {
+        if (!activeSession) {
+            return;
+        }
+        activeSession = false;
+        sessionStartMillis = 0L;
+        sessionStartTotal = 0L;
+        cachedExpPerHour = 0L;
+        lastRateUpdateMillis = 0L;
+        SEEN_ENTITIES.clear();
+    }
+
+    private static void updateHourlyRate(HaConfig config) {
+        long now = System.currentTimeMillis();
+        if (now - lastRateUpdateMillis < 1000L) {
+            return;
+        }
+        lastRateUpdateMillis = now;
+        long elapsedSeconds = getElapsedSeconds();
+        long gained = Math.max(0L, config.expTrackerTotal - sessionStartTotal);
+        cachedExpPerHour = elapsedSeconds <= 0L ? 0L : Math.round(gained * 3600.0D / elapsedSeconds);
     }
 }

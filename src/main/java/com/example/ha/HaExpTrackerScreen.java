@@ -10,6 +10,8 @@ public final class HaExpTrackerScreen extends Screen {
     private static final Text TITLE = new LiteralText("Exp Tracker");
 
     private final Screen parent;
+    private ButtonWidget timerButton;
+    private ButtonWidget hourlyRateButton;
 
     public HaExpTrackerScreen(Screen parent) {
         super(TITLE);
@@ -35,16 +37,29 @@ public final class HaExpTrackerScreen extends Screen {
             }
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 64, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
+        timerButton = addButton(new ButtonWidget(centerX - 105, top + 64, 210, 20, new LiteralText(""), button -> {
+            config.expTrackerShowTimer = !config.expTrackerShowTimer;
+            config.save();
+            refreshButtons();
+        }));
+
+        hourlyRateButton = addButton(new ButtonWidget(centerX - 105, top + 96, 210, 20, new LiteralText(""), button -> {
+            config.expTrackerShowHourlyRate = !config.expTrackerShowHourlyRate;
+            config.save();
+            refreshButtons();
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, top + 128, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
+        refreshButtons();
     }
 
     @Override
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 14, 0xFFFFFF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +XP name tags within 20 blocks."), this.width / 2, 30, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Total XP: " + HaExpTrackerOverlay.formatNumber(HaConfig.get().expTrackerTotal)), this.width / 2, 150, 0xFFD166);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +EXP name tags only while soulbound."), this.width / 2, 30, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Total XP: " + HaExpTrackerOverlay.formatNumber(HaConfig.get().expTrackerTotal)), this.width / 2, 190, 0xFFD166);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -57,5 +72,11 @@ public final class HaExpTrackerScreen extends Screen {
 
     private static String onOff(boolean value) {
         return value ? "ON" : "OFF";
+    }
+
+    private void refreshButtons() {
+        HaConfig config = HaConfig.get();
+        timerButton.setMessage(new LiteralText("Show Timer: " + onOff(config.expTrackerShowTimer)));
+        hourlyRateButton.setMessage(new LiteralText("Show EXP/hour: " + onOff(config.expTrackerShowHourlyRate)));
     }
 }
