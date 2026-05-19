@@ -32,6 +32,7 @@ public final class HaGhostWall {
     private static final List<GhostBlock> BLOCKS = new ArrayList<GhostBlock>();
     private static boolean loaded;
     private static int applyCooldownTicks;
+    private static boolean useActionConsumedUntilRelease;
 
     private HaGhostWall() {
     }
@@ -42,6 +43,7 @@ public final class HaGhostWall {
         }
 
         load();
+        tickUseClickGate(client);
         if (applyCooldownTicks > 0) {
             applyCooldownTicks--;
             return;
@@ -59,25 +61,34 @@ public final class HaGhostWall {
         if (!canEdit(client) || client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.BLOCK) {
             return false;
         }
+        if (useActionConsumedUntilRelease) {
+            return true;
+        }
 
         BlockHitResult hit = (BlockHitResult) client.crosshairTarget;
         BlockPos pos = hit.getBlockPos();
         GhostBlock existing = find(client, pos);
         if (existing != null) {
             if (client.player != null && client.player.isSneaking() && addAirPlacement(client, pos.offset(hit.getSide()))) {
+                useActionConsumedUntilRelease = true;
                 return true;
             }
 
             existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
             applyGhostBlock(client, existing, false);
             save();
+            useActionConsumedUntilRelease = true;
             return true;
         }
 
         if (client.player == null || !client.player.isSneaking()) {
             return false;
         }
-        return addAirPlacement(client, pos.offset(hit.getSide()));
+        if (addAirPlacement(client, pos.offset(hit.getSide()))) {
+            useActionConsumedUntilRelease = true;
+            return true;
+        }
+        return false;
     }
 
     public static boolean tryAttack(MinecraftClient client) {
@@ -252,6 +263,12 @@ public final class HaGhostWall {
             && client.player != null
             && HaConfig.get().extrasEnabled
             && HaConfig.get().ghostWallEditMode;
+    }
+
+    private static void tickUseClickGate(MinecraftClient client) {
+        if (client == null || client.options == null || !client.options.keyUse.isPressed()) {
+            useActionConsumedUntilRelease = false;
+        }
     }
 
     private static boolean addBarrierReplacement(MinecraftClient client, BlockPos pos) {
