@@ -73,6 +73,7 @@ public final class HaConfig {
     public long expTrackerElapsedSeconds = 0L;
     public boolean expTrackerShowTimer = false;
     public boolean expTrackerShowHourlyRate = false;
+    public boolean expTrackerCompactNumbers = false;
     public int expTrackerOverlayX = 8;
     public int expTrackerOverlayY = 104;
     public boolean chatFilterEnabled = false;
@@ -247,6 +248,7 @@ public final class HaConfig {
         expTrackerElapsedSeconds = saved.expTrackerElapsedSeconds;
         expTrackerShowTimer = saved.expTrackerShowTimer;
         expTrackerShowHourlyRate = saved.expTrackerShowHourlyRate;
+        expTrackerCompactNumbers = saved.expTrackerCompactNumbers;
         expTrackerOverlayX = saved.expTrackerOverlayX;
         expTrackerOverlayY = saved.expTrackerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
@@ -361,6 +363,7 @@ public final class HaConfig {
         root.addProperty("expTrackerElapsedSeconds", expTrackerElapsedSeconds);
         root.addProperty("expTrackerShowTimer", expTrackerShowTimer);
         root.addProperty("expTrackerShowHourlyRate", expTrackerShowHourlyRate);
+        root.addProperty("expTrackerCompactNumbers", expTrackerCompactNumbers);
         root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
         root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
@@ -633,6 +636,7 @@ public final class HaConfig {
         long expTrackerElapsedSeconds = 0L;
         boolean expTrackerShowTimer = false;
         boolean expTrackerShowHourlyRate = false;
+        boolean expTrackerCompactNumbers = false;
         int expTrackerOverlayX = 8;
         int expTrackerOverlayY = 104;
         boolean chatFilterEnabled = false;

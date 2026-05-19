@@ -1,5 +1,6 @@
 package com.example.ha;
 
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
 import net.minecraft.client.MinecraftClient;
@@ -7,6 +8,8 @@ import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.util.math.MatrixStack;
 
 public final class HaExpTrackerOverlay {
+    private static final DecimalFormat COMPACT_FORMAT = new DecimalFormat("0.#");
+
     private HaExpTrackerOverlay() {
     }
 
@@ -28,12 +31,12 @@ public final class HaExpTrackerOverlay {
     public static int getPanelWidth(MinecraftClient client) {
         HaConfig config = HaConfig.get();
         int width = Math.max(116, 16 + client.textRenderer.getWidth("Status: " + statusText()));
-        width = Math.max(width, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotal)));
+        width = Math.max(width, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotal, config.expTrackerCompactNumbers)));
         if (config.expTrackerShowTimer) {
             width = Math.max(width, 16 + client.textRenderer.getWidth("Timer: " + formatDuration(HaExpTracker.getElapsedSeconds())));
         }
         if (config.expTrackerShowHourlyRate) {
-            width = Math.max(width, 16 + client.textRenderer.getWidth("EXP/hour: " + formatNumber(HaExpTracker.getExpPerHour())));
+            width = Math.max(width, 16 + client.textRenderer.getWidth("EXP/hour: " + formatNumber(HaExpTracker.getExpPerHour(), config.expTrackerCompactNumbers)));
         }
         return width;
     }
@@ -52,6 +55,23 @@ public final class HaExpTrackerOverlay {
 
     public static String formatNumber(long value) {
         return NumberFormat.getIntegerInstance(Locale.US).format(Math.max(0L, value));
+    }
+
+    public static String formatNumber(long value, boolean compact) {
+        long safeValue = Math.max(0L, value);
+        if (!compact) {
+            return NumberFormat.getIntegerInstance(Locale.US).format(safeValue);
+        }
+        if (safeValue >= 1000000000L) {
+            return COMPACT_FORMAT.format(safeValue / 1000000000.0D) + "b";
+        }
+        if (safeValue >= 1000000L) {
+            return COMPACT_FORMAT.format(safeValue / 1000000.0D) + "m";
+        }
+        if (safeValue >= 1000L) {
+            return COMPACT_FORMAT.format(safeValue / 1000.0D) + "k";
+        }
+        return Long.toString(safeValue);
     }
 
     public static String formatDuration(long seconds) {
@@ -77,7 +97,7 @@ public final class HaExpTrackerOverlay {
         int statusColor = HaExpTracker.isActiveSession() ? 0x55FF55 : 0xFF5555;
         client.textRenderer.drawWithShadow(matrices, "Status: " + statusText(), x + 5, rowY, statusColor);
         rowY += 14;
-        client.textRenderer.drawWithShadow(matrices, "Total XP: " + formatNumber(total), x + 5, rowY, 0xFFD166);
+        client.textRenderer.drawWithShadow(matrices, "Total XP: " + formatNumber(total, config.expTrackerCompactNumbers), x + 5, rowY, 0xFFD166);
         rowY += 14;
         if (config.expTrackerShowTimer) {
             long elapsedSeconds = preview ? 3723L : HaExpTracker.getElapsedSeconds();
@@ -86,7 +106,7 @@ public final class HaExpTrackerOverlay {
         }
         if (config.expTrackerShowHourlyRate) {
             long rate = preview ? 123456L : HaExpTracker.getExpPerHour();
-            client.textRenderer.drawWithShadow(matrices, "EXP/hour: " + formatNumber(rate), x + 5, rowY, 0x55FF55);
+            client.textRenderer.drawWithShadow(matrices, "EXP/hour: " + formatNumber(rate, config.expTrackerCompactNumbers), x + 5, rowY, 0x55FF55);
         }
     }
 

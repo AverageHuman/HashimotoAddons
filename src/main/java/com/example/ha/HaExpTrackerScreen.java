@@ -12,6 +12,7 @@ public final class HaExpTrackerScreen extends Screen {
     private final Screen parent;
     private ButtonWidget timerButton;
     private ButtonWidget hourlyRateButton;
+    private ButtonWidget compactNumbersButton;
 
     public HaExpTrackerScreen(Screen parent) {
         super(TITLE);
@@ -49,7 +50,13 @@ public final class HaExpTrackerScreen extends Screen {
             refreshButtons();
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 128, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
+        compactNumbersButton = addButton(new ButtonWidget(centerX - 105, top + 128, 210, 20, new LiteralText(""), button -> {
+            config.expTrackerCompactNumbers = !config.expTrackerCompactNumbers;
+            config.save();
+            refreshButtons();
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, top + 160, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
         refreshButtons();
     }
@@ -59,7 +66,7 @@ public final class HaExpTrackerScreen extends Screen {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 14, 0xFFFFFF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +EXP name tags only while soulbound."), this.width / 2, 30, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Total XP: " + HaExpTrackerOverlay.formatNumber(HaConfig.get().expTrackerTotal)), this.width / 2, 190, 0xFFD166);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Total XP: " + HaExpTrackerOverlay.formatNumber(HaConfig.get().expTrackerTotal, HaConfig.get().expTrackerCompactNumbers)), this.width / 2, 222, 0xFFD166);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -78,5 +85,6 @@ public final class HaExpTrackerScreen extends Screen {
         HaConfig config = HaConfig.get();
         timerButton.setMessage(new LiteralText("Show Timer: " + onOff(config.expTrackerShowTimer)));
         hourlyRateButton.setMessage(new LiteralText("Show EXP/hour: " + onOff(config.expTrackerShowHourlyRate)));
+        compactNumbersButton.setMessage(new LiteralText("Compact XP: " + onOff(config.expTrackerCompactNumbers)));
     }
 }
