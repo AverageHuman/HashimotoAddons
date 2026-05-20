@@ -70,7 +70,7 @@ public final class HaGhostWall {
         BlockPos pos = hit.getBlockPos();
         GhostBlock existing = find(client, pos);
         if (existing != null) {
-            if (client.player != null && client.player.isSneaking() && addAirPlacement(client, pos.offset(hit.getSide()))) {
+            if (client.player != null && client.player.isSneaking() && addReplaceablePlacement(client, pos.offset(hit.getSide()))) {
                 useActionConsumedUntilRelease = true;
                 return true;
             }
@@ -86,7 +86,7 @@ public final class HaGhostWall {
         if (client.player == null || !client.player.isSneaking()) {
             return false;
         }
-        if (addAirPlacement(client, pos.offset(hit.getSide()))) {
+        if (addReplaceablePlacement(client, pos.offset(hit.getSide()))) {
             useActionConsumedUntilRelease = true;
             return true;
         }
@@ -312,14 +312,14 @@ public final class HaGhostWall {
         return true;
     }
 
-    private static boolean addAirPlacement(MinecraftClient client, BlockPos pos) {
+    private static boolean addReplaceablePlacement(MinecraftClient client, BlockPos pos) {
         load();
         if (client.world == null || pos == null || find(client, pos) != null) {
             return false;
         }
 
         BlockState originalState = client.world.getBlockState(pos);
-        if (originalState == null || !originalState.isAir()) {
+        if (originalState == null || !isReplaceablePlacementState(originalState)) {
             return false;
         }
 
@@ -337,6 +337,10 @@ public final class HaGhostWall {
         refreshManagedNeighbors(client, pos);
         save();
         return true;
+    }
+
+    private static boolean isReplaceablePlacementState(BlockState state) {
+        return state.isAir() || !state.getFluidState().isEmpty();
     }
 
     private static boolean remove(MinecraftClient client, BlockPos pos) {
