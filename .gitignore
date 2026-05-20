@@ -16,3 +16,6 @@ Thumbs.db
 # Runtime logs and temporary files
 *.log
 *.tmp
+
+# Local handoff notes
+session_notes_*.md

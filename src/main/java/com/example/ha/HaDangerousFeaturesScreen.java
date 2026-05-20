@@ -10,13 +10,21 @@ import org.lwjgl.glfw.GLFW;
 
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
+    private static final int ITEMS_PER_PAGE = 7;
+    private static final int TOTAL_ITEMS = 9;
 
     private final Screen parent;
+    private final int page;
     private boolean waitingForMacroToggleKey;
 
     public HaDangerousFeaturesScreen(Screen parent) {
+        this(parent, 0);
+    }
+
+    private HaDangerousFeaturesScreen(Screen parent, int page) {
         super(TITLE);
         this.parent = parent;
+        this.page = Math.max(0, page);
     }
 
     @Override
@@ -30,56 +38,103 @@ public final class HaDangerousFeaturesScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int y = this.height / 4;
+        int top = 44;
+        int maxPage = Math.max(0, (TOTAL_ITEMS - 1) / ITEMS_PER_PAGE);
+        int currentPage = Math.min(page, maxPage);
+        int start = currentPage * ITEMS_PER_PAGE;
+        int end = Math.min(start + ITEMS_PER_PAGE, TOTAL_ITEMS);
 
-        addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(waitingForMacroToggleKey ? "Press any key..." : "Change Macro Toggle Key"), button -> {
-            waitingForMacroToggleKey = true;
-            button.setMessage(new LiteralText("Press any key..."));
-        }));
+        int y = top;
+        for (int i = start; i < end; i++) {
+            addMenuItem(i, centerX, y, config);
+            y += 24;
+        }
 
-        addButton(new ButtonWidget(centerX - 105, y + 24, 210, 20, new LiteralText("Default Weapon Position: " + slotName(config.defaultWeaponHotbarSlot)), button -> {
-            config.defaultWeaponHotbarSlot = nextSlot(config.defaultWeaponHotbarSlot);
-            config.save();
-            button.setMessage(new LiteralText("Default Weapon Position: " + slotName(config.defaultWeaponHotbarSlot)));
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 48, 210, 20, new LiteralText("Macro Status HUD: " + onOff(config.macroStatusHudEnabled)), button -> {
-            config.macroStatusHudEnabled = !config.macroStatusHudEnabled;
-            config.save();
-            button.setMessage(new LiteralText("Macro Status HUD: " + onOff(config.macroStatusHudEnabled)));
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 72, 210, 20, new LiteralText("Adjust Macro Status HUD"), button -> {
-            if (client != null) {
-                client.openScreen(new HaMacroStatusOverlayScreen(this));
-            }
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 96, 210, 20, new LiteralText("Extras"), button -> {
-            if (client != null) {
-                client.openScreen(new HaExtrasScreen(this));
-            }
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 120, 210, 20, new LiteralText("Auto Heal"), button -> {
-            if (client != null) {
-                client.openScreen(new HaAutoHealScreen(this));
-            }
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 144, 210, 20, new LiteralText("Item Macro"), button -> {
-            if (client != null) {
-                client.openScreen(new HaMacroListScreen(this, 0));
-            }
-        }));
-
-        addButton(new ButtonWidget(centerX - 105, y + 168, 210, 20, new LiteralText("Chunk Containers"), button -> {
-            if (client != null) {
-                client.openScreen(new HaChunkChestScreen(this));
-            }
-        }));
+        if (currentPage > 0) {
+            addButton(new ButtonWidget(centerX - 105, this.height - 54, 100, 20, new LiteralText("< Back"), button -> {
+                if (client != null) {
+                    client.openScreen(new HaDangerousFeaturesScreen(parent, currentPage - 1));
+                }
+            }));
+        }
+        if (currentPage < maxPage) {
+            addButton(new ButtonWidget(centerX + 5, this.height - 54, 100, 20, new LiteralText("Next >"), button -> {
+                if (client != null) {
+                    client.openScreen(new HaDangerousFeaturesScreen(parent, currentPage + 1));
+                }
+            }));
+        }
 
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
+    }
+
+    private void addMenuItem(int index, int centerX, int y, HaConfig config) {
+        switch (index) {
+            case 0:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(waitingForMacroToggleKey ? "Press any key..." : "Change Macro Toggle Key"), button -> {
+                    waitingForMacroToggleKey = true;
+                    button.setMessage(new LiteralText("Press any key..."));
+                }));
+                break;
+            case 1:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Default Weapon Position: " + slotName(config.defaultWeaponHotbarSlot)), button -> {
+                    config.defaultWeaponHotbarSlot = nextSlot(config.defaultWeaponHotbarSlot);
+                    config.save();
+                    button.setMessage(new LiteralText("Default Weapon Position: " + slotName(config.defaultWeaponHotbarSlot)));
+                }));
+                break;
+            case 2:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Macro Status HUD: " + onOff(config.macroStatusHudEnabled)), button -> {
+                    config.macroStatusHudEnabled = !config.macroStatusHudEnabled;
+                    config.save();
+                    button.setMessage(new LiteralText("Macro Status HUD: " + onOff(config.macroStatusHudEnabled)));
+                }));
+                break;
+            case 3:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Adjust Macro Status HUD"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaMacroStatusOverlayScreen(this));
+                    }
+                }));
+                break;
+            case 4:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Extras"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaExtrasScreen(this));
+                    }
+                }));
+                break;
+            case 5:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Auto Heal"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaAutoHealScreen(this));
+                    }
+                }));
+                break;
+            case 6:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Item Macro"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaMacroListScreen(this, 0));
+                    }
+                }));
+                break;
+            case 7:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Chunk Containers"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaChunkChestScreen(this));
+                    }
+                }));
+                break;
+            case 8:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob ESP"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaMobEspScreen(this));
+                    }
+                }));
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
@@ -102,7 +157,7 @@ public final class HaDangerousFeaturesScreen extends Screen {
             }
             waitingForMacroToggleKey = false;
             if (client != null) {
-                client.openScreen(new HaDangerousFeaturesScreen(parent));
+                client.openScreen(new HaDangerousFeaturesScreen(parent, page));
             }
             return true;
         }

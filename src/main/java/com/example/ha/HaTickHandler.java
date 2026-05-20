@@ -364,7 +364,8 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaDropTrackerRegisteredEditScreen
             || client.currentScreen instanceof HaDropTrackerOverlayScreen
             || client.currentScreen instanceof HaExpTrackerScreen
-            || client.currentScreen instanceof HaExpTrackerOverlayScreen;
+            || client.currentScreen instanceof HaExpTrackerOverlayScreen
+            || client.currentScreen instanceof HaMobEspScreen;
     }
 
     private boolean isCameraToggleBlocked(MinecraftClient client) {

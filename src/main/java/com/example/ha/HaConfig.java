@@ -56,6 +56,8 @@ public final class HaConfig {
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
     public int chunkChestOverlayY = 40;
+    public boolean mobEspEnabled = false;
+    public String mobEspTargetName = "";
     public boolean chestSearchEnabled = false;
     public String chestSearchQuery = "";
     public int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
@@ -66,6 +68,7 @@ public final class HaConfig {
     public boolean dropTrackerShowTimer = false;
     public boolean dropTrackerShowHourlyProfit = false;
     public boolean dropTrackerCompactNumbers = false;
+    public boolean dropTrackerContinueAfterStart = false;
     public int dropTrackerOverlayX = 8;
     public int dropTrackerOverlayY = 72;
     public boolean expTrackerEnabled = false;
@@ -74,6 +77,7 @@ public final class HaConfig {
     public boolean expTrackerShowTimer = false;
     public boolean expTrackerShowHourlyRate = false;
     public boolean expTrackerCompactNumbers = false;
+    public boolean expTrackerContinueAfterStart = false;
     public int expTrackerOverlayX = 8;
     public int expTrackerOverlayY = 104;
     public boolean chatFilterEnabled = false;
@@ -113,6 +117,11 @@ public final class HaConfig {
         autoHealHealthRatioThreshold = (float) clamp(autoHealHealthRatioThreshold, 0.05D, 1.0D);
         chunkChestOverlayX = Math.max(0, chunkChestOverlayX);
         chunkChestOverlayY = Math.max(0, chunkChestOverlayY);
+        if (mobEspTargetName == null) {
+            mobEspTargetName = "";
+        } else {
+            mobEspTargetName = mobEspTargetName.trim();
+        }
         if (chestSearchQuery == null) {
             chestSearchQuery = "";
         } else {
@@ -241,6 +250,7 @@ public final class HaConfig {
         dropTrackerShowTimer = saved.dropTrackerShowTimer;
         dropTrackerShowHourlyProfit = saved.dropTrackerShowHourlyProfit;
         dropTrackerCompactNumbers = saved.dropTrackerCompactNumbers;
+        dropTrackerContinueAfterStart = saved.dropTrackerContinueAfterStart;
         dropTrackerOverlayX = saved.dropTrackerOverlayX;
         dropTrackerOverlayY = saved.dropTrackerOverlayY;
         expTrackerEnabled = saved.expTrackerEnabled;
@@ -249,6 +259,7 @@ public final class HaConfig {
         expTrackerShowTimer = saved.expTrackerShowTimer;
         expTrackerShowHourlyRate = saved.expTrackerShowHourlyRate;
         expTrackerCompactNumbers = saved.expTrackerCompactNumbers;
+        expTrackerContinueAfterStart = saved.expTrackerContinueAfterStart;
         expTrackerOverlayX = saved.expTrackerOverlayX;
         expTrackerOverlayY = saved.expTrackerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
@@ -279,6 +290,8 @@ public final class HaConfig {
             chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
             chunkChestOverlayX = saved.chunkChestOverlayX;
             chunkChestOverlayY = saved.chunkChestOverlayY;
+            mobEspEnabled = saved.mobEspEnabled;
+            mobEspTargetName = saved.mobEspTargetName;
 
             if (saved.swapEntries != null) {
                 for (SavedSwapEntry savedEntry : saved.swapEntries) {
@@ -356,6 +369,7 @@ public final class HaConfig {
         root.addProperty("dropTrackerShowTimer", dropTrackerShowTimer);
         root.addProperty("dropTrackerShowHourlyProfit", dropTrackerShowHourlyProfit);
         root.addProperty("dropTrackerCompactNumbers", dropTrackerCompactNumbers);
+        root.addProperty("dropTrackerContinueAfterStart", dropTrackerContinueAfterStart);
         root.addProperty("dropTrackerOverlayX", dropTrackerOverlayX);
         root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
         root.addProperty("expTrackerEnabled", expTrackerEnabled);
@@ -364,6 +378,7 @@ public final class HaConfig {
         root.addProperty("expTrackerShowTimer", expTrackerShowTimer);
         root.addProperty("expTrackerShowHourlyRate", expTrackerShowHourlyRate);
         root.addProperty("expTrackerCompactNumbers", expTrackerCompactNumbers);
+        root.addProperty("expTrackerContinueAfterStart", expTrackerContinueAfterStart);
         root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
         root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
@@ -394,6 +409,8 @@ public final class HaConfig {
             root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
             root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
             root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
+            root.addProperty("mobEspEnabled", mobEspEnabled);
+            root.addProperty("mobEspTargetName", mobEspTargetName);
             root.add("swapEntries", GSON.toJsonTree(toSavedSwapEntries()));
         }
 
@@ -476,6 +493,8 @@ public final class HaConfig {
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
         chunkChestOverlayY = 40;
+        mobEspEnabled = false;
+        mobEspTargetName = "";
     }
 
     private static int clamp(int value, int min, int max) {
@@ -619,6 +638,8 @@ public final class HaConfig {
         boolean chunkChestCounterEnabled = false;
         int chunkChestOverlayX = 8;
         int chunkChestOverlayY = 40;
+        boolean mobEspEnabled = false;
+        String mobEspTargetName = "";
         boolean chestSearchEnabled = false;
         String chestSearchQuery = "";
         int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
@@ -629,6 +650,7 @@ public final class HaConfig {
         boolean dropTrackerShowTimer = false;
         boolean dropTrackerShowHourlyProfit = false;
         boolean dropTrackerCompactNumbers = false;
+        boolean dropTrackerContinueAfterStart = false;
         int dropTrackerOverlayX = 8;
         int dropTrackerOverlayY = 72;
         boolean expTrackerEnabled = false;
@@ -637,6 +659,7 @@ public final class HaConfig {
         boolean expTrackerShowTimer = false;
         boolean expTrackerShowHourlyRate = false;
         boolean expTrackerCompactNumbers = false;
+        boolean expTrackerContinueAfterStart = false;
         int expTrackerOverlayX = 8;
         int expTrackerOverlayY = 104;
         boolean chatFilterEnabled = false;

@@ -52,7 +52,7 @@ public final class HaDropTracker {
 
     public static void onItemPickup(ItemPickupAnimationS2CPacket packet) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.world == null || !HaConfig.get().dropTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
+        if (client == null || client.player == null || client.world == null || !isTrackingAllowed(HaConfig.get())) {
             return;
         }
         if (!client.isOnThread()) {
@@ -79,7 +79,7 @@ public final class HaDropTracker {
 
     public static void tick(MinecraftClient client) {
         HaConfig config = HaConfig.get();
-        if (client == null || client.player == null || client.world == null || !config.dropTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
+        if (client == null || client.player == null || client.world == null || !isTrackingAllowed(config)) {
             stopSession();
             return;
         }
@@ -123,6 +123,14 @@ public final class HaDropTracker {
 
     public static boolean isActiveSession() {
         return activeSession;
+    }
+
+    public static boolean isTrackingAllowed(HaConfig config) {
+        if (!config.dropTrackerEnabled) {
+            return false;
+        }
+        return HaSoulbindProtection.isSoulbound()
+            || (config.dropTrackerContinueAfterStart && (activeSession || config.dropTrackerElapsedSeconds > 0L));
     }
 
     public static void clear() {

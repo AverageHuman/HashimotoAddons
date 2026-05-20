@@ -11,6 +11,7 @@ public final class HaExpTrackerScreen extends Screen {
 
     private final Screen parent;
     private ButtonWidget timerButton;
+    private ButtonWidget continueAfterStartButton;
     private ButtonWidget hourlyRateButton;
     private ButtonWidget compactNumbersButton;
 
@@ -25,38 +26,45 @@ public final class HaExpTrackerScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 48;
+        int top = 36;
+        int spacing = 24;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Exp Tracker: " + onOff(config.expTrackerEnabled)), button -> {
             config.expTrackerEnabled = !config.expTrackerEnabled;
             config.save();
             button.setMessage(new LiteralText("Exp Tracker: " + onOff(config.expTrackerEnabled)));
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 32, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
+        addButton(new ButtonWidget(centerX - 105, top + spacing, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
             if (client != null) {
                 client.openScreen(new HaExpTrackerOverlayScreen(this));
             }
         }));
 
-        timerButton = addButton(new ButtonWidget(centerX - 105, top + 64, 210, 20, new LiteralText(""), button -> {
+        timerButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 2, 210, 20, new LiteralText(""), button -> {
             config.expTrackerShowTimer = !config.expTrackerShowTimer;
             config.save();
             refreshButtons();
         }));
 
-        hourlyRateButton = addButton(new ButtonWidget(centerX - 105, top + 96, 210, 20, new LiteralText(""), button -> {
+        continueAfterStartButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 3, 210, 20, new LiteralText(""), button -> {
+            config.expTrackerContinueAfterStart = !config.expTrackerContinueAfterStart;
+            config.save();
+            refreshButtons();
+        }));
+
+        hourlyRateButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 4, 210, 20, new LiteralText(""), button -> {
             config.expTrackerShowHourlyRate = !config.expTrackerShowHourlyRate;
             config.save();
             refreshButtons();
         }));
 
-        compactNumbersButton = addButton(new ButtonWidget(centerX - 105, top + 128, 210, 20, new LiteralText(""), button -> {
+        compactNumbersButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 5, 210, 20, new LiteralText(""), button -> {
             config.expTrackerCompactNumbers = !config.expTrackerCompactNumbers;
             config.save();
             refreshButtons();
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 160, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
+        addButton(new ButtonWidget(centerX - 105, top + spacing * 6, 210, 20, new LiteralText("Reset Total"), button -> HaExpTracker.clear()));
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
         refreshButtons();
     }
@@ -65,7 +73,7 @@ public final class HaExpTrackerScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 14, 0xFFFFFF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +EXP name tags only while soulbound."), this.width / 2, 30, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Tracks +EXP name tags while active."), this.width / 2, 30, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -83,6 +91,7 @@ public final class HaExpTrackerScreen extends Screen {
     private void refreshButtons() {
         HaConfig config = HaConfig.get();
         timerButton.setMessage(new LiteralText("Show Timer: " + onOff(config.expTrackerShowTimer)));
+        continueAfterStartButton.setMessage(new LiteralText("Auto Stop: " + onOff(!config.expTrackerContinueAfterStart)));
         hourlyRateButton.setMessage(new LiteralText("Show EXP/hour: " + onOff(config.expTrackerShowHourlyRate)));
         compactNumbersButton.setMessage(new LiteralText("Compact XP: " + onOff(config.expTrackerCompactNumbers)));
     }

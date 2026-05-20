@@ -27,7 +27,7 @@ public final class HaExpTracker {
     public static void tick(MinecraftClient client) {
         tickSeenCache();
         HaConfig config = HaConfig.get();
-        if (client == null || client.player == null || client.world == null || !config.expTrackerEnabled || !HaSoulbindProtection.isSoulbound()) {
+        if (client == null || client.player == null || client.world == null || !isTrackingAllowed(config)) {
             stopSession();
             return;
         }
@@ -81,6 +81,14 @@ public final class HaExpTracker {
 
     public static long getExpPerHour() {
         return cachedExpPerHour;
+    }
+
+    public static boolean isTrackingAllowed(HaConfig config) {
+        if (!config.expTrackerEnabled) {
+            return false;
+        }
+        return HaSoulbindProtection.isSoulbound()
+            || (config.expTrackerContinueAfterStart && (activeSession || config.expTrackerElapsedSeconds > 0L));
     }
 
     static long parseXp(String value) {

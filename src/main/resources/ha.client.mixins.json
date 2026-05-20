@@ -9,6 +9,7 @@
     "KeyBindingAccessor",
     "MinecraftClientGhostWallMixin",
     "MinecraftClientDisconnectMixin",
+    "ScreenButtonTooltipMixin",
     "SlotAccessor",
     "HandledScreenAccessor",
     "HandledScreenMixin",
