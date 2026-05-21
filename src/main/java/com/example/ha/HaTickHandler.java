@@ -30,6 +30,7 @@ public final class HaTickHandler {
     private static final Pattern MANA_FRACTION_PATTERN = Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*/\\s*([0-9]+(?:\\.[0-9]+)?)");
     private boolean openConfigScreenRequested;
     private boolean openBlockGalleryScreenRequested;
+    private boolean openHudEditScreenRequested;
     private int healCooldownTicks;
     private final KeyBinding macroToggleKeyBinding;
     private final KeyBinding cameraToggleKeyBinding;
@@ -50,6 +51,10 @@ public final class HaTickHandler {
 
     public void requestOpenBlockGalleryScreen() {
         openBlockGalleryScreenRequested = true;
+    }
+
+    public void requestOpenHudEditScreen() {
+        openHudEditScreenRequested = true;
     }
 
     public void onEndClientTick(MinecraftClient client) {
@@ -79,6 +84,11 @@ public final class HaTickHandler {
         if (openBlockGalleryScreenRequested && client.currentScreen == null) {
             openBlockGalleryScreenRequested = false;
             client.openScreen(new HaBlockGalleryScreen(null, 0));
+            return;
+        }
+        if (openHudEditScreenRequested && client.currentScreen == null) {
+            openHudEditScreenRequested = false;
+            client.openScreen(new HaHudEditScreen(null));
             return;
         }
 
@@ -342,6 +352,7 @@ public final class HaTickHandler {
     private boolean isMacroToggleBlocked(MinecraftClient client) {
         return client.currentScreen instanceof HandledScreen
             || client.currentScreen instanceof HaConfigScreen
+            || client.currentScreen instanceof HaHudEditScreen
             || client.currentScreen instanceof HaDangerousFeaturesScreen
             || client.currentScreen instanceof HaMacroStatusOverlayScreen
             || client.currentScreen instanceof HaExtrasScreen

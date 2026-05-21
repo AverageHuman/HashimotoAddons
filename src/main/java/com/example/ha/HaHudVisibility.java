@@ -14,6 +14,7 @@ public final class HaHudVisibility {
 
         Screen screen = client.currentScreen;
         return screen instanceof HaConfigScreen
+            || screen instanceof HaHudEditScreen
             || screen instanceof HaDangerousFeaturesScreen
             || screen instanceof HaMacroStatusOverlayScreen
             || screen instanceof HaExtrasScreen

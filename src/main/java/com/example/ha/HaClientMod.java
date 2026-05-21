@@ -49,6 +49,8 @@ public final class HaClientMod implements ClientModInitializer {
                 tickHandler.requestOpenConfigScreen();
                 return 1;
             })
+            .then(ClientCommandManager.literal("edithud")
+                .executes(context -> openHudEditor()))
             .then(ClientCommandManager.literal("tracker")
                 .then(ClientCommandManager.literal("add")
                     .executes(context -> registerHeldTrackerItem(0L))
@@ -84,6 +86,11 @@ public final class HaClientMod implements ClientModInitializer {
 
     private int openBlockGallery() {
         tickHandler.requestOpenBlockGalleryScreen();
+        return 1;
+    }
+
+    private int openHudEditor() {
+        tickHandler.requestOpenHudEditScreen();
         return 1;
     }
 
