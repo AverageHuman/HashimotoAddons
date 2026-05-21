@@ -43,8 +43,8 @@ public final class HaEvolutionForgeHelper {
     private static final String MARKER = "Evo?: Yes";
     private static final Pattern LEADING_MARKERS = Pattern.compile("^[\\s\\u2715\\u2716\\u00d7xX*\\-:\\uFF1A\\u30FB]+");
     private static final Pattern LEADING_COUNT = Pattern.compile("^[0-9]+\\s+");
-    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s*.+)$");
-    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s*.+)$");
+    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(.*)$");
+    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(.*)$");
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
     private static boolean loaded;
     private static boolean scanningForgeTooltips;
@@ -242,7 +242,7 @@ public final class HaEvolutionForgeHelper {
         String valueText = matcher.group(2);
         String unit = matcher.group(3);
         String suffix = matcher.group(4);
-        String statName = normalizeStatName(suffix);
+        String statName = extractStatName(prefix, suffix);
         if (statName.isEmpty()) {
             return null;
         }
@@ -288,7 +288,7 @@ public final class HaEvolutionForgeHelper {
         String separator = matcher.group(3).trim();
         String maxText = matcher.group(4);
         String unit = matcher.group(5);
-        String statName = normalizeStatName(matcher.group(6));
+        String statName = extractStatName(matcher.group(1), matcher.group(6));
         if (statName.isEmpty()) {
             return null;
         }
@@ -490,8 +490,40 @@ public final class HaEvolutionForgeHelper {
 
     private static String normalizeStatName(String value) {
         String result = normalizeDisplay(value);
-        result = LEADING_MARKERS.matcher(result).replaceFirst("");
-        return result.trim();
+        result = toAsciiDigits(result);
+        while (!result.isEmpty() && !Character.isLetterOrDigit(result.charAt(0))) {
+            result = result.substring(1).trim();
+        }
+        while (!result.isEmpty()) {
+            char last = result.charAt(result.length() - 1);
+            if (last != ':' && last != '\uff1a') {
+                break;
+            }
+            result = result.substring(0, result.length() - 1).trim();
+        }
+        return isMeaningfulStatName(result) ? result : "";
+    }
+
+    private static String extractStatName(String prefix, String suffix) {
+        String fromSuffix = normalizeStatName(suffix);
+        if (!fromSuffix.isEmpty()) {
+            return fromSuffix;
+        }
+        return normalizeStatName(prefix);
+    }
+
+    private static boolean isMeaningfulStatName(String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        boolean hasLetter = false;
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.isLetter(value.charAt(i))) {
+                hasLetter = true;
+                break;
+            }
+        }
+        return hasLetter;
     }
 
     private static String normalizeDisplay(String value) {
@@ -573,8 +605,10 @@ public final class HaEvolutionForgeHelper {
                             }
                             List<StatRange> ranges = new ArrayList<StatRange>();
                             for (StatRange range : itemRanges.ranges) {
-                                if (range != null && range.isValid()) {
+                                if (range != null) {
                                     range.normalize();
+                                }
+                                if (range != null && range.isValid()) {
                                     putRange(ranges, range);
                                 }
                             }
