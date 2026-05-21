@@ -40,6 +40,7 @@ public final class HaEvolutionForgeScreen extends Screen {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 16, 0xFFFFFF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Items: " + HaEvolutionForgeHelper.getCurrentServerItemCount()), this.width / 2, 32, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 44, 0xA0E8FF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Open each forge page once to scan recipes."), this.width / 2, 104, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
