@@ -413,7 +413,7 @@ public final class HaEvolutionForgeHelper {
         }
 
         String stackName = normalizeItemName(stack.getName().getString());
-        List<StatRange> ranges = data.statRangesByItem.get(stackName);
+        List<StatRange> ranges = findRangesForItemName(data, stackName);
         if (ranges != null) {
             return ranges;
         }
@@ -423,13 +423,38 @@ public final class HaEvolutionForgeHelper {
                 if (line == null) {
                     continue;
                 }
-                ranges = data.statRangesByItem.get(normalizeItemName(line.getString()));
+                ranges = findRangesForItemName(data, normalizeItemName(line.getString()));
                 if (ranges != null) {
                     return ranges;
                 }
             }
         }
         return new ArrayList<StatRange>();
+    }
+
+    private static List<StatRange> findRangesForItemName(EvolutionForgeData data, String itemName) {
+        if (data == null || itemName == null || itemName.isEmpty()) {
+            return null;
+        }
+
+        List<StatRange> exact = data.statRangesByItem.get(itemName);
+        if (exact != null) {
+            return exact;
+        }
+
+        List<StatRange> bestRanges = null;
+        int bestLength = 0;
+        for (Map.Entry<String, List<StatRange>> entry : data.statRangesByItem.entrySet()) {
+            String recipeName = entry.getKey();
+            if (recipeName == null || recipeName.length() < 2 || recipeName.length() <= bestLength) {
+                continue;
+            }
+            if (itemName.length() > recipeName.length() && itemName.endsWith(recipeName)) {
+                bestLength = recipeName.length();
+                bestRanges = entry.getValue();
+            }
+        }
+        return bestRanges;
     }
 
     private static EvolutionForgeData getDataForCurrentServer() {
