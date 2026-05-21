@@ -43,8 +43,8 @@ public final class HaEvolutionForgeHelper {
     private static final String MARKER = "Evo?: Yes";
     private static final Pattern LEADING_MARKERS = Pattern.compile("^[\\s\\u2715\\u2716\\u00d7xX*\\-:\\uFF1A\\u30FB]+");
     private static final Pattern LEADING_COUNT = Pattern.compile("^[0-9]+\\s+");
-    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.{0,8}?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s+.+)$");
-    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s+.+)$");
+    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s*.+)$");
+    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(\\s*.+)$");
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
     private static boolean loaded;
     private static boolean scanningForgeTooltips;
@@ -113,9 +113,7 @@ public final class HaEvolutionForgeHelper {
         int beforeItems = data.items.size();
         int beforeRanges = getStatRangeCount(data);
 
-        int containerSlots = handler.getRows() * 9;
-        int limit = Math.min(containerSlots, handler.slots.size());
-        for (int i = 0; i < limit; i++) {
+        for (int i = 0; i < handler.slots.size(); i++) {
             Slot slot = handler.slots.get(i);
             ItemStack stack = slot.getStack();
             if (stack.isEmpty()) {
@@ -459,9 +457,7 @@ public final class HaEvolutionForgeHelper {
 
     private static String createSignature(GenericContainerScreenHandler handler) {
         StringBuilder result = new StringBuilder();
-        int containerSlots = handler.getRows() * 9;
-        int limit = Math.min(containerSlots, handler.slots.size());
-        for (int i = 0; i < limit; i++) {
+        for (int i = 0; i < handler.slots.size(); i++) {
             ItemStack stack = handler.slots.get(i).getStack();
             if (!stack.isEmpty()) {
                 result.append(i).append(':').append(stack.getItem()).append(':').append(stack.getCount()).append(':').append(stack.getName().getString()).append(';');
