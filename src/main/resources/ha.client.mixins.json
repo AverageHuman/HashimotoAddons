@@ -6,6 +6,7 @@
     "ClientPlayerEntityMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameMenuScreenMixin",
+    "ItemStackTooltipMixin",
     "KeyBindingAccessor",
     "MinecraftClientGhostWallMixin",
     "MinecraftClientDisconnectMixin",

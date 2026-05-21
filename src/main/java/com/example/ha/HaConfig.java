@@ -62,6 +62,7 @@ public final class HaConfig {
     public String chestSearchQuery = "";
     public int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
     public int chestSearchScanCode = -1;
+    public boolean evolutionForgeHelperEnabled = true;
     public boolean dropTrackerEnabled = false;
     public String dropTrackerMode = HaDropTracker.MODE_ALL;
     public long dropTrackerElapsedSeconds = 0L;
@@ -244,6 +245,7 @@ public final class HaConfig {
         chestSearchQuery = saved.chestSearchQuery;
         chestSearchKeyCode = saved.chestSearchKeyCode;
         chestSearchScanCode = saved.chestSearchScanCode;
+        evolutionForgeHelperEnabled = saved.evolutionForgeHelperEnabled;
         dropTrackerEnabled = saved.dropTrackerEnabled;
         dropTrackerMode = saved.dropTrackerMode;
         dropTrackerElapsedSeconds = saved.dropTrackerElapsedSeconds;
@@ -363,6 +365,7 @@ public final class HaConfig {
         root.addProperty("chestSearchQuery", chestSearchQuery);
         root.addProperty("chestSearchKeyCode", chestSearchKeyCode);
         root.addProperty("chestSearchScanCode", chestSearchScanCode);
+        root.addProperty("evolutionForgeHelperEnabled", evolutionForgeHelperEnabled);
         root.addProperty("dropTrackerEnabled", dropTrackerEnabled);
         root.addProperty("dropTrackerMode", dropTrackerMode);
         root.addProperty("dropTrackerElapsedSeconds", dropTrackerElapsedSeconds);
@@ -644,6 +647,7 @@ public final class HaConfig {
         String chestSearchQuery = "";
         int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
         int chestSearchScanCode = -1;
+        boolean evolutionForgeHelperEnabled = true;
         boolean dropTrackerEnabled = false;
         String dropTrackerMode = HaDropTracker.MODE_ALL;
         long dropTrackerElapsedSeconds = 0L;

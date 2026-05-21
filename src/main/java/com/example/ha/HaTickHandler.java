@@ -64,6 +64,7 @@ public final class HaTickHandler {
         tickChestSearchShortcut(client);
         HaDropTracker.tick(client);
         HaChestSearchIndex.get().tick(client);
+        HaEvolutionForgeHelper.tick(client);
         HaExpTracker.tick(client);
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
@@ -354,6 +355,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaChunkChestScreen
             || client.currentScreen instanceof HaChunkChestOverlayScreen
             || client.currentScreen instanceof HaChestSearchScreen
+            || client.currentScreen instanceof HaEvolutionForgeScreen
             || client.currentScreen instanceof HaManaAlertListScreen
             || client.currentScreen instanceof HaManaAlertEditScreen
             || client.currentScreen instanceof HaChatFilterListScreen
