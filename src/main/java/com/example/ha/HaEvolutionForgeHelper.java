@@ -131,6 +131,10 @@ public final class HaEvolutionForgeHelper {
         }
     }
 
+    public static List<Text> getUnmodifiedTooltip(MinecraftClient client, ItemStack stack) {
+        return getRawTooltip(client, stack);
+    }
+
     private static List<Text> getRawTooltip(MinecraftClient client, ItemStack stack) {
         scanningForgeTooltips = true;
         try {

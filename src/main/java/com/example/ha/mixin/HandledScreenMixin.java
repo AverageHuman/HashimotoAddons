@@ -2,6 +2,7 @@ package com.example.ha.mixin;
 
 import com.example.ha.HaConfig;
 import com.example.ha.HaItemLockHelper;
+import com.example.ha.HaLoreClipboard;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.option.KeyBinding;
@@ -20,13 +21,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class HandledScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void ha$handleItemLock(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        HaConfig config = HaConfig.get();
-        if (!config.itemLockEnabled) {
+        Slot focusedSlot = ((HandledScreenAccessor) this).ha$getFocusedSlot();
+        if (focusedSlot == null) {
             return;
         }
 
-        Slot focusedSlot = ((HandledScreenAccessor) this).ha$getFocusedSlot();
-        if (focusedSlot == null) {
+        if (keyCode == GLFW.GLFW_KEY_C && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && HaLoreClipboard.copySlotTooltip(focusedSlot)) {
+            cir.setReturnValue(true);
+            return;
+        }
+
+        HaConfig config = HaConfig.get();
+        if (!config.itemLockEnabled) {
             return;
         }
 
