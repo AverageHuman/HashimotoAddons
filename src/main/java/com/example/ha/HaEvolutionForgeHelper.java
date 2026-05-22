@@ -36,6 +36,7 @@ public final class HaEvolutionForgeHelper {
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.########", DecimalFormatSymbols.getInstance(Locale.US));
     private static final Path STORAGE_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("evolution_forge_items.json");
     private static final String FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8";
+    private static final String ARMOR_FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30a2\u30fc\u30de\u30fc\u30d5\u30a9\u30fc\u30b8";
     private static final String RECIPE_PREVIEW_TITLE = "\u30ec\u30b7\u30d4\u30d7\u30ec\u30d3\u30e5\u30fc";
     private static final String CONSUME_HEADER = "\u88fd\u4f5c\u6642\u6d88\u8cbb\u30a2\u30a4\u30c6\u30e0";
     private static final String LEFT_CLICK = "\u5de6\u30af\u30ea\u30c3\u30af";
@@ -381,7 +382,7 @@ public final class HaEvolutionForgeHelper {
         }
         String title = client.currentScreen.getTitle() == null ? "" : client.currentScreen.getTitle().getString();
         String normalizedTitle = normalizeDisplay(title);
-        return normalizedTitle.contains(FORGE_TITLE) || normalizedTitle.contains(RECIPE_PREVIEW_TITLE);
+        return normalizedTitle.contains(FORGE_TITLE) || normalizedTitle.contains(ARMOR_FORGE_TITLE) || normalizedTitle.contains(RECIPE_PREVIEW_TITLE);
     }
 
     private static boolean matchesAnyTarget(String rawValue, Set<String> targets) {
