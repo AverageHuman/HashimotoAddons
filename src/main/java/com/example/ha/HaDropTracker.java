@@ -38,6 +38,7 @@ public final class HaDropTracker {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path STORAGE_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("drop_tracker.json");
+    private static final String ITEM_KEY_SEPARATOR = "\u001f";
     private static final List<DropEntry> ENTRIES = new ArrayList<DropEntry>();
     private static final List<RegisteredItem> REGISTERED_ITEMS = new ArrayList<RegisteredItem>();
     private static boolean loaded;
@@ -202,7 +203,7 @@ public final class HaDropTracker {
 
         load();
         String itemId = getItemKey(stack);
-        RegisteredItem existing = findRegisteredItem(itemId);
+        RegisteredItem existing = findRegisteredItemExact(itemId);
         String displayName = stripFormatting(stack.getName());
         if (existing != null) {
             existing.displayName = displayName;
@@ -403,8 +404,33 @@ public final class HaDropTracker {
     }
 
     private static String getItemKey(ItemStack stack) {
+        return createItemKey(getBaseItemId(stack), stripFormatting(stack.getName()));
+    }
+
+    private static String getBaseItemId(ItemStack stack) {
         Identifier id = Registry.ITEM.getId(stack.getItem());
         return id == null ? stack.getName().getString() : id.toString();
+    }
+
+    private static String createItemKey(String itemId, String plainName) {
+        String normalizedItemId = itemId == null ? "" : itemId.trim();
+        String normalizedName = normalizeDropName(plainName);
+        if (normalizedName.isEmpty()) {
+            return normalizedItemId;
+        }
+        return normalizedItemId + ITEM_KEY_SEPARATOR + normalizedName;
+    }
+
+    private static String normalizeDropName(String plainName) {
+        return plainName == null ? "" : plainName.trim();
+    }
+
+    private static String getLegacyItemKey(String key) {
+        if (key == null) {
+            return "";
+        }
+        int separator = key.indexOf(ITEM_KEY_SEPARATOR);
+        return separator < 0 ? key : key.substring(0, separator);
     }
 
     private static void load() {
@@ -466,7 +492,7 @@ public final class HaDropTracker {
         SavedDropEntry saved = new SavedDropEntry();
         saved.key = entry.key;
         Identifier id = Registry.ITEM.getId(entry.displayStack.getItem());
-        saved.itemId = id == null ? entry.key : id.toString();
+        saved.itemId = id == null ? getLegacyItemKey(entry.key) : id.toString();
         saved.displayNameJson = entry.displayName == null ? "" : Text.Serializer.toJson(entry.displayName);
         saved.displayName = entry.displayName == null ? entry.plainName : entry.displayName.getString();
         saved.plainName = entry.plainName;
@@ -487,13 +513,16 @@ public final class HaDropTracker {
             return null;
         }
 
-        String key = emptyToFallback(saved.key, saved.itemId);
-        String itemId = emptyToFallback(saved.itemId, key);
+        String itemId = getLegacyItemKey(emptyToFallback(saved.itemId, saved.key));
+        String displayName = emptyToFallback(saved.displayName, saved.plainName);
+        String plainName = emptyToFallback(saved.plainName, displayName);
+        String key = emptyToFallback(saved.key, createItemKey(itemId, plainName));
+        if (key.indexOf(ITEM_KEY_SEPARATOR) < 0 && !plainName.isEmpty()) {
+            key = createItemKey(itemId, plainName);
+        }
         ItemStack displayStack = new ItemStack(getItem(itemId));
         displayStack.setCount(1);
-        String displayName = emptyToFallback(saved.displayName, saved.plainName);
         Text name = parseSavedName(saved.displayNameJson, displayName);
-        String plainName = emptyToFallback(saved.plainName, stripFormatting(name));
         return new DropEntry(key, displayStack, name, plainName, saved.count);
     }
 
@@ -501,7 +530,12 @@ public final class HaDropTracker {
         if (saved == null || saved.itemId == null || saved.itemId.isEmpty()) {
             return null;
         }
-        return new RegisteredItem(saved.itemId, normalizeDisplayName(saved.displayName, saved.itemId), Math.max(0L, saved.unitPrice));
+        String displayName = normalizeDisplayName(saved.displayName, saved.itemId);
+        String itemId = saved.itemId;
+        if (itemId.indexOf(ITEM_KEY_SEPARATOR) < 0 && !displayName.equals(itemId)) {
+            itemId = createItemKey(itemId, displayName);
+        }
+        return new RegisteredItem(itemId, displayName, Math.max(0L, saved.unitPrice));
     }
 
     private static Text parseSavedName(String displayNameJson, String fallback) {
@@ -527,6 +561,21 @@ public final class HaDropTracker {
     }
 
     private static RegisteredItem findRegisteredItem(String itemId) {
+        RegisteredItem exact = findRegisteredItemExact(itemId);
+        if (exact != null) {
+            return exact;
+        }
+
+        String legacyKey = getLegacyItemKey(itemId);
+        for (RegisteredItem item : REGISTERED_ITEMS) {
+            if (item.itemId.equals(legacyKey)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private static RegisteredItem findRegisteredItemExact(String itemId) {
         for (RegisteredItem item : REGISTERED_ITEMS) {
             if (item.itemId.equals(itemId)) {
                 return item;
