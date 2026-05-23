@@ -44,8 +44,10 @@ public final class HaEvolutionForgeHelper {
     private static final String MARKER = "Evo?: Yes";
     private static final Pattern LEADING_MARKERS = Pattern.compile("^[\\s\\u2715\\u2716\\u00d7xX*\\-:\\uFF1A\\u30FB]+");
     private static final Pattern LEADING_COUNT = Pattern.compile("^[0-9]+\\s+");
-    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(.*)$");
-    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(%?)(.*)$");
+    private static final Pattern ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([0-9]+)\\)\\s*$");
+    private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
+    private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
+    private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
     private static boolean loaded;
     private static boolean scanningForgeTooltips;
@@ -212,11 +214,12 @@ public final class HaEvolutionForgeHelper {
             return tooltip;
         }
 
+        int enhancementLevel = getEnhancementLevel(stack, tooltip);
         List<Text> updatedTooltip = null;
         for (int i = 0; i < tooltip.size(); i++) {
             Text text = tooltip.get(i);
             String originalLine = text == null ? "" : text.getString();
-            String annotatedLine = annotateStatLine(originalLine, ranges);
+            String annotatedLine = annotateStatLine(originalLine, ranges, enhancementLevel);
             if (annotatedLine == null) {
                 continue;
             }
@@ -228,9 +231,9 @@ public final class HaEvolutionForgeHelper {
         return updatedTooltip == null ? tooltip : updatedTooltip;
     }
 
-    private static String annotateStatLine(String rawLine, List<StatRange> ranges) {
+    private static String annotateStatLine(String rawLine, List<StatRange> ranges, int enhancementLevel) {
         String line = normalizeDisplay(rawLine);
-        if (line.isEmpty() || line.indexOf("||") >= 0 || parseRangeLine(line) != null) {
+        if (line.isEmpty() || line.indexOf("||") >= 0 || line.indexOf("|") >= 0 || parseRangeLine(line) != null) {
             return null;
         }
 
@@ -241,7 +244,8 @@ public final class HaEvolutionForgeHelper {
 
         String prefix = matcher.group(1);
         String valueText = matcher.group(2);
-        String unit = matcher.group(3);
+        String unitText = matcher.group(3);
+        String unit = normalizeUnit(unitText);
         String suffix = matcher.group(4);
         String statName = extractStatName(prefix, suffix);
         if (statName.isEmpty()) {
@@ -260,6 +264,25 @@ public final class HaEvolutionForgeHelper {
             return null;
         }
 
+        StatBoost boost = STAT_BOOSTS.get(statName);
+        if (enhancementLevel > 0 && boost != null) {
+            double baseValue = estimateBaseStatValue(value, boost, enhancementLevel);
+            int percentage = calculateRangePercentage(baseValue, range);
+            return prefix
+                + valueText
+                + "|"
+                + formatSignedValue(baseValue)
+                + "("
+                + range.displayMin
+                + range.separator
+                + range.displayMax
+                + " || ("
+                + percentage
+                + "%))"
+                + unitText
+                + suffix;
+        }
+
         int percentage = calculateRangePercentage(value, range);
         return prefix
             + valueText
@@ -270,7 +293,7 @@ public final class HaEvolutionForgeHelper {
             + " || ("
             + percentage
             + "%))"
-            + unit
+            + unitText
             + suffix;
     }
 
@@ -288,7 +311,7 @@ public final class HaEvolutionForgeHelper {
         String minText = matcher.group(2);
         String separator = matcher.group(3).trim();
         String maxText = matcher.group(4);
-        String unit = matcher.group(5);
+        String unit = normalizeUnit(matcher.group(5));
         String statName = extractStatName(matcher.group(1), matcher.group(6));
         if (statName.isEmpty()) {
             return null;
@@ -348,6 +371,45 @@ public final class HaEvolutionForgeHelper {
             return 100;
         }
         return percentage;
+    }
+
+    private static double estimateBaseStatValue(double value, StatBoost boost, int enhancementLevel) {
+        if (boost.fixedPerLevel) {
+            return value - (enhancementLevel * boost.amount);
+        }
+        double multiplier = 1.0D + (enhancementLevel * boost.amount / 100.0D);
+        return multiplier <= 0.0D ? value : value / multiplier;
+    }
+
+    private static String formatSignedValue(double value) {
+        String formatted = NUMBER_FORMAT.format(value);
+        return value >= 0.0D ? "+" + formatted : formatted;
+    }
+
+    private static int getEnhancementLevel(ItemStack stack, List<Text> tooltip) {
+        int level = parseEnhancementLevel(stack == null ? "" : stack.getName().getString());
+        if (level > 0 || tooltip == null) {
+            return level;
+        }
+        for (Text line : tooltip) {
+            level = parseEnhancementLevel(line == null ? "" : line.getString());
+            if (level > 0) {
+                return level;
+            }
+        }
+        return 0;
+    }
+
+    private static int parseEnhancementLevel(String value) {
+        Matcher matcher = ENHANCEMENT_SUFFIX.matcher(normalizeDisplay(value));
+        if (!matcher.find()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(matcher.group(1)));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private static boolean shouldMarkTooltip(ItemStack stack, List<Text> tooltip) {
@@ -508,6 +570,7 @@ public final class HaEvolutionForgeHelper {
 
     private static String normalizeItemName(String value) {
         String result = normalizeDisplay(value);
+        result = ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
         result = LEADING_MARKERS.matcher(result).replaceFirst("");
         result = toAsciiDigits(result);
         result = LEADING_COUNT.matcher(result).replaceFirst("");
@@ -550,6 +613,51 @@ public final class HaEvolutionForgeHelper {
             }
         }
         return hasLetter;
+    }
+
+    private static String normalizeUnit(String unit) {
+        if ("\uff05".equals(unit)) {
+            return "%";
+        }
+        return unit == null ? "" : unit;
+    }
+
+    private static Map<String, StatBoost> createStatBoosts() {
+        Map<String, StatBoost> boosts = new LinkedHashMap<String, StatBoost>();
+        putPercentBoost(boosts, "\u653b\u6483\u529b", 3.5D);
+        putPercentBoost(boosts, "\u6700\u5927HP", 5.0D);
+        putPercentBoost(boosts, "\u6700\u5927MANA", 5.0D);
+        putPercentBoost(boosts, "HP\u81ea\u7136\u56de\u5fa9", 5.0D);
+        putPercentBoost(boosts, "MANA\u81ea\u7136\u56de\u5fa9", 5.0D);
+        putPercentBoost(boosts, "\u88ab\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u88ab\u7269\u7406\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u88ab\u767a\u5c04\u4f53\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u88ab\u9b54\u6cd5\u30b9\u30ad\u30eb\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u88ab\u843d\u4e0b\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u88ab\u71c3\u713c\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b", 2.0D);
+        putPercentBoost(boosts, "\u7d76\u5bfe\u9632\u5fa1", 5.0D);
+        putPercentBoost(boosts, "\u6b66\u5668\u30c0\u30e1\u30fc\u30b8", 5.0D);
+        putPercentBoost(boosts, "\u9b54\u6cd5\u30c0\u30e1\u30fc\u30b8", 5.0D);
+        putPercentBoost(boosts, "\u7269\u7406\u30c0\u30e1\u30fc\u30b8", 5.0D);
+        putPercentBoost(boosts, "\u30b9\u30ad\u30eb\u30c0\u30e1\u30fc\u30b8", 5.0D);
+        putPercentBoost(boosts, "\u767a\u5c04\u4f53\u30c0\u30e1\u30fc\u30b8", 5.0D);
+        putPercentBoost(boosts, "\u4e0d\u6b7b\u65cf\u7279\u653b", 5.0D);
+        putPercentBoost(boosts, "\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u7387", 2.0D);
+        putPercentBoost(boosts, "\u30b9\u30ad\u30eb\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u7387", 2.0D);
+        putPercentBoost(boosts, "\u30d6\u30ed\u30c3\u30af\u7387", 2.5D);
+        putPercentBoost(boosts, "\u30d6\u30ed\u30c3\u30af\u6642\u8efd\u6e1b", 2.5D);
+        putPercentBoost(boosts, "\u30d1\u30ea\u30fc\u7387", 2.5D);
+        putPercentBoost(boosts, "\u30c0\u30e1\u30fc\u30b8\u7121\u52b9\u5316\u7387", 2.5D);
+        putPercentBoost(boosts, "\u30b9\u30ad\u30eb\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e", 2.5D);
+        putPercentBoost(boosts, "\u30d6\u30ed\u30c3\u30af\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e", 3.0D);
+        putPercentBoost(boosts, "\u30d1\u30ea\u30fc\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e", 3.0D);
+        putPercentBoost(boosts, "\u30c0\u30e1\u30fc\u30b8\u7121\u52b9\u5316\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e", 3.0D);
+        boosts.put(normalizeStatName("\u5bfeMOB\u30c0\u30e1\u30fc\u30b8"), new StatBoost(50.0D, true));
+        return boosts;
+    }
+
+    private static void putPercentBoost(Map<String, StatBoost> boosts, String statName, double amount) {
+        boosts.put(normalizeStatName(statName), new StatBoost(amount, false));
     }
 
     private static String normalizeDisplay(String value) {
@@ -716,6 +824,8 @@ public final class HaEvolutionForgeHelper {
             statName = normalizeStatName(statName);
             if (unit == null) {
                 unit = "";
+            } else {
+                unit = normalizeUnit(unit);
             }
             if (separator == null || separator.trim().isEmpty()) {
                 separator = "~";
@@ -733,6 +843,16 @@ public final class HaEvolutionForgeHelper {
             if (displayMax == null || displayMax.isEmpty()) {
                 displayMax = formatRangeValue(max, false);
             }
+        }
+    }
+
+    private static final class StatBoost {
+        final double amount;
+        final boolean fixedPerLevel;
+
+        StatBoost(double amount, boolean fixedPerLevel) {
+            this.amount = amount;
+            this.fixedPerLevel = fixedPerLevel;
         }
     }
 }
