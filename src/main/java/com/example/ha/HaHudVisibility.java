@@ -39,6 +39,8 @@ public final class HaHudVisibility {
             || screen instanceof HaDropTrackerRegisteredEditScreen
             || screen instanceof HaDropTrackerOverlayScreen
             || screen instanceof HaExpTrackerScreen
-            || screen instanceof HaExpTrackerOverlayScreen;
+            || screen instanceof HaExpTrackerOverlayScreen
+            || screen instanceof HaMobHpDisplayScreen
+            || screen instanceof HaMobHpDisplayOverlayScreen;
     }
 }

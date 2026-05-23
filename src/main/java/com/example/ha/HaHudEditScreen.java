@@ -33,6 +33,7 @@ public final class HaHudEditScreen extends Screen {
         }
         panels.add(new DropTrackerPanel());
         panels.add(new ExpTrackerPanel());
+        panels.add(new MobHpDisplayPanel());
 
         addButton(new ButtonWidget(this.width / 2 - 105, this.height - 28, 210, 20, new LiteralText("Done"), button -> onClose()));
     }
@@ -288,6 +289,40 @@ public final class HaHudEditScreen extends Screen {
         void draw(MatrixStack matrices, boolean selected) {
             HaConfig config = HaConfig.get();
             HaExpTrackerOverlay.drawPreview(matrices, config.expTrackerOverlayX, config.expTrackerOverlayY, selected);
+        }
+    }
+
+    private static final class MobHpDisplayPanel extends HudPanel {
+        @Override
+        int getX() {
+            return HaConfig.get().mobHpDisplayOverlayX;
+        }
+
+        @Override
+        int getY() {
+            return HaConfig.get().mobHpDisplayOverlayY;
+        }
+
+        @Override
+        void setPosition(int x, int y) {
+            HaConfig.get().mobHpDisplayOverlayX = x;
+            HaConfig.get().mobHpDisplayOverlayY = y;
+        }
+
+        @Override
+        int getWidth() {
+            return HaMobHpDisplayOverlay.getPanelWidth(MinecraftClient.getInstance());
+        }
+
+        @Override
+        int getHeight() {
+            return HaMobHpDisplayOverlay.getPanelHeight();
+        }
+
+        @Override
+        void draw(MatrixStack matrices, boolean selected) {
+            HaConfig config = HaConfig.get();
+            HaMobHpDisplayOverlay.drawPreview(matrices, config.mobHpDisplayOverlayX, config.mobHpDisplayOverlayY, selected);
         }
     }
 }

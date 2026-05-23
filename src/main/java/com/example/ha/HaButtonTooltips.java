@@ -95,6 +95,9 @@ public final class HaButtonTooltips {
         } else if ("HaExpTrackerScreen".equals(screenName)
             || "HaExpTrackerOverlayScreen".equals(screenName)) {
             addExpTrackerTooltip(lines, label);
+        } else if ("HaMobHpDisplayScreen".equals(screenName)
+            || "HaMobHpDisplayOverlayScreen".equals(screenName)) {
+            addMobHpDisplayTooltip(lines, label);
         }
     }
 
@@ -115,6 +118,8 @@ public final class HaButtonTooltips {
             lines.add("EXP獲得量と時間あたりEXPの記録を設定します。");
         } else if ("Evolution Forge Helper".equals(label)) {
             lines.add("\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8\u7d20\u6750\u306eLore\u306bEvo?: Yes\u3092\u8ffd\u52a0\u8868\u793a\u3057\u307e\u3059\u3002");
+        } else if ("Mob HP Display".equals(label)) {
+            lines.add("クロスヘア先のMobのHPと残り割合を表示します。");
         } else if ("Chat Filter".equals(label)) {
             lines.add("指定した文字を含むチャット表示を非表示にします。");
         }
@@ -201,6 +206,22 @@ public final class HaButtonTooltips {
             lines.add("EXP表示をk/m/b形式に省略するか切り替えます。");
         } else if ("Reset Total".equals(label)) {
             lines.add("合計EXPとタイマーをリセットします。");
+        }
+    }
+
+    private static void addMobHpDisplayTooltip(List<String> lines, String label) {
+        if (label.startsWith("Mob HP Display")) {
+            lines.add("Mob HP Displayの有効/無効を切り替えます。");
+        } else if (label.startsWith("Position")) {
+            lines.add("HUD固定表示かクロスヘア付近表示かを切り替えます。");
+        } else if (label.startsWith("Display")) {
+            lines.add("Full表示とSlim表示を切り替えます。");
+        } else if (label.startsWith("Show Percentage")) {
+            lines.add("HPの割合表示を出すか切り替えます。");
+        } else if (label.startsWith("Compact HP")) {
+            lines.add("大きなHPをk/m/b形式で短く表示します。");
+        } else if ("Adjust Overlay Position".equals(label)) {
+            lines.add("Mob HP Display HUDの表示位置を調整します。");
         }
     }
 

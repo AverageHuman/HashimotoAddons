@@ -81,6 +81,13 @@ public final class HaConfig {
     public boolean expTrackerContinueAfterStart = false;
     public int expTrackerOverlayX = 8;
     public int expTrackerOverlayY = 104;
+    public boolean mobHpDisplayEnabled = false;
+    public String mobHpDisplayPosition = "hud";
+    public boolean mobHpDisplaySlim = false;
+    public boolean mobHpDisplayShowPercentage = true;
+    public boolean mobHpDisplayCompactNumbers = false;
+    public int mobHpDisplayOverlayX = 8;
+    public int mobHpDisplayOverlayY = 136;
     public boolean chatFilterEnabled = false;
     public Set<Integer> lockedSlotIds = new HashSet<Integer>();
 
@@ -136,6 +143,9 @@ public final class HaConfig {
         expTrackerElapsedSeconds = Math.max(0L, expTrackerElapsedSeconds);
         expTrackerOverlayX = Math.max(0, expTrackerOverlayX);
         expTrackerOverlayY = Math.max(0, expTrackerOverlayY);
+        mobHpDisplayPosition = HaMobHpDisplayOverlay.normalizePosition(mobHpDisplayPosition);
+        mobHpDisplayOverlayX = Math.max(0, mobHpDisplayOverlayX);
+        mobHpDisplayOverlayY = Math.max(0, mobHpDisplayOverlayY);
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
@@ -264,6 +274,13 @@ public final class HaConfig {
         expTrackerContinueAfterStart = saved.expTrackerContinueAfterStart;
         expTrackerOverlayX = saved.expTrackerOverlayX;
         expTrackerOverlayY = saved.expTrackerOverlayY;
+        mobHpDisplayEnabled = saved.mobHpDisplayEnabled;
+        mobHpDisplayPosition = saved.mobHpDisplayPosition;
+        mobHpDisplaySlim = saved.mobHpDisplaySlim;
+        mobHpDisplayShowPercentage = saved.mobHpDisplayShowPercentage;
+        mobHpDisplayCompactNumbers = saved.mobHpDisplayCompactNumbers;
+        mobHpDisplayOverlayX = saved.mobHpDisplayOverlayX;
+        mobHpDisplayOverlayY = saved.mobHpDisplayOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
         lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
 
@@ -384,6 +401,13 @@ public final class HaConfig {
         root.addProperty("expTrackerContinueAfterStart", expTrackerContinueAfterStart);
         root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
         root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
+        root.addProperty("mobHpDisplayEnabled", mobHpDisplayEnabled);
+        root.addProperty("mobHpDisplayPosition", mobHpDisplayPosition);
+        root.addProperty("mobHpDisplaySlim", mobHpDisplaySlim);
+        root.addProperty("mobHpDisplayShowPercentage", mobHpDisplayShowPercentage);
+        root.addProperty("mobHpDisplayCompactNumbers", mobHpDisplayCompactNumbers);
+        root.addProperty("mobHpDisplayOverlayX", mobHpDisplayOverlayX);
+        root.addProperty("mobHpDisplayOverlayY", mobHpDisplayOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
@@ -666,6 +690,13 @@ public final class HaConfig {
         boolean expTrackerContinueAfterStart = false;
         int expTrackerOverlayX = 8;
         int expTrackerOverlayY = 104;
+        boolean mobHpDisplayEnabled = false;
+        String mobHpDisplayPosition = "hud";
+        boolean mobHpDisplaySlim = false;
+        boolean mobHpDisplayShowPercentage = true;
+        boolean mobHpDisplayCompactNumbers = false;
+        int mobHpDisplayOverlayX = 8;
+        int mobHpDisplayOverlayY = 136;
         boolean chatFilterEnabled = false;
         Set<Integer> lockedSlotIds = new HashSet<Integer>();
         List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
