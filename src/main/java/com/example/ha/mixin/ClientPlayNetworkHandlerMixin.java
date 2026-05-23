@@ -4,9 +4,13 @@ import com.example.ha.HaSoulbindProtection;
 import com.example.ha.HaChatFilter;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
+import com.example.ha.HaExpTracker;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.ItemPickupAnimationS2CPacket;
+import net.minecraft.network.packet.s2c.play.MobSpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,6 +31,21 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onItemPickupAnimation", at = @At("HEAD"))
     private void ha$trackPickedUpItems(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
         HaDropTracker.onItemPickup(packet);
+    }
+
+    @Inject(method = "onEntitySpawn", at = @At("TAIL"))
+    private void ha$trackExpEntitySpawn(EntitySpawnS2CPacket packet, CallbackInfo ci) {
+        HaExpTracker.onEntitySpawn(packet);
+    }
+
+    @Inject(method = "onMobSpawn", at = @At("TAIL"))
+    private void ha$trackExpMobSpawn(MobSpawnS2CPacket packet, CallbackInfo ci) {
+        HaExpTracker.onMobSpawn(packet);
+    }
+
+    @Inject(method = "onEntityTrackerUpdate", at = @At("TAIL"))
+    private void ha$trackExpEntityMetadata(EntityTrackerUpdateS2CPacket packet, CallbackInfo ci) {
+        HaExpTracker.onEntityTrackerUpdate(packet);
     }
 
     @Inject(method = "onDisconnected", at = @At("HEAD"))

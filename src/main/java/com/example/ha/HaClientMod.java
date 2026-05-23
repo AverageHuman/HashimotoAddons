@@ -51,6 +51,9 @@ public final class HaClientMod implements ClientModInitializer {
             })
             .then(ClientCommandManager.literal("edithud")
                 .executes(context -> openHudEditor()))
+            .then(ClientCommandManager.literal("expdebug")
+                .then(ClientCommandManager.literal("copy")
+                    .executes(context -> copyExpDebugLog())))
             .then(ClientCommandManager.literal("tracker")
                 .then(ClientCommandManager.literal("add")
                     .executes(context -> registerHeldTrackerItem(0L))
@@ -92,6 +95,15 @@ public final class HaClientMod implements ClientModInitializer {
     private int openHudEditor() {
         tickHandler.requestOpenHudEditScreen();
         return 1;
+    }
+
+    private int copyExpDebugLog() {
+        if (HaExpTracker.copyDebugLogToClipboard()) {
+            sendMessage("Copied Exp Tracker debug log to clipboard.");
+            return 1;
+        }
+        sendMessage("\u00a7cCould not copy Exp Tracker debug log.");
+        return 0;
     }
 
     private int registerHeldTrackerItem(long price) {
