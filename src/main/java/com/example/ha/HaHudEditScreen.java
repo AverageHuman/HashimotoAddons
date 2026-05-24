@@ -34,6 +34,7 @@ public final class HaHudEditScreen extends Screen {
         panels.add(new DropTrackerPanel());
         panels.add(new ExpTrackerPanel());
         panels.add(new MobHpDisplayPanel());
+        panels.add(new SubSkillTimerPanel());
 
         addButton(new ButtonWidget(this.width / 2 - 105, this.height - 28, 210, 20, new LiteralText("Done"), button -> onClose()));
     }
@@ -323,6 +324,40 @@ public final class HaHudEditScreen extends Screen {
         void draw(MatrixStack matrices, boolean selected) {
             HaConfig config = HaConfig.get();
             HaMobHpDisplayOverlay.drawPreview(matrices, config.mobHpDisplayOverlayX, config.mobHpDisplayOverlayY, selected);
+        }
+    }
+
+    private static final class SubSkillTimerPanel extends HudPanel {
+        @Override
+        int getX() {
+            return HaConfig.get().subSkillTimerOverlayX;
+        }
+
+        @Override
+        int getY() {
+            return HaConfig.get().subSkillTimerOverlayY;
+        }
+
+        @Override
+        void setPosition(int x, int y) {
+            HaConfig.get().subSkillTimerOverlayX = x;
+            HaConfig.get().subSkillTimerOverlayY = y;
+        }
+
+        @Override
+        int getWidth() {
+            return HaSubSkillTimerOverlay.getPanelWidth(MinecraftClient.getInstance());
+        }
+
+        @Override
+        int getHeight() {
+            return HaSubSkillTimerOverlay.getPanelHeight();
+        }
+
+        @Override
+        void draw(MatrixStack matrices, boolean selected) {
+            HaConfig config = HaConfig.get();
+            HaSubSkillTimerOverlay.drawPreview(matrices, config.subSkillTimerOverlayX, config.subSkillTimerOverlayY, selected);
         }
     }
 }

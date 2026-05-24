@@ -5,6 +5,7 @@ import com.example.ha.HaChatFilter;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
 import com.example.ha.HaExpTracker;
+import com.example.ha.HaSubSkillTimer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
@@ -23,6 +24,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onGameMessage", at = @At("HEAD"), cancellable = true)
     private void ha$trackSoulbindMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
         HaSoulbindProtection.onGameMessage(packet.getMessage());
+        HaSubSkillTimer.onGameMessage(packet.getMessage());
         if (HaChatFilter.shouldHide(packet.getMessage())) {
             ci.cancel();
         }

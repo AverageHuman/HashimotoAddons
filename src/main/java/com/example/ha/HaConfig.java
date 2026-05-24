@@ -88,6 +88,10 @@ public final class HaConfig {
     public boolean mobHpDisplayCompactNumbers = false;
     public int mobHpDisplayOverlayX = 8;
     public int mobHpDisplayOverlayY = 136;
+    public boolean subSkillTimerEnabled = false;
+    public boolean subSkillTimerSlim = false;
+    public int subSkillTimerOverlayX = 8;
+    public int subSkillTimerOverlayY = 200;
     public boolean chatFilterEnabled = false;
     public Set<Integer> lockedSlotIds = new HashSet<Integer>();
 
@@ -146,6 +150,8 @@ public final class HaConfig {
         mobHpDisplayPosition = HaMobHpDisplayOverlay.normalizePosition(mobHpDisplayPosition);
         mobHpDisplayOverlayX = Math.max(0, mobHpDisplayOverlayX);
         mobHpDisplayOverlayY = Math.max(0, mobHpDisplayOverlayY);
+        subSkillTimerOverlayX = Math.max(0, subSkillTimerOverlayX);
+        subSkillTimerOverlayY = Math.max(0, subSkillTimerOverlayY);
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
@@ -281,6 +287,10 @@ public final class HaConfig {
         mobHpDisplayCompactNumbers = saved.mobHpDisplayCompactNumbers;
         mobHpDisplayOverlayX = saved.mobHpDisplayOverlayX;
         mobHpDisplayOverlayY = saved.mobHpDisplayOverlayY;
+        subSkillTimerEnabled = saved.subSkillTimerEnabled;
+        subSkillTimerSlim = saved.subSkillTimerSlim;
+        subSkillTimerOverlayX = saved.subSkillTimerOverlayX;
+        subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
         lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
 
@@ -408,6 +418,10 @@ public final class HaConfig {
         root.addProperty("mobHpDisplayCompactNumbers", mobHpDisplayCompactNumbers);
         root.addProperty("mobHpDisplayOverlayX", mobHpDisplayOverlayX);
         root.addProperty("mobHpDisplayOverlayY", mobHpDisplayOverlayY);
+        root.addProperty("subSkillTimerEnabled", subSkillTimerEnabled);
+        root.addProperty("subSkillTimerSlim", subSkillTimerSlim);
+        root.addProperty("subSkillTimerOverlayX", subSkillTimerOverlayX);
+        root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
@@ -697,6 +711,10 @@ public final class HaConfig {
         boolean mobHpDisplayCompactNumbers = false;
         int mobHpDisplayOverlayX = 8;
         int mobHpDisplayOverlayY = 136;
+        boolean subSkillTimerEnabled = false;
+        boolean subSkillTimerSlim = false;
+        int subSkillTimerOverlayX = 8;
+        int subSkillTimerOverlayY = 200;
         boolean chatFilterEnabled = false;
         Set<Integer> lockedSlotIds = new HashSet<Integer>();
         List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
