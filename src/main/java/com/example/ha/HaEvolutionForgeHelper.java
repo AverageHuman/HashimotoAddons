@@ -377,7 +377,7 @@ public final class HaEvolutionForgeHelper {
         if (boost.fixedPerLevel) {
             return value - (enhancementLevel * boost.amount);
         }
-        double multiplier = 1.0D + (enhancementLevel * boost.amount / 100.0D);
+        double multiplier = Math.pow(1.0D + (boost.amount / 100.0D), enhancementLevel);
         return multiplier <= 0.0D ? value : value / multiplier;
     }
 
