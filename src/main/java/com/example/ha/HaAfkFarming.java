@@ -20,6 +20,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 
 public final class HaAfkFarming {
@@ -38,6 +39,8 @@ public final class HaAfkFarming {
     private static long nextMobMacroMillis;
     private static int currentMobThreshold = -1;
     private static MobDebugInfo lastMobDebugInfo = MobDebugInfo.empty();
+    private static volatile String lastWebhookStatus = "Not sent";
+    private static boolean mobMacroDraining;
 
     private HaAfkFarming() {
     }
@@ -78,6 +81,16 @@ public final class HaAfkFarming {
         resetRuntime(true);
     }
 
+    public static String getLastWebhookStatus() {
+        return lastWebhookStatus;
+    }
+
+    public static void sendWebhookTest(MinecraftClient client) {
+        HaConfig config = HaConfig.get();
+        sendWebhook(config.afkFarmingWebhookUrl, "HashimotoAddons: Webhook test from mod.", true);
+        sendClientMessage(client, "Webhook test queued.");
+    }
+
     private static void tickPlayerAlerts(MinecraftClient client, HaConfig config, long now) {
         if (!config.afkFarmingPlayerAlertsEnabled) {
             return;
@@ -87,7 +100,12 @@ public final class HaAfkFarming {
             if (other == null || other == client.player) {
                 continue;
             }
-            String name = other.getGameProfile() == null ? other.getEntityName() : other.getGameProfile().getName();
+            String rawName = other.getGameProfile() == null ? other.getEntityName() : other.getGameProfile().getName();
+            if (containsFormattingCode(rawName)) {
+                continue;
+            }
+            String name = rawName;
+            name = stripFormatting(name);
             if (name == null || name.trim().isEmpty()) {
                 continue;
             }
@@ -109,7 +127,11 @@ public final class HaAfkFarming {
             if (entry == null || entry.getProfile() == null || entry.getProfile().getName() == null) {
                 continue;
             }
-            String name = entry.getProfile().getName();
+            String rawName = entry.getProfile().getName();
+            if (containsFormattingCode(rawName)) {
+                continue;
+            }
+            String name = stripFormatting(rawName);
             if (name.equalsIgnoreCase(target)) {
                 maybeAlert(client, config, "keyadmin:" + target.toLowerCase(Locale.ROOT), "KeyAdmin Online", name, now);
                 return;
@@ -128,9 +150,14 @@ public final class HaAfkFarming {
 
     private static void tickMobMacro(MinecraftClient client, HaTickHandler tickHandler, HaConfig config, long now) {
         if (!config.afkFarmingMobMacroEnabled || tickHandler == null || client.currentScreen != null) {
+            mobMacroDraining = false;
             return;
         }
-        if (now < nextMobMacroMillis || config.swapEntries.isEmpty()) {
+        if (config.swapEntries.isEmpty()) {
+            mobMacroDraining = false;
+            return;
+        }
+        if (!mobMacroDraining && now < nextMobMacroMillis) {
             return;
         }
 
@@ -140,13 +167,20 @@ public final class HaAfkFarming {
         MobDebugInfo info = collectMobDebugInfo(client, config);
         lastMobDebugInfo = info;
         int mobCount = info.mobCount;
-        if (mobCount < currentMobThreshold) {
+
+        if (mobMacroDraining && mobCount <= 0) {
+            mobMacroDraining = false;
+            nextMobMacroMillis = now + Math.max(1L, Math.round(config.afkFarmingMobMacroCooldownSeconds * 1000.0D));
+            currentMobThreshold = rollMobThreshold(config);
             return;
         }
 
+        if (!mobMacroDraining && mobCount < currentMobThreshold) {
+            return;
+        }
+
+        mobMacroDraining = true;
         tickHandler.triggerSwapEntry(client, entry);
-        nextMobMacroMillis = now + Math.max(1L, Math.round(config.afkFarmingMobMacroCooldownSeconds * 1000.0D));
-        currentMobThreshold = rollMobThreshold(config);
     }
 
     public static MobDebugInfo getMobDebugInfo(MinecraftClient client) {
@@ -212,7 +246,7 @@ public final class HaAfkFarming {
             }
         }
 
-        long cooldownMillis = Math.max(0L, nextMobMacroMillis - System.currentTimeMillis());
+        long cooldownMillis = mobMacroDraining ? 0L : Math.max(0L, nextMobMacroMillis - System.currentTimeMillis());
         return new MobDebugInfo(
             true,
             center,
@@ -221,6 +255,7 @@ public final class HaAfkFarming {
             count,
             threshold,
             cooldownMillis,
+            mobMacroDraining,
             totalEntities,
             livingEntities,
             mobEntities,
@@ -261,6 +296,18 @@ public final class HaAfkFarming {
         return entity == null ? "none" : entity.getClass().getSimpleName();
     }
 
+    private static String stripFormatting(String value) {
+        if (value == null) {
+            return "";
+        }
+        String stripped = Formatting.strip(value);
+        return stripped == null ? value.trim() : stripped.trim();
+    }
+
+    private static boolean containsFormattingCode(String value) {
+        return value != null && value.indexOf('\u00a7') >= 0;
+    }
+
     private static void maybeAlert(MinecraftClient client, HaConfig config, String key, String title, String detail, long now) {
         long cooldownMillis = 60_000L;
         Long last = LAST_ALERT_MILLIS.get(key);
@@ -276,12 +323,12 @@ public final class HaAfkFarming {
 
     private static String buildStatusMessage(HaConfig config) {
         StringBuilder message = new StringBuilder();
-        message.append("AFK Farming Status\n");
-        message.append("Exp: ").append(config.expTrackerTotal).append('\n');
-        message.append("Exp/hour: ").append(HaExpTracker.getExpPerHour()).append('\n');
+        message.append("HashimotoAddons: AFK Farming Report\n");
+        message.append("Current EXP: ").append(config.expTrackerTotal).append('\n');
+        message.append("Estimated EXP/hour: ").append(HaExpTracker.getExpPerHour()).append('\n');
         message.append("Exp Timer: ").append(formatDuration(HaExpTracker.getElapsedSeconds())).append('\n');
         message.append("Profit: ").append(HaDropTracker.getEstimatedProfit()).append(" Intercoins\n");
-        message.append("Profit/hour: ").append(HaDropTracker.getProfitPerHour()).append('\n');
+        message.append("Estimated Profit/hour: ").append(HaDropTracker.getProfitPerHour()).append(" Intercoins\n");
         message.append("Drop Timer: ").append(formatDuration(HaDropTracker.getElapsedSeconds()));
         return message.toString();
     }
@@ -298,8 +345,16 @@ public final class HaAfkFarming {
     }
 
     private static void sendWebhook(String webhookUrl, String content) {
+        sendWebhook(webhookUrl, content, false);
+    }
+
+    private static void sendWebhook(String webhookUrl, String content, boolean notifyPlayer) {
         String normalizedUrl = webhookUrl == null ? "" : webhookUrl.trim();
         if (normalizedUrl.isEmpty() || content == null || content.trim().isEmpty()) {
+            lastWebhookStatus = "Skipped: empty webhook URL or content";
+            if (notifyPlayer) {
+                sendClientMessage(MinecraftClient.getInstance(), "\u00a7cWebhook URL is empty.");
+            }
             return;
         }
 
@@ -312,18 +367,46 @@ public final class HaAfkFarming {
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
                 connection.setDoOutput(true);
+                connection.setRequestProperty("User-Agent", "HashimotoAddons/1.1.4");
+                connection.setRequestProperty("Accept", "application/json");
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
                 byte[] body = ("{\"content\":\"" + escapeJson(content) + "\"}").getBytes(StandardCharsets.UTF_8);
                 connection.setFixedLengthStreamingMode(body.length);
                 try (OutputStream output = connection.getOutputStream()) {
                     output.write(body);
                 }
-                connection.getResponseCode();
-            } catch (Exception ignored) {
+                int responseCode = connection.getResponseCode();
+                if (responseCode >= 200 && responseCode < 300) {
+                    lastWebhookStatus = "OK: HTTP " + responseCode;
+                    if (notifyPlayer) {
+                        sendClientMessage(MinecraftClient.getInstance(), "\u00a7aWebhook sent. HTTP " + responseCode);
+                    }
+                } else {
+                    lastWebhookStatus = "Failed: HTTP " + responseCode;
+                    if (notifyPlayer) {
+                        sendClientMessage(MinecraftClient.getInstance(), "\u00a7cWebhook failed. HTTP " + responseCode);
+                    }
+                }
+            } catch (Exception exception) {
+                lastWebhookStatus = "Error: " + exception.getClass().getSimpleName() + " " + exception.getMessage();
+                if (notifyPlayer) {
+                    sendClientMessage(MinecraftClient.getInstance(), "\u00a7cWebhook error: " + exception.getClass().getSimpleName());
+                }
             } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
+            }
+        });
+    }
+
+    private static void sendClientMessage(MinecraftClient client, String message) {
+        if (client == null) {
+            return;
+        }
+        client.execute(() -> {
+            if (client.player != null) {
+                client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:" + message), false);
             }
         });
     }
@@ -367,6 +450,7 @@ public final class HaAfkFarming {
         nextMobMacroMillis = 0L;
         currentMobThreshold = -1;
         lastMobDebugInfo = MobDebugInfo.empty();
+        mobMacroDraining = false;
         if (clearAlerts) {
             LAST_ALERT_MILLIS.clear();
         }
@@ -380,6 +464,7 @@ public final class HaAfkFarming {
         public final int mobCount;
         public final int threshold;
         public final long cooldownMillis;
+        public final boolean draining;
         public final int totalEntities;
         public final int livingEntities;
         public final int mobEntities;
@@ -395,6 +480,7 @@ public final class HaAfkFarming {
             int mobCount,
             int threshold,
             long cooldownMillis,
+            boolean draining,
             int totalEntities,
             int livingEntities,
             int mobEntities,
@@ -409,6 +495,7 @@ public final class HaAfkFarming {
             this.mobCount = mobCount;
             this.threshold = threshold;
             this.cooldownMillis = cooldownMillis;
+            this.draining = draining;
             this.totalEntities = totalEntities;
             this.livingEntities = livingEntities;
             this.mobEntities = mobEntities;
@@ -418,7 +505,7 @@ public final class HaAfkFarming {
         }
 
         static MobDebugInfo empty() {
-            return new MobDebugInfo(false, null, MOB_CENTER_DISTANCE, Math.sqrt(MOB_RADIUS_SQUARED), 0, 0, 0L, 0, 0, 0, "none", "none", -1.0D);
+            return new MobDebugInfo(false, null, MOB_CENTER_DISTANCE, Math.sqrt(MOB_RADIUS_SQUARED), 0, 0, 0L, false, 0, 0, 0, "none", "none", -1.0D);
         }
     }
 }
