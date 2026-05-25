@@ -54,7 +54,7 @@ public final class HaSubSkillTimerOverlay {
         DrawableHelper.fill(matrices, x, y, x + width, y + height, 0x90000000);
         DrawableHelper.fill(matrices, x, y, x + width, y + 1, color | 0xFF000000);
         client.textRenderer.drawWithShadow(matrices, "Sub Skill Timer", x + 5, y + 4, 0xFFFFFF);
-        client.textRenderer.drawWithShadow(matrices, remainingMillis <= 0L ? "Sub:Ready!" : "Ready in: " + time + "s", x + 5, y + 17, color);
+        client.textRenderer.drawWithShadow(matrices, remainingMillis <= 0L ? "Sub: Ready!" : "Ready in: " + time + "s", x + 5, y + 17, color);
 
         int barX = x + 5;
         int barY = y + height - BAR_HEIGHT - 6;
@@ -65,7 +65,7 @@ public final class HaSubSkillTimerOverlay {
 
     private static String getSlimText(long remainingMillis) {
         if (remainingMillis <= 0L) {
-            return "Sub:Ready!";
+            return "Sub: Ready!";
         }
         return "Sub: " + formatSeconds(remainingMillis) + "s";
     }
