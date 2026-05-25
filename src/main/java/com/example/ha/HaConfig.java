@@ -59,6 +59,18 @@ public final class HaConfig {
     public int chunkChestOverlayY = 40;
     public boolean mobEspEnabled = false;
     public String mobEspTargetName = "";
+    public boolean afkFarmingEnabled = false;
+    public boolean afkFarmingActive = false;
+    public String afkFarmingWebhookUrl = "";
+    public double afkFarmingReportIntervalMinutes = 5.0D;
+    public boolean afkFarmingPlayerAlertsEnabled = true;
+    public boolean afkFarmingKeyAdminAlertsEnabled = true;
+    public String afkFarmingKeyAdminName = "KeyAdmin";
+    public boolean afkFarmingMobMacroEnabled = false;
+    public int afkFarmingMobMacroIndex = 0;
+    public int afkFarmingMobMinCount = 3;
+    public int afkFarmingMobMaxCount = 5;
+    public double afkFarmingMobMacroCooldownSeconds = 5.0D;
     public boolean chestSearchEnabled = false;
     public String chestSearchQuery = "";
     public int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
@@ -145,6 +157,27 @@ public final class HaConfig {
         } else {
             mobEspTargetName = mobEspTargetName.trim();
         }
+        if (afkFarmingWebhookUrl == null) {
+            afkFarmingWebhookUrl = "";
+        } else {
+            afkFarmingWebhookUrl = afkFarmingWebhookUrl.trim();
+        }
+        if (afkFarmingKeyAdminName == null || afkFarmingKeyAdminName.trim().isEmpty()) {
+            afkFarmingKeyAdminName = "KeyAdmin";
+        } else {
+            afkFarmingKeyAdminName = afkFarmingKeyAdminName.trim();
+        }
+        if (!afkFarmingEnabled) {
+            afkFarmingActive = false;
+        }
+        afkFarmingReportIntervalMinutes = clamp(afkFarmingReportIntervalMinutes, 0.1D, 1440.0D);
+        afkFarmingMobMacroIndex = Math.max(0, afkFarmingMobMacroIndex);
+        afkFarmingMobMinCount = clamp(afkFarmingMobMinCount, 1, 200);
+        afkFarmingMobMaxCount = clamp(afkFarmingMobMaxCount, 1, 200);
+        if (afkFarmingMobMaxCount < afkFarmingMobMinCount) {
+            afkFarmingMobMaxCount = afkFarmingMobMinCount;
+        }
+        afkFarmingMobMacroCooldownSeconds = clamp(afkFarmingMobMacroCooldownSeconds, 0.1D, 3600.0D);
         if (chestSearchQuery == null) {
             chestSearchQuery = "";
         } else {
@@ -349,6 +382,18 @@ public final class HaConfig {
             chunkChestOverlayY = saved.chunkChestOverlayY;
             mobEspEnabled = saved.mobEspEnabled;
             mobEspTargetName = saved.mobEspTargetName;
+            afkFarmingEnabled = saved.afkFarmingEnabled;
+            afkFarmingActive = saved.afkFarmingActive;
+            afkFarmingWebhookUrl = saved.afkFarmingWebhookUrl;
+            afkFarmingReportIntervalMinutes = saved.afkFarmingReportIntervalMinutes > 0.0D ? saved.afkFarmingReportIntervalMinutes : 5.0D;
+            afkFarmingPlayerAlertsEnabled = saved.afkFarmingPlayerAlertsEnabled;
+            afkFarmingKeyAdminAlertsEnabled = saved.afkFarmingKeyAdminAlertsEnabled;
+            afkFarmingKeyAdminName = saved.afkFarmingKeyAdminName;
+            afkFarmingMobMacroEnabled = saved.afkFarmingMobMacroEnabled;
+            afkFarmingMobMacroIndex = saved.afkFarmingMobMacroIndex;
+            afkFarmingMobMinCount = saved.afkFarmingMobMinCount > 0 ? saved.afkFarmingMobMinCount : 3;
+            afkFarmingMobMaxCount = saved.afkFarmingMobMaxCount > 0 ? saved.afkFarmingMobMaxCount : 5;
+            afkFarmingMobMacroCooldownSeconds = saved.afkFarmingMobMacroCooldownSeconds > 0.0D ? saved.afkFarmingMobMacroCooldownSeconds : 5.0D;
 
             if (saved.swapEntries != null) {
                 for (SavedSwapEntry savedEntry : saved.swapEntries) {
@@ -498,6 +543,18 @@ public final class HaConfig {
             root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
             root.addProperty("mobEspEnabled", mobEspEnabled);
             root.addProperty("mobEspTargetName", mobEspTargetName);
+            root.addProperty("afkFarmingEnabled", afkFarmingEnabled);
+            root.addProperty("afkFarmingActive", afkFarmingActive);
+            root.addProperty("afkFarmingWebhookUrl", afkFarmingWebhookUrl);
+            root.addProperty("afkFarmingReportIntervalMinutes", afkFarmingReportIntervalMinutes);
+            root.addProperty("afkFarmingPlayerAlertsEnabled", afkFarmingPlayerAlertsEnabled);
+            root.addProperty("afkFarmingKeyAdminAlertsEnabled", afkFarmingKeyAdminAlertsEnabled);
+            root.addProperty("afkFarmingKeyAdminName", afkFarmingKeyAdminName);
+            root.addProperty("afkFarmingMobMacroEnabled", afkFarmingMobMacroEnabled);
+            root.addProperty("afkFarmingMobMacroIndex", afkFarmingMobMacroIndex);
+            root.addProperty("afkFarmingMobMinCount", afkFarmingMobMinCount);
+            root.addProperty("afkFarmingMobMaxCount", afkFarmingMobMaxCount);
+            root.addProperty("afkFarmingMobMacroCooldownSeconds", afkFarmingMobMacroCooldownSeconds);
             root.add("swapEntries", GSON.toJsonTree(toSavedSwapEntries()));
         }
 
@@ -596,6 +653,18 @@ public final class HaConfig {
         chunkChestOverlayY = 40;
         mobEspEnabled = false;
         mobEspTargetName = "";
+        afkFarmingEnabled = false;
+        afkFarmingActive = false;
+        afkFarmingWebhookUrl = "";
+        afkFarmingReportIntervalMinutes = 5.0D;
+        afkFarmingPlayerAlertsEnabled = true;
+        afkFarmingKeyAdminAlertsEnabled = true;
+        afkFarmingKeyAdminName = "KeyAdmin";
+        afkFarmingMobMacroEnabled = false;
+        afkFarmingMobMacroIndex = 0;
+        afkFarmingMobMinCount = 3;
+        afkFarmingMobMaxCount = 5;
+        afkFarmingMobMacroCooldownSeconds = 5.0D;
     }
 
     private static int clamp(int value, int min, int max) {
@@ -754,6 +823,18 @@ public final class HaConfig {
         int chunkChestOverlayY = 40;
         boolean mobEspEnabled = false;
         String mobEspTargetName = "";
+        boolean afkFarmingEnabled = false;
+        boolean afkFarmingActive = false;
+        String afkFarmingWebhookUrl = "";
+        double afkFarmingReportIntervalMinutes = 5.0D;
+        boolean afkFarmingPlayerAlertsEnabled = true;
+        boolean afkFarmingKeyAdminAlertsEnabled = true;
+        String afkFarmingKeyAdminName = "KeyAdmin";
+        boolean afkFarmingMobMacroEnabled = false;
+        int afkFarmingMobMacroIndex = 0;
+        int afkFarmingMobMinCount = 3;
+        int afkFarmingMobMaxCount = 5;
+        double afkFarmingMobMacroCooldownSeconds = 5.0D;
         boolean chestSearchEnabled = false;
         String chestSearchQuery = "";
         int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;

@@ -11,7 +11,7 @@ import org.lwjgl.glfw.GLFW;
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
     private static final int ITEMS_PER_PAGE = 7;
-    private static final int TOTAL_ITEMS = 9;
+    private static final int TOTAL_ITEMS = 10;
 
     private final Screen parent;
     private final int page;
@@ -129,6 +129,13 @@ public final class HaDangerousFeaturesScreen extends Screen {
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob ESP"), button -> {
                     if (client != null) {
                         client.openScreen(new HaMobEspScreen(this));
+                    }
+                }));
+                break;
+            case 9:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("AFK Farming"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaAfkFarmingScreen(this));
                     }
                 }));
                 break;

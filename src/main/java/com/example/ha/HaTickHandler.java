@@ -76,6 +76,7 @@ public final class HaTickHandler {
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
+            HaAfkFarming.tick(client, this);
         }
 
         if (openConfigScreenRequested && client.currentScreen == null) {
@@ -322,6 +323,13 @@ public final class HaTickHandler {
         KeyBinding.onKeyPressed(key);
     }
 
+    void triggerSwapEntry(MinecraftClient client, HaConfig.SwapEntry entry) {
+        if (entry == null || isSwapHolding(client)) {
+            return;
+        }
+        simulateHotbarKeyPress(client, entry.hotbarSlot, entry.holdTicks);
+    }
+
     private void tickSimulatedHotbarKey(MinecraftClient client) {
         if (simulatedHotbarKey == InputUtil.UNKNOWN_KEY || client.world == null) {
             return;
@@ -381,6 +389,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaDropNotifierScreen
             || client.currentScreen instanceof HaDropNotifierManageScreen
             || client.currentScreen instanceof HaDropNotifierEditScreen
+            || client.currentScreen instanceof HaAfkFarmingScreen
             || client.currentScreen instanceof HaExpTrackerScreen
             || client.currentScreen instanceof HaExpTrackerOverlayScreen
             || client.currentScreen instanceof HaMobEspScreen;
