@@ -382,8 +382,10 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static String formatSignedValue(double value) {
-        String formatted = NUMBER_FORMAT.format(value);
-        return value >= 0.0D ? "+" + formatted : formatted;
+        double scaled = value * 1000.0D;
+        double truncated = (value >= 0.0D ? Math.floor(scaled) : Math.ceil(scaled)) / 1000.0D;
+        String formatted = NUMBER_FORMAT.format(truncated);
+        return truncated >= 0.0D ? "+" + formatted : formatted;
     }
 
     private static int getEnhancementLevel(ItemStack stack, List<Text> tooltip) {
