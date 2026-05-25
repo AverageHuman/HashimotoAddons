@@ -90,6 +90,7 @@ public final class HaConfig {
     public int mobHpDisplayOverlayY = 136;
     public boolean subSkillTimerEnabled = false;
     public boolean subSkillTimerSlim = false;
+    public double subSkillTimerCooldownSeconds = 10.0D;
     public int subSkillTimerOverlayX = 8;
     public int subSkillTimerOverlayY = 200;
     public boolean chatFilterEnabled = false;
@@ -152,6 +153,7 @@ public final class HaConfig {
         mobHpDisplayOverlayY = Math.max(0, mobHpDisplayOverlayY);
         subSkillTimerOverlayX = Math.max(0, subSkillTimerOverlayX);
         subSkillTimerOverlayY = Math.max(0, subSkillTimerOverlayY);
+        subSkillTimerCooldownSeconds = clamp(subSkillTimerCooldownSeconds, 0.1D, 3600.0D);
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
@@ -289,6 +291,7 @@ public final class HaConfig {
         mobHpDisplayOverlayY = saved.mobHpDisplayOverlayY;
         subSkillTimerEnabled = saved.subSkillTimerEnabled;
         subSkillTimerSlim = saved.subSkillTimerSlim;
+        subSkillTimerCooldownSeconds = saved.subSkillTimerCooldownSeconds > 0.0D ? saved.subSkillTimerCooldownSeconds : 10.0D;
         subSkillTimerOverlayX = saved.subSkillTimerOverlayX;
         subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
@@ -420,6 +423,7 @@ public final class HaConfig {
         root.addProperty("mobHpDisplayOverlayY", mobHpDisplayOverlayY);
         root.addProperty("subSkillTimerEnabled", subSkillTimerEnabled);
         root.addProperty("subSkillTimerSlim", subSkillTimerSlim);
+        root.addProperty("subSkillTimerCooldownSeconds", subSkillTimerCooldownSeconds);
         root.addProperty("subSkillTimerOverlayX", subSkillTimerOverlayX);
         root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
@@ -713,6 +717,7 @@ public final class HaConfig {
         int mobHpDisplayOverlayY = 136;
         boolean subSkillTimerEnabled = false;
         boolean subSkillTimerSlim = false;
+        double subSkillTimerCooldownSeconds = 10.0D;
         int subSkillTimerOverlayX = 8;
         int subSkillTimerOverlayY = 200;
         boolean chatFilterEnabled = false;

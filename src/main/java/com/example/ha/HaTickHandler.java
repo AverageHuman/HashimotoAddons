@@ -71,6 +71,7 @@ public final class HaTickHandler {
         HaChestSearchIndex.get().tick(client);
         HaEvolutionForgeHelper.tick(client);
         HaExpTracker.tick(client);
+        HaSubSkillTimer.tick(client, config);
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);

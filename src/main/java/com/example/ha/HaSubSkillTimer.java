@@ -2,13 +2,15 @@ package com.example.ha;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 public final class HaSubSkillTimer {
-    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*秒.*再使用");
+    private static final Pattern COOLDOWN_PATTERN = Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*\\u79d2.*\\u518d\\u4f7f\\u7528");
     private static long cooldownStartedAtMillis;
     private static long cooldownDurationMillis;
+    private static boolean manualComboPressed;
 
     private HaSubSkillTimer() {
     }
@@ -29,17 +31,37 @@ public final class HaSubSkillTimer {
         }
 
         try {
-            double seconds = Double.parseDouble(matcher.group(1));
-            if (seconds > 0.0D) {
-                cooldownStartedAtMillis = System.currentTimeMillis();
-                cooldownDurationMillis = Math.max(1L, Math.round(seconds * 1000.0D));
-            }
+            startCooldown(Double.parseDouble(matcher.group(1)));
         } catch (NumberFormatException ignored) {
+        }
+    }
+
+    public static void tick(MinecraftClient client, HaConfig config) {
+        if (client == null || config == null || client.options == null || client.currentScreen != null || !config.subSkillTimerEnabled) {
+            manualComboPressed = false;
+            return;
+        }
+
+        boolean comboPressed = client.options.keySneak.isPressed() && client.options.keyUse.isPressed();
+        if (comboPressed && !manualComboPressed && !isActive()) {
+            startCooldown(config.subSkillTimerCooldownSeconds);
+        }
+        manualComboPressed = comboPressed;
+    }
+
+    public static void startCooldown(double seconds) {
+        if (seconds > 0.0D) {
+            cooldownStartedAtMillis = System.currentTimeMillis();
+            cooldownDurationMillis = Math.max(1L, Math.round(seconds * 1000.0D));
         }
     }
 
     public static boolean isActive() {
         return getRemainingMillis() > 0L;
+    }
+
+    public static boolean hasCooldown() {
+        return cooldownDurationMillis > 0L;
     }
 
     public static long getRemainingMillis() {

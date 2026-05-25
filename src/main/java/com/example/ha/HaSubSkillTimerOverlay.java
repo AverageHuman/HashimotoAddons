@@ -15,7 +15,7 @@ public final class HaSubSkillTimerOverlay {
     public static void render(MatrixStack matrices, float tickDelta) {
         MinecraftClient client = MinecraftClient.getInstance();
         HaConfig config = HaConfig.get();
-        if (client == null || HaHudVisibility.shouldHideHashimotoHud(client) || !config.subSkillTimerEnabled || !HaSubSkillTimer.isActive()) {
+        if (client == null || HaHudVisibility.shouldHideHashimotoHud(client) || !config.subSkillTimerEnabled || !HaSubSkillTimer.hasCooldown()) {
             return;
         }
         drawPanel(matrices, config.subSkillTimerOverlayX, config.subSkillTimerOverlayY, HaSubSkillTimer.getRemainingMillis(), HaSubSkillTimer.getRemainingRatio(), config.subSkillTimerSlim);
@@ -54,7 +54,7 @@ public final class HaSubSkillTimerOverlay {
         DrawableHelper.fill(matrices, x, y, x + width, y + height, 0x90000000);
         DrawableHelper.fill(matrices, x, y, x + width, y + 1, color | 0xFF000000);
         client.textRenderer.drawWithShadow(matrices, "Sub Skill Timer", x + 5, y + 4, 0xFFFFFF);
-        client.textRenderer.drawWithShadow(matrices, "Ready in: " + time + "s", x + 5, y + 17, color);
+        client.textRenderer.drawWithShadow(matrices, remainingMillis <= 0L ? "Sub:Ready!" : "Ready in: " + time + "s", x + 5, y + 17, color);
 
         int barX = x + 5;
         int barY = y + height - BAR_HEIGHT - 6;
@@ -64,6 +64,9 @@ public final class HaSubSkillTimerOverlay {
     }
 
     private static String getSlimText(long remainingMillis) {
+        if (remainingMillis <= 0L) {
+            return "Sub:Ready!";
+        }
         return "Sub: " + formatSeconds(remainingMillis) + "s";
     }
 
