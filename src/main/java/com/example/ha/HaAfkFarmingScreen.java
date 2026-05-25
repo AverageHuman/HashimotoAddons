@@ -17,6 +17,8 @@ public final class HaAfkFarmingScreen extends Screen {
     private ButtonWidget keyAdminAlertButton;
     private ButtonWidget mobMacroButton;
     private ButtonWidget selectedMacroButton;
+    private ButtonWidget circleButton;
+    private ButtonWidget debugHudButton;
     private TextFieldWidget webhookField;
     private TextFieldWidget reportIntervalField;
     private TextFieldWidget keyAdminNameField;
@@ -87,7 +89,19 @@ public final class HaAfkFarmingScreen extends Screen {
             refreshButtons();
         }));
 
-        webhookField = new TextFieldWidget(this.textRenderer, left, top + 92, 210, 20, new LiteralText("Discord Webhook"));
+        circleButton = addButton(new ButtonWidget(left, top + 72, 100, 20, new LiteralText(""), button -> {
+            config.afkFarmingMobCircleVisible = !config.afkFarmingMobCircleVisible;
+            config.save();
+            refreshButtons();
+        }));
+
+        debugHudButton = addButton(new ButtonWidget(right, top + 72, 100, 20, new LiteralText(""), button -> {
+            config.afkFarmingMobDebugHudEnabled = !config.afkFarmingMobDebugHudEnabled;
+            config.save();
+            refreshButtons();
+        }));
+
+        webhookField = new TextFieldWidget(this.textRenderer, left, top + 116, 210, 20, new LiteralText("Discord Webhook"));
         webhookField.setMaxLength(512);
         webhookField.setText(config.afkFarmingWebhookUrl);
         webhookField.setChangedListener(value -> {
@@ -96,7 +110,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(webhookField);
 
-        reportIntervalField = new TextFieldWidget(this.textRenderer, left, top + 132, 96, 20, new LiteralText("Report Minutes"));
+        reportIntervalField = new TextFieldWidget(this.textRenderer, left, top + 156, 96, 20, new LiteralText("Report Minutes"));
         reportIntervalField.setText(Double.toString(config.afkFarmingReportIntervalMinutes));
         reportIntervalField.setChangedListener(value -> {
             Double parsed = parsePositiveDouble(value);
@@ -107,7 +121,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(reportIntervalField);
 
-        keyAdminNameField = new TextFieldWidget(this.textRenderer, right, top + 132, 100, 20, new LiteralText("KeyAdmin Name"));
+        keyAdminNameField = new TextFieldWidget(this.textRenderer, right, top + 156, 100, 20, new LiteralText("KeyAdmin Name"));
         keyAdminNameField.setText(config.afkFarmingKeyAdminName);
         keyAdminNameField.setChangedListener(value -> {
             config.afkFarmingKeyAdminName = value == null ? "" : value.trim();
@@ -115,7 +129,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(keyAdminNameField);
 
-        mobMinField = new TextFieldWidget(this.textRenderer, left, top + 172, 44, 20, new LiteralText("Mob Min"));
+        mobMinField = new TextFieldWidget(this.textRenderer, left, top + 196, 44, 20, new LiteralText("Living Min"));
         mobMinField.setText(Integer.toString(config.afkFarmingMobMinCount));
         mobMinField.setChangedListener(value -> {
             Integer parsed = parsePositiveInt(value);
@@ -127,7 +141,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(mobMinField);
 
-        mobMaxField = new TextFieldWidget(this.textRenderer, left + 52, top + 172, 44, 20, new LiteralText("Mob Max"));
+        mobMaxField = new TextFieldWidget(this.textRenderer, left + 52, top + 196, 44, 20, new LiteralText("Living Max"));
         mobMaxField.setText(Integer.toString(config.afkFarmingMobMaxCount));
         mobMaxField.setChangedListener(value -> {
             Integer parsed = parsePositiveInt(value);
@@ -139,7 +153,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(mobMaxField);
 
-        mobCooldownField = new TextFieldWidget(this.textRenderer, right, top + 172, 100, 20, new LiteralText("Mob Cooldown"));
+        mobCooldownField = new TextFieldWidget(this.textRenderer, right, top + 196, 100, 20, new LiteralText("Mob Cooldown"));
         mobCooldownField.setText(Double.toString(config.afkFarmingMobMacroCooldownSeconds));
         mobCooldownField.setChangedListener(value -> {
             Double parsed = parsePositiveDouble(value);
@@ -150,7 +164,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(mobCooldownField);
 
-        addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
+        addButton(new ButtonWidget(10, this.height - 30, 100, 20, new LiteralText("Go Back"), button -> onClose()));
         refreshButtons();
         setInitialFocus(webhookField);
     }
@@ -196,11 +210,11 @@ public final class HaAfkFarmingScreen extends Screen {
         int top = 34;
         int left = centerX - 105;
         int right = centerX + 5;
-        this.textRenderer.draw(matrices, "Discord Webhook URL:", left, top + 82, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Report min:", left, top + 122, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Admin name:", right, top + 122, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Mob count range:", left, top + 162, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Mob CD sec:", right, top + 162, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Discord Webhook URL:", left, top + 106, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "\u5b9a\u671f\u901a\u77e5(\u5206):", left, top + 146, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Admin\u540d:", right, top + 146, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Living\u6570(min-max):", left, top + 186, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "\u518d\u767a\u52d5CD(\u79d2):", right, top + 186, 0xA0A0A0);
 
         webhookField.render(matrices, mouseX, mouseY, delta);
         reportIntervalField.render(matrices, mouseX, mouseY, delta);
@@ -223,12 +237,14 @@ public final class HaAfkFarmingScreen extends Screen {
     private void refreshButtons() {
         HaConfig config = HaConfig.get();
         config.normalize();
-        enabledButton.setMessage(new LiteralText("AFK: " + onOff(config.afkFarmingEnabled)));
-        startButton.setMessage(new LiteralText(config.afkFarmingActive ? "Stop" : "Start"));
-        playerAlertButton.setMessage(new LiteralText("Players: " + onOff(config.afkFarmingPlayerAlertsEnabled)));
-        keyAdminAlertButton.setMessage(new LiteralText("Admin: " + onOff(config.afkFarmingKeyAdminAlertsEnabled)));
-        mobMacroButton.setMessage(new LiteralText("Mob Macro: " + onOff(config.afkFarmingMobMacroEnabled)));
-        selectedMacroButton.setMessage(new LiteralText("Macro: " + macroName(config)));
+        enabledButton.setMessage(new LiteralText("\u6a5f\u80fd: " + onOff(config.afkFarmingEnabled)));
+        startButton.setMessage(new LiteralText(config.afkFarmingActive ? "\u76e3\u8996\u505c\u6b62" : "\u76e3\u8996\u958b\u59cb"));
+        playerAlertButton.setMessage(new LiteralText("\u4ed6\u30d7\u30ec\u30a4\u30e4\u30fc: " + onOff(config.afkFarmingPlayerAlertsEnabled)));
+        keyAdminAlertButton.setMessage(new LiteralText("Admin\u691c\u77e5: " + onOff(config.afkFarmingKeyAdminAlertsEnabled)));
+        mobMacroButton.setMessage(new LiteralText("Living\u767a\u52d5: " + onOff(config.afkFarmingMobMacroEnabled)));
+        selectedMacroButton.setMessage(new LiteralText("\u767a\u52d5Macro: " + macroName(config)));
+        circleButton.setMessage(new LiteralText("\u5224\u5b9a\u30b5\u30fc\u30af\u30eb: " + onOff(config.afkFarmingMobCircleVisible)));
+        debugHudButton.setMessage(new LiteralText("\u30c6\u30b9\u30c8HUD: " + onOff(config.afkFarmingMobDebugHudEnabled)));
     }
 
     private static String macroName(HaConfig config) {

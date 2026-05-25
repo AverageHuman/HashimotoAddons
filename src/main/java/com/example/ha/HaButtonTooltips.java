@@ -102,6 +102,8 @@ public final class HaButtonTooltips {
         } else if ("HaMobHpDisplayScreen".equals(screenName)
             || "HaMobHpDisplayOverlayScreen".equals(screenName)) {
             addMobHpDisplayTooltip(lines, label);
+        } else if ("HaAfkFarmingScreen".equals(screenName)) {
+            addAfkFarmingTooltip(lines, label);
         }
     }
 
@@ -242,6 +244,26 @@ public final class HaButtonTooltips {
             lines.add("大きなHPをk/m/b形式で短く表示します。");
         } else if ("Adjust Overlay Position".equals(label)) {
             lines.add("Mob HP Display HUDの表示位置を調整します。");
+        }
+    }
+
+    private static void addAfkFarmingTooltip(List<String> lines, String label) {
+        if (label.startsWith("機能")) {
+            lines.add("AFK Farming全体のON/OFFです。OFFにすると監視も停止します。");
+        } else if ("監視開始".equals(label) || "監視停止".equals(label)) {
+            lines.add("プレイヤー検知、Admin検知、定期Discord通知、Mob発動を開始/停止します。");
+        } else if (label.startsWith("他プレイヤー")) {
+            lines.add("描画範囲内に他プレイヤーがいたらゲーム内とDiscordに通知します。");
+        } else if (label.startsWith("Admin検知")) {
+            lines.add("Tabリストに指定Admin名がいたらゲーム内とDiscordに通知します。");
+        } else if (label.startsWith("Living発動")) {
+            lines.add("前方3ブロック地点の周囲3ブロックのLivingEntity数が条件以上なら、選択Macroを実行します。");
+        } else if (label.startsWith("発動Macro")) {
+            lines.add("Living発動時に使うItem Macroを選びます。クリックで登録済みMacroを順番に切り替えます。");
+        } else if (label.startsWith("判定サークル")) {
+            lines.add("LivingEntity数を数える水平サークルをワールド上に表示します。円の内側だけを数えます。");
+        } else if (label.startsWith("テストHUD")) {
+            lines.add("現在のLivingEntity数、発動しきい値、再発動CDをHUDに表示します。");
         }
     }
 

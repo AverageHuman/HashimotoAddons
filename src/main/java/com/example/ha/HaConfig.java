@@ -67,6 +67,8 @@ public final class HaConfig {
     public boolean afkFarmingKeyAdminAlertsEnabled = true;
     public String afkFarmingKeyAdminName = "KeyAdmin";
     public boolean afkFarmingMobMacroEnabled = false;
+    public boolean afkFarmingMobCircleVisible = true;
+    public boolean afkFarmingMobDebugHudEnabled = true;
     public int afkFarmingMobMacroIndex = 0;
     public int afkFarmingMobMinCount = 3;
     public int afkFarmingMobMaxCount = 5;
@@ -390,6 +392,8 @@ public final class HaConfig {
             afkFarmingKeyAdminAlertsEnabled = saved.afkFarmingKeyAdminAlertsEnabled;
             afkFarmingKeyAdminName = saved.afkFarmingKeyAdminName;
             afkFarmingMobMacroEnabled = saved.afkFarmingMobMacroEnabled;
+            afkFarmingMobCircleVisible = saved.afkFarmingMobCircleVisible;
+            afkFarmingMobDebugHudEnabled = saved.afkFarmingMobDebugHudEnabled;
             afkFarmingMobMacroIndex = saved.afkFarmingMobMacroIndex;
             afkFarmingMobMinCount = saved.afkFarmingMobMinCount > 0 ? saved.afkFarmingMobMinCount : 3;
             afkFarmingMobMaxCount = saved.afkFarmingMobMaxCount > 0 ? saved.afkFarmingMobMaxCount : 5;
@@ -551,6 +555,8 @@ public final class HaConfig {
             root.addProperty("afkFarmingKeyAdminAlertsEnabled", afkFarmingKeyAdminAlertsEnabled);
             root.addProperty("afkFarmingKeyAdminName", afkFarmingKeyAdminName);
             root.addProperty("afkFarmingMobMacroEnabled", afkFarmingMobMacroEnabled);
+            root.addProperty("afkFarmingMobCircleVisible", afkFarmingMobCircleVisible);
+            root.addProperty("afkFarmingMobDebugHudEnabled", afkFarmingMobDebugHudEnabled);
             root.addProperty("afkFarmingMobMacroIndex", afkFarmingMobMacroIndex);
             root.addProperty("afkFarmingMobMinCount", afkFarmingMobMinCount);
             root.addProperty("afkFarmingMobMaxCount", afkFarmingMobMaxCount);
@@ -661,6 +667,8 @@ public final class HaConfig {
         afkFarmingKeyAdminAlertsEnabled = true;
         afkFarmingKeyAdminName = "KeyAdmin";
         afkFarmingMobMacroEnabled = false;
+        afkFarmingMobCircleVisible = true;
+        afkFarmingMobDebugHudEnabled = true;
         afkFarmingMobMacroIndex = 0;
         afkFarmingMobMinCount = 3;
         afkFarmingMobMaxCount = 5;
@@ -831,6 +839,8 @@ public final class HaConfig {
         boolean afkFarmingKeyAdminAlertsEnabled = true;
         String afkFarmingKeyAdminName = "KeyAdmin";
         boolean afkFarmingMobMacroEnabled = false;
+        boolean afkFarmingMobCircleVisible = true;
+        boolean afkFarmingMobDebugHudEnabled = true;
         int afkFarmingMobMacroIndex = 0;
         int afkFarmingMobMinCount = 3;
         int afkFarmingMobMaxCount = 5;

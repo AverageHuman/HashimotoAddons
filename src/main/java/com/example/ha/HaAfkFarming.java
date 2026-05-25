@@ -14,7 +14,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
@@ -35,6 +37,7 @@ public final class HaAfkFarming {
     private static long lastReportMillis;
     private static long nextMobMacroMillis;
     private static int currentMobThreshold = -1;
+    private static MobDebugInfo lastMobDebugInfo = MobDebugInfo.empty();
 
     private HaAfkFarming() {
     }
@@ -57,6 +60,7 @@ public final class HaAfkFarming {
             lastReportMillis = now;
             LAST_ALERT_MILLIS.clear();
             currentMobThreshold = -1;
+            sendWebhook(config.afkFarmingWebhookUrl, "HashimotoAddons: Monitoring started!");
         }
 
         tickPlayerAlerts(client, config, now);
@@ -133,7 +137,9 @@ public final class HaAfkFarming {
         int macroIndex = Math.max(0, Math.min(config.afkFarmingMobMacroIndex, config.swapEntries.size() - 1));
         HaConfig.SwapEntry entry = config.swapEntries.get(macroIndex);
         ensureMobThreshold(config);
-        int mobCount = countMobsInFront(client);
+        MobDebugInfo info = collectMobDebugInfo(client, config);
+        lastMobDebugInfo = info;
+        int mobCount = info.mobCount;
         if (mobCount < currentMobThreshold) {
             return;
         }
@@ -143,20 +149,116 @@ public final class HaAfkFarming {
         currentMobThreshold = rollMobThreshold(config);
     }
 
-    private static int countMobsInFront(MinecraftClient client) {
-        Vec3d eye = client.player.getCameraPosVec(1.0F);
-        Vec3d look = client.player.getRotationVec(1.0F);
-        Vec3d center = eye.add(look.multiply(MOB_CENTER_DISTANCE));
+    public static MobDebugInfo getMobDebugInfo(MinecraftClient client) {
+        if (client == null || client.player == null || client.world == null || !HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return MobDebugInfo.empty();
+        }
+        HaConfig config = HaConfig.get();
+        if (!config.afkFarmingEnabled || !config.afkFarmingMobMacroEnabled) {
+            return MobDebugInfo.empty();
+        }
+        MobDebugInfo info = collectMobDebugInfo(client, config);
+        lastMobDebugInfo = info;
+        return info;
+    }
+
+    public static MobDebugInfo getLastMobDebugInfo() {
+        return lastMobDebugInfo;
+    }
+
+    public static boolean isRunning(HaConfig config) {
+        return HaBuildFlags.DANGEROUS_FEATURES_ENABLED
+            && config.afkFarmingEnabled
+            && config.afkFarmingActive;
+    }
+
+    private static MobDebugInfo collectMobDebugInfo(MinecraftClient client, HaConfig config) {
+        Vec3d center = getMobCircleCenter(client);
+        int threshold = currentMobThreshold;
+        if (threshold < config.afkFarmingMobMinCount || threshold > config.afkFarmingMobMaxCount) {
+            threshold = config.afkFarmingMobMinCount;
+        }
+
+        if (center == null) {
+            return MobDebugInfo.empty();
+        }
+
         int count = 0;
+        int totalEntities = 0;
+        int livingEntities = 0;
+        int mobEntities = 0;
+        Entity nearestEntity = null;
+        double nearestDistanceSquared = Double.MAX_VALUE;
         for (Entity entity : client.world.getEntities()) {
-            if (!(entity instanceof MobEntity) || !entity.isAlive()) {
+            if (entity == null || entity == client.player || !isInsideMobCircle(entity, center)) {
                 continue;
             }
-            if (entity.squaredDistanceTo(center) <= MOB_RADIUS_SQUARED) {
+            totalEntities++;
+            if (entity instanceof LivingEntity) {
+                livingEntities++;
+            }
+            if (entity instanceof MobEntity) {
+                mobEntities++;
+            }
+
+            double distanceSquared = horizontalDistanceSquared(entity, center);
+            if (distanceSquared < nearestDistanceSquared) {
+                nearestDistanceSquared = distanceSquared;
+                nearestEntity = entity;
+            }
+
+            if (entity instanceof LivingEntity) {
                 count++;
             }
         }
-        return count;
+
+        long cooldownMillis = Math.max(0L, nextMobMacroMillis - System.currentTimeMillis());
+        return new MobDebugInfo(
+            true,
+            center,
+            MOB_CENTER_DISTANCE,
+            Math.sqrt(MOB_RADIUS_SQUARED),
+            count,
+            threshold,
+            cooldownMillis,
+            totalEntities,
+            livingEntities,
+            mobEntities,
+            getEntityTypeName(nearestEntity),
+            getEntityClassName(nearestEntity),
+            nearestEntity == null ? -1.0D : Math.sqrt(nearestDistanceSquared)
+        );
+    }
+
+    private static Vec3d getMobCircleCenter(MinecraftClient client) {
+        if (client == null || client.player == null) {
+            return null;
+        }
+        Vec3d eye = client.player.getCameraPosVec(1.0F);
+        Vec3d look = client.player.getRotationVec(1.0F);
+        Vec3d projected = eye.add(look.multiply(MOB_CENTER_DISTANCE));
+        return new Vec3d(projected.x, client.player.getY(), projected.z);
+    }
+
+    private static boolean isInsideMobCircle(Entity entity, Vec3d center) {
+        return horizontalDistanceSquared(entity, center) <= MOB_RADIUS_SQUARED;
+    }
+
+    private static double horizontalDistanceSquared(Entity entity, Vec3d center) {
+        double dx = entity.getX() - center.x;
+        double dz = entity.getZ() - center.z;
+        return dx * dx + dz * dz;
+    }
+
+    private static String getEntityTypeName(Entity entity) {
+        if (entity == null || entity.getType() == null) {
+            return "none";
+        }
+        return net.minecraft.entity.EntityType.getId(entity.getType()).toString();
+    }
+
+    private static String getEntityClassName(Entity entity) {
+        return entity == null ? "none" : entity.getClass().getSimpleName();
     }
 
     private static void maybeAlert(MinecraftClient client, HaConfig config, String key, String title, String detail, long now) {
@@ -264,8 +366,59 @@ public final class HaAfkFarming {
         lastReportMillis = 0L;
         nextMobMacroMillis = 0L;
         currentMobThreshold = -1;
+        lastMobDebugInfo = MobDebugInfo.empty();
         if (clearAlerts) {
             LAST_ALERT_MILLIS.clear();
+        }
+    }
+
+    public static final class MobDebugInfo {
+        public final boolean available;
+        public final Vec3d center;
+        public final double centerDistance;
+        public final double radius;
+        public final int mobCount;
+        public final int threshold;
+        public final long cooldownMillis;
+        public final int totalEntities;
+        public final int livingEntities;
+        public final int mobEntities;
+        public final String nearestEntityType;
+        public final String nearestEntityClass;
+        public final double nearestEntityDistance;
+
+        private MobDebugInfo(
+            boolean available,
+            Vec3d center,
+            double centerDistance,
+            double radius,
+            int mobCount,
+            int threshold,
+            long cooldownMillis,
+            int totalEntities,
+            int livingEntities,
+            int mobEntities,
+            String nearestEntityType,
+            String nearestEntityClass,
+            double nearestEntityDistance
+        ) {
+            this.available = available;
+            this.center = center;
+            this.centerDistance = centerDistance;
+            this.radius = radius;
+            this.mobCount = mobCount;
+            this.threshold = threshold;
+            this.cooldownMillis = cooldownMillis;
+            this.totalEntities = totalEntities;
+            this.livingEntities = livingEntities;
+            this.mobEntities = mobEntities;
+            this.nearestEntityType = nearestEntityType;
+            this.nearestEntityClass = nearestEntityClass;
+            this.nearestEntityDistance = nearestEntityDistance;
+        }
+
+        static MobDebugInfo empty() {
+            return new MobDebugInfo(false, null, MOB_CENTER_DISTANCE, Math.sqrt(MOB_RADIUS_SQUARED), 0, 0, 0L, 0, 0, 0, "none", "none", -1.0D);
         }
     }
 }
