@@ -68,6 +68,7 @@ public final class HaTickHandler {
         tickCameraToggle(client);
         tickChestSearchShortcut(client);
         HaDropTracker.tick(client);
+        HaDropNotifier.tick(client);
         HaChestSearchIndex.get().tick(client);
         HaEvolutionForgeHelper.tick(client);
         HaExpTracker.tick(client);
@@ -377,6 +378,9 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaDropTrackerRegisteredListScreen
             || client.currentScreen instanceof HaDropTrackerRegisteredEditScreen
             || client.currentScreen instanceof HaDropTrackerOverlayScreen
+            || client.currentScreen instanceof HaDropNotifierScreen
+            || client.currentScreen instanceof HaDropNotifierManageScreen
+            || client.currentScreen instanceof HaDropNotifierEditScreen
             || client.currentScreen instanceof HaExpTrackerScreen
             || client.currentScreen instanceof HaExpTrackerOverlayScreen
             || client.currentScreen instanceof HaMobEspScreen;

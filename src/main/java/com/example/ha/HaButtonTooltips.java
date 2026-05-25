@@ -92,6 +92,10 @@ public final class HaButtonTooltips {
             || "HaDropTrackerRegisteredEditScreen".equals(screenName)
             || "HaDropTrackerOverlayScreen".equals(screenName)) {
             addDropTrackerTooltip(lines, screenName, label);
+        } else if ("HaDropNotifierScreen".equals(screenName)
+            || "HaDropNotifierManageScreen".equals(screenName)
+            || "HaDropNotifierEditScreen".equals(screenName)) {
+            addDropNotifierTooltip(lines, screenName, label);
         } else if ("HaExpTrackerScreen".equals(screenName)
             || "HaExpTrackerOverlayScreen".equals(screenName)) {
             addExpTrackerTooltip(lines, label);
@@ -188,6 +192,22 @@ public final class HaButtonTooltips {
             lines.add("記録数、推定利益、タイマーをリセットします。");
         } else if ("HaDropTrackerRegisteredListScreen".equals(screenName) && isLikelyEntryButton(label)) {
             lines.add("この登録アイテムを編集します。");
+        }
+    }
+
+    private static void addDropNotifierTooltip(List<String> lines, String screenName, String label) {
+        if (label.startsWith("Drop Notifier")) {
+            lines.add("Drop Notifierの有効/無効を切り替えます。");
+        } else if (label.startsWith("Auto Stop")) {
+            lines.add("ONならSoulbind終了で停止、OFFなら開始後も継続します。");
+        } else if ("Edit Notifiers".equals(label)) {
+            lines.add("通知するアイテム名の部分一致条件を編集します。");
+        } else if ("Add New Item".equals(label)) {
+            lines.add("新しい通知対象アイテム名を追加します。");
+        } else if (label.startsWith("Enabled")) {
+            lines.add("この通知対象の有効/無効を切り替えます。");
+        } else if ("HaDropNotifierManageScreen".equals(screenName) && isLikelyEntryButton(label)) {
+            lines.add("この通知対象を編集します。");
         }
     }
 

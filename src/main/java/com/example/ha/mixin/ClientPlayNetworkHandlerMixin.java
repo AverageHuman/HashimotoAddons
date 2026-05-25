@@ -6,6 +6,7 @@ import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
 import com.example.ha.HaExpTracker;
 import com.example.ha.HaSubSkillTimer;
+import com.example.ha.HaDropNotifier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
@@ -53,6 +54,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onDisconnected", at = @At("HEAD"))
     private void ha$clearSoulbindProtection(Text reason, CallbackInfo ci) {
         HaSoulbindProtection.onDisconnected();
+        HaDropNotifier.onDisconnected();
     }
 
     @Inject(method = "onOpenScreen", at = @At("HEAD"))

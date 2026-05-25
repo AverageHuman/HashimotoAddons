@@ -27,6 +27,7 @@ public final class HaConfig {
     public final List<HpAlertEntry> hpAlertEntries = new ArrayList<HpAlertEntry>();
     public final List<ManaAlertEntry> manaAlertEntries = new ArrayList<ManaAlertEntry>();
     public final List<ChatFilterEntry> chatFilterEntries = new ArrayList<ChatFilterEntry>();
+    public final List<DropNotifierEntry> dropNotifierEntries = new ArrayList<DropNotifierEntry>();
 
     public boolean autoHealEnabled = false;
     public int autoHealHotbarSlot = 1;
@@ -72,6 +73,8 @@ public final class HaConfig {
     public boolean dropTrackerContinueAfterStart = false;
     public int dropTrackerOverlayX = 8;
     public int dropTrackerOverlayY = 72;
+    public boolean dropNotifierEnabled = false;
+    public boolean dropNotifierContinueAfterStart = false;
     public boolean expTrackerEnabled = false;
     public long expTrackerTotal = 0L;
     public long expTrackerElapsedSeconds = 0L;
@@ -118,6 +121,13 @@ public final class HaConfig {
             entry.normalize();
             if (entry.matchText.isEmpty()) {
                 chatFilterEntries.remove(i);
+            }
+        }
+        for (int i = dropNotifierEntries.size() - 1; i >= 0; i--) {
+            DropNotifierEntry entry = dropNotifierEntries.get(i);
+            entry.normalize();
+            if (entry.matchText.isEmpty()) {
+                dropNotifierEntries.remove(i);
             }
         }
         normalizeGhostBlockSettings();
@@ -207,6 +217,18 @@ public final class HaConfig {
         }
     }
 
+    public DropNotifierEntry addDropNotifierEntry() {
+        DropNotifierEntry entry = new DropNotifierEntry();
+        dropNotifierEntries.add(entry);
+        return entry;
+    }
+
+    public void removeDropNotifierEntry(int index) {
+        if (index >= 0 && index < dropNotifierEntries.size()) {
+            dropNotifierEntries.remove(index);
+        }
+    }
+
     public InputUtil.Key getMacroToggleKey() {
         return InputUtil.fromKeyCode(macroToggleKeyCode, macroToggleScanCode);
     }
@@ -251,6 +273,7 @@ public final class HaConfig {
         hpAlertEntries.clear();
         manaAlertEntries.clear();
         chatFilterEntries.clear();
+        dropNotifierEntries.clear();
         if (saved == null) {
             return;
         }
@@ -273,6 +296,8 @@ public final class HaConfig {
         dropTrackerContinueAfterStart = saved.dropTrackerContinueAfterStart;
         dropTrackerOverlayX = saved.dropTrackerOverlayX;
         dropTrackerOverlayY = saved.dropTrackerOverlayY;
+        dropNotifierEnabled = saved.dropNotifierEnabled;
+        dropNotifierContinueAfterStart = saved.dropNotifierContinueAfterStart;
         expTrackerEnabled = saved.expTrackerEnabled;
         expTrackerTotal = saved.expTrackerTotal;
         expTrackerElapsedSeconds = saved.expTrackerElapsedSeconds;
@@ -383,6 +408,20 @@ public final class HaConfig {
                 }
             }
         }
+
+        if (saved.dropNotifierEntries != null) {
+            for (SavedDropNotifierEntry savedEntry : saved.dropNotifierEntries) {
+                DropNotifierEntry entry = new DropNotifierEntry();
+                if (savedEntry != null) {
+                    entry.enabled = savedEntry.enabled;
+                    entry.matchText = savedEntry.matchText;
+                }
+                entry.normalize();
+                if (!entry.matchText.isEmpty()) {
+                    dropNotifierEntries.add(entry);
+                }
+            }
+        }
     }
 
     private JsonObject toJson() {
@@ -405,6 +444,8 @@ public final class HaConfig {
         root.addProperty("dropTrackerContinueAfterStart", dropTrackerContinueAfterStart);
         root.addProperty("dropTrackerOverlayX", dropTrackerOverlayX);
         root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
+        root.addProperty("dropNotifierEnabled", dropNotifierEnabled);
+        root.addProperty("dropNotifierContinueAfterStart", dropNotifierContinueAfterStart);
         root.addProperty("expTrackerEnabled", expTrackerEnabled);
         root.addProperty("expTrackerTotal", expTrackerTotal);
         root.addProperty("expTrackerElapsedSeconds", expTrackerElapsedSeconds);
@@ -431,6 +472,7 @@ public final class HaConfig {
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries()));
         root.add("chatFilterEntries", GSON.toJsonTree(toSavedChatFilterEntries()));
+        root.add("dropNotifierEntries", GSON.toJsonTree(toSavedDropNotifierEntries()));
 
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             root.addProperty("autoHealEnabled", autoHealEnabled);
@@ -508,6 +550,20 @@ public final class HaConfig {
                 continue;
             }
             SavedChatFilterEntry savedEntry = new SavedChatFilterEntry();
+            savedEntry.enabled = entry.enabled;
+            savedEntry.matchText = entry.matchText;
+            savedEntries.add(savedEntry);
+        }
+        return savedEntries;
+    }
+
+    private List<SavedDropNotifierEntry> toSavedDropNotifierEntries() {
+        List<SavedDropNotifierEntry> savedEntries = new ArrayList<SavedDropNotifierEntry>();
+        for (DropNotifierEntry entry : dropNotifierEntries) {
+            if (entry.matchText == null || entry.matchText.trim().isEmpty()) {
+                continue;
+            }
+            SavedDropNotifierEntry savedEntry = new SavedDropNotifierEntry();
             savedEntry.enabled = entry.enabled;
             savedEntry.matchText = entry.matchText;
             savedEntries.add(savedEntry);
@@ -655,6 +711,19 @@ public final class HaConfig {
         }
     }
 
+    public static final class DropNotifierEntry {
+        public boolean enabled = true;
+        public String matchText = "";
+
+        public void normalize() {
+            if (matchText == null) {
+                matchText = "";
+            } else {
+                matchText = matchText.trim();
+            }
+        }
+    }
+
     private static final class SavedConfig {
         boolean autoHealEnabled;
         int autoHealHotbarSlot = 1;
@@ -699,6 +768,8 @@ public final class HaConfig {
         boolean dropTrackerContinueAfterStart = false;
         int dropTrackerOverlayX = 8;
         int dropTrackerOverlayY = 72;
+        boolean dropNotifierEnabled = false;
+        boolean dropNotifierContinueAfterStart = false;
         boolean expTrackerEnabled = false;
         long expTrackerTotal = 0L;
         long expTrackerElapsedSeconds = 0L;
@@ -726,6 +797,7 @@ public final class HaConfig {
         List<SavedHpAlertEntry> hpAlertEntries = new ArrayList<SavedHpAlertEntry>();
         List<SavedManaAlertEntry> manaAlertEntries = new ArrayList<SavedManaAlertEntry>();
         List<SavedChatFilterEntry> chatFilterEntries = new ArrayList<SavedChatFilterEntry>();
+        List<SavedDropNotifierEntry> dropNotifierEntries = new ArrayList<SavedDropNotifierEntry>();
     }
 
     private static final class SavedSwapEntry {
@@ -750,6 +822,11 @@ public final class HaConfig {
     }
 
     private static final class SavedChatFilterEntry {
+        boolean enabled = true;
+        String matchText = "";
+    }
+
+    private static final class SavedDropNotifierEntry {
         boolean enabled = true;
         String matchText = "";
     }
