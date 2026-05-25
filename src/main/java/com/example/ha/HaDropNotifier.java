@@ -17,6 +17,7 @@ import net.minecraft.util.Formatting;
 public final class HaDropNotifier {
     private static final double DETECTION_DISTANCE_SQUARED = 32.0D * 32.0D;
     private static final int SOUND_REPEAT_DELAY_TICKS = 4;
+    private static final int SOUND_PLAY_COUNT = 10;
     private static final Set<Integer> NOTIFIED_ENTITY_IDS = new HashSet<Integer>();
 
     private static boolean activeSession;
@@ -93,7 +94,7 @@ public final class HaDropNotifier {
     private static void notify(MinecraftClient client, String displayName) {
         client.inGameHud.setTitles(new LiteralText(displayName), new LiteralText(""), 5, 30, 10);
         playNotificationSound(client);
-        pendingSoundPlays = 2;
+        pendingSoundPlays = SOUND_PLAY_COUNT - 1;
         pendingSoundDelayTicks = SOUND_REPEAT_DELAY_TICKS;
     }
 
