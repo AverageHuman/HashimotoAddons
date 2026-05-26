@@ -323,11 +323,12 @@ public final class HaTickHandler {
         KeyBinding.onKeyPressed(key);
     }
 
-    void triggerSwapEntry(MinecraftClient client, HaConfig.SwapEntry entry) {
+    boolean triggerSwapEntry(MinecraftClient client, HaConfig.SwapEntry entry) {
         if (entry == null || isSwapHolding(client)) {
-            return;
+            return false;
         }
         simulateHotbarKeyPress(client, entry.hotbarSlot, entry.holdTicks);
+        return true;
     }
 
     private void tickSimulatedHotbarKey(MinecraftClient client) {

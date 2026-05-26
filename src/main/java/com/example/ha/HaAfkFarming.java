@@ -26,6 +26,9 @@ import net.minecraft.util.math.Vec3d;
 public final class HaAfkFarming {
     private static final double MOB_CENTER_DISTANCE = 3.0D;
     private static final double MOB_RADIUS_SQUARED = 3.0D * 3.0D;
+    private static final double START_POSITION_ALERT_DISTANCE_SQUARED = 2.0D * 2.0D;
+    private static final int START_POSITION_ALERT_SOUND_COUNT = 10;
+    private static final int START_POSITION_ALERT_SOUND_DELAY_TICKS = 4;
     private static final Random RANDOM = new Random();
     private static final Map<String, Long> LAST_ALERT_MILLIS = new HashMap<String, Long>();
     private static final ExecutorService WEBHOOK_EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
@@ -37,10 +40,15 @@ public final class HaAfkFarming {
     private static boolean wasRunning;
     private static long lastReportMillis;
     private static long nextMobMacroMillis;
+    private static long nextMobMacroTriggerMillis;
     private static int currentMobThreshold = -1;
     private static MobDebugInfo lastMobDebugInfo = MobDebugInfo.empty();
     private static volatile String lastWebhookStatus = "Not sent";
     private static boolean mobMacroDraining;
+    private static Vec3d monitoringStartPosition;
+    private static boolean monitoringStartPositionAlerted;
+    private static int pendingStartPositionAlertSounds;
+    private static int pendingStartPositionAlertSoundDelayTicks;
 
     private HaAfkFarming() {
     }
@@ -63,9 +71,14 @@ public final class HaAfkFarming {
             lastReportMillis = now;
             LAST_ALERT_MILLIS.clear();
             currentMobThreshold = -1;
+            monitoringStartPosition = client.player.getPos();
+            monitoringStartPositionAlerted = false;
+            pendingStartPositionAlertSounds = 0;
+            pendingStartPositionAlertSoundDelayTicks = 0;
             sendWebhook(config.afkFarmingWebhookUrl, "HashimotoAddons: Monitoring started!");
         }
 
+        tickStartPositionAlert(client, config);
         tickPlayerAlerts(client, config, now);
         tickKeyAdminAlert(client, config, now);
         tickStatusReport(config, now);
@@ -148,6 +161,59 @@ public final class HaAfkFarming {
         sendWebhook(config.afkFarmingWebhookUrl, buildStatusMessage(config));
     }
 
+    private static void tickStartPositionAlert(MinecraftClient client, HaConfig config) {
+        tickPendingStartPositionAlertSounds(client);
+        if (monitoringStartPosition == null || client.player == null) {
+            return;
+        }
+
+        Vec3d currentPosition = client.player.getPos();
+        boolean awayFromStart = currentPosition.squaredDistanceTo(monitoringStartPosition) >= START_POSITION_ALERT_DISTANCE_SQUARED;
+        if (!awayFromStart) {
+            monitoringStartPositionAlerted = false;
+            return;
+        }
+        if (monitoringStartPositionAlerted) {
+            return;
+        }
+
+        monitoringStartPositionAlerted = true;
+        client.inGameHud.setTitles(new LiteralText("\u00a7cAFK Position Alert"), new LiteralText("\u00a7eMoved 2+ blocks from start"), 5, 50, 10);
+        sendWebhook(
+            config.afkFarmingWebhookUrl,
+            "HashimotoAddons: AFK position alert!\n"
+                + "Start: " + formatPosition(monitoringStartPosition) + "\n"
+                + "Current: " + formatPosition(currentPosition)
+        );
+        playStartPositionAlertSound(client);
+        pendingStartPositionAlertSounds = START_POSITION_ALERT_SOUND_COUNT - 1;
+        pendingStartPositionAlertSoundDelayTicks = START_POSITION_ALERT_SOUND_DELAY_TICKS;
+    }
+
+    private static void tickPendingStartPositionAlertSounds(MinecraftClient client) {
+        if (pendingStartPositionAlertSounds <= 0) {
+            return;
+        }
+        if (pendingStartPositionAlertSoundDelayTicks > 0) {
+            pendingStartPositionAlertSoundDelayTicks--;
+            return;
+        }
+
+        playStartPositionAlertSound(client);
+        pendingStartPositionAlertSounds--;
+        pendingStartPositionAlertSoundDelayTicks = START_POSITION_ALERT_SOUND_DELAY_TICKS;
+    }
+
+    private static void playStartPositionAlertSound(MinecraftClient client) {
+        if (client != null && client.player != null) {
+            client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1.0F, 1.4F);
+        }
+    }
+
+    private static String formatPosition(Vec3d position) {
+        return String.format(Locale.ROOT, "X %.1f / Y %.1f / Z %.1f", Double.valueOf(position.x), Double.valueOf(position.y), Double.valueOf(position.z));
+    }
+
     private static void tickMobMacro(MinecraftClient client, HaTickHandler tickHandler, HaConfig config, long now) {
         if (!config.afkFarmingMobMacroEnabled || tickHandler == null || client.currentScreen != null) {
             mobMacroDraining = false;
@@ -171,6 +237,7 @@ public final class HaAfkFarming {
         if (mobMacroDraining && mobCount <= 0) {
             mobMacroDraining = false;
             nextMobMacroMillis = now + Math.max(1L, Math.round(config.afkFarmingMobMacroCooldownSeconds * 1000.0D));
+            nextMobMacroTriggerMillis = 0L;
             currentMobThreshold = rollMobThreshold(config);
             return;
         }
@@ -180,7 +247,12 @@ public final class HaAfkFarming {
         }
 
         mobMacroDraining = true;
-        tickHandler.triggerSwapEntry(client, entry);
+        if (now < nextMobMacroTriggerMillis) {
+            return;
+        }
+        if (tickHandler.triggerSwapEntry(client, entry)) {
+            nextMobMacroTriggerMillis = now + Math.max(1L, Math.round(entry.intervalSeconds * 1000.0D));
+        }
     }
 
     public static MobDebugInfo getMobDebugInfo(MinecraftClient client) {
@@ -246,7 +318,10 @@ public final class HaAfkFarming {
             }
         }
 
-        long cooldownMillis = mobMacroDraining ? 0L : Math.max(0L, nextMobMacroMillis - System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        long cooldownMillis = mobMacroDraining
+            ? Math.max(0L, nextMobMacroTriggerMillis - now)
+            : Math.max(0L, nextMobMacroMillis - now);
         return new MobDebugInfo(
             true,
             center,
@@ -323,13 +398,14 @@ public final class HaAfkFarming {
 
     private static String buildStatusMessage(HaConfig config) {
         StringBuilder message = new StringBuilder();
-        message.append("HashimotoAddons: AFK Farming Report\n");
+        message.append("========== HashimotoAddons: AFK Farming Report ==========\n");
         message.append("Current EXP: ").append(config.expTrackerTotal).append('\n');
         message.append("Estimated EXP/hour: ").append(HaExpTracker.getExpPerHour()).append('\n');
         message.append("Exp Timer: ").append(formatDuration(HaExpTracker.getElapsedSeconds())).append('\n');
         message.append("Profit: ").append(HaDropTracker.getEstimatedProfit()).append(" Intercoins\n");
         message.append("Estimated Profit/hour: ").append(HaDropTracker.getProfitPerHour()).append(" Intercoins\n");
-        message.append("Drop Timer: ").append(formatDuration(HaDropTracker.getElapsedSeconds()));
+        message.append("Drop Timer: ").append(formatDuration(HaDropTracker.getElapsedSeconds())).append('\n');
+        message.append("=========================================================");
         return message.toString();
     }
 
@@ -448,9 +524,14 @@ public final class HaAfkFarming {
         wasRunning = false;
         lastReportMillis = 0L;
         nextMobMacroMillis = 0L;
+        nextMobMacroTriggerMillis = 0L;
         currentMobThreshold = -1;
         lastMobDebugInfo = MobDebugInfo.empty();
         mobMacroDraining = false;
+        monitoringStartPosition = null;
+        monitoringStartPositionAlerted = false;
+        pendingStartPositionAlertSounds = 0;
+        pendingStartPositionAlertSoundDelayTicks = 0;
         if (clearAlerts) {
             LAST_ALERT_MILLIS.clear();
         }
