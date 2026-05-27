@@ -19,6 +19,7 @@ public final class HaAfkFarmingScreen extends Screen {
     private ButtonWidget selectedMacroButton;
     private ButtonWidget circleButton;
     private ButtonWidget debugHudButton;
+    private ButtonWidget autoMoveButton;
     private ButtonWidget webhookTestButton;
     private TextFieldWidget webhookField;
     private TextFieldWidget reportIntervalField;
@@ -26,6 +27,7 @@ public final class HaAfkFarmingScreen extends Screen {
     private TextFieldWidget mobMinField;
     private TextFieldWidget mobMaxField;
     private TextFieldWidget mobCooldownField;
+    private TextFieldWidget autoMoveIntervalField;
 
     public HaAfkFarmingScreen(Screen parent) {
         super(TITLE);
@@ -102,7 +104,13 @@ public final class HaAfkFarmingScreen extends Screen {
             refreshButtons();
         }));
 
-        webhookTestButton = addButton(new ButtonWidget(left, top + 96, 210, 20, new LiteralText("Webhook Test"), button -> {
+        autoMoveButton = addButton(new ButtonWidget(left, top + 96, 100, 20, new LiteralText(""), button -> {
+            config.afkFarmingAutoMoveEnabled = !config.afkFarmingAutoMoveEnabled;
+            config.save();
+            refreshButtons();
+        }));
+
+        webhookTestButton = addButton(new ButtonWidget(right, top + 96, 100, 20, new LiteralText("Webhook Test"), button -> {
             if (client != null) {
                 HaAfkFarming.sendWebhookTest(client);
             }
@@ -136,7 +144,18 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(keyAdminNameField);
 
-        mobMinField = new TextFieldWidget(this.textRenderer, left, top + 196, 44, 20, new LiteralText("Living Min"));
+        autoMoveIntervalField = new TextFieldWidget(this.textRenderer, left, top + 196, 96, 20, new LiteralText("Auto Move Seconds"));
+        autoMoveIntervalField.setText(Double.toString(config.afkFarmingAutoMoveIntervalSeconds));
+        autoMoveIntervalField.setChangedListener(value -> {
+            Double parsed = parsePositiveDouble(value);
+            if (parsed != null) {
+                config.afkFarmingAutoMoveIntervalSeconds = parsed.doubleValue();
+                config.save();
+            }
+        });
+        children.add(autoMoveIntervalField);
+
+        mobMinField = new TextFieldWidget(this.textRenderer, left, top + 232, 44, 20, new LiteralText("Living Min"));
         mobMinField.setText(Integer.toString(config.afkFarmingMobMinCount));
         mobMinField.setChangedListener(value -> {
             Integer parsed = parsePositiveInt(value);
@@ -148,7 +167,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(mobMinField);
 
-        mobMaxField = new TextFieldWidget(this.textRenderer, left + 52, top + 196, 44, 20, new LiteralText("Living Max"));
+        mobMaxField = new TextFieldWidget(this.textRenderer, left + 52, top + 232, 44, 20, new LiteralText("Living Max"));
         mobMaxField.setText(Integer.toString(config.afkFarmingMobMaxCount));
         mobMaxField.setChangedListener(value -> {
             Integer parsed = parsePositiveInt(value);
@@ -160,7 +179,7 @@ public final class HaAfkFarmingScreen extends Screen {
         });
         children.add(mobMaxField);
 
-        mobCooldownField = new TextFieldWidget(this.textRenderer, right, top + 196, 100, 20, new LiteralText("Mob Cooldown"));
+        mobCooldownField = new TextFieldWidget(this.textRenderer, right, top + 232, 100, 20, new LiteralText("Mob Cooldown"));
         mobCooldownField.setText(Double.toString(config.afkFarmingMobMacroCooldownSeconds));
         mobCooldownField.setChangedListener(value -> {
             Double parsed = parsePositiveDouble(value);
@@ -184,6 +203,7 @@ public final class HaAfkFarmingScreen extends Screen {
         mobMinField.tick();
         mobMaxField.tick();
         mobCooldownField.tick();
+        autoMoveIntervalField.tick();
     }
 
     @Override
@@ -194,6 +214,7 @@ public final class HaAfkFarmingScreen extends Screen {
             || mobMinField.charTyped(chr, modifiers)
             || mobMaxField.charTyped(chr, modifiers)
             || mobCooldownField.charTyped(chr, modifiers)
+            || autoMoveIntervalField.charTyped(chr, modifiers)
             || super.charTyped(chr, modifiers);
     }
 
@@ -205,6 +226,7 @@ public final class HaAfkFarmingScreen extends Screen {
             || mobMinField.keyPressed(keyCode, scanCode, modifiers)
             || mobMaxField.keyPressed(keyCode, scanCode, modifiers)
             || mobCooldownField.keyPressed(keyCode, scanCode, modifiers)
+            || autoMoveIntervalField.keyPressed(keyCode, scanCode, modifiers)
             || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -220,8 +242,9 @@ public final class HaAfkFarmingScreen extends Screen {
         this.textRenderer.draw(matrices, "Discord Webhook URL:", left, top + 116, 0xA0A0A0);
         this.textRenderer.draw(matrices, "\u5b9a\u671f\u901a\u77e5(\u5206):", left, top + 150, 0xA0A0A0);
         this.textRenderer.draw(matrices, "Admin\u540d:", right, top + 150, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Living\u6570(min-max):", left, top + 186, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "\u518d\u767a\u52d5CD(\u79d2):", right, top + 186, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Auto Move\u9593\u9694(\u79d2):", left, top + 186, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Living\u6570(min-max):", left, top + 222, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "\u518d\u767a\u52d5CD(\u79d2):", right, top + 222, 0xA0A0A0);
 
         webhookField.render(matrices, mouseX, mouseY, delta);
         reportIntervalField.render(matrices, mouseX, mouseY, delta);
@@ -229,6 +252,7 @@ public final class HaAfkFarmingScreen extends Screen {
         mobMinField.render(matrices, mouseX, mouseY, delta);
         mobMaxField.render(matrices, mouseX, mouseY, delta);
         mobCooldownField.render(matrices, mouseX, mouseY, delta);
+        autoMoveIntervalField.render(matrices, mouseX, mouseY, delta);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -252,6 +276,7 @@ public final class HaAfkFarmingScreen extends Screen {
         selectedMacroButton.setMessage(new LiteralText("\u767a\u52d5Macro: " + macroName(config)));
         circleButton.setMessage(new LiteralText("\u5224\u5b9a\u30b5\u30fc\u30af\u30eb: " + onOff(config.afkFarmingMobCircleVisible)));
         debugHudButton.setMessage(new LiteralText("\u30c6\u30b9\u30c8HUD: " + onOff(config.afkFarmingMobDebugHudEnabled)));
+        autoMoveButton.setMessage(new LiteralText("Auto Move: " + onOff(config.afkFarmingAutoMoveEnabled)));
         webhookTestButton.setMessage(new LiteralText("Webhook Test"));
     }
 

@@ -1,5 +1,6 @@
 package com.example.ha;
 
+import com.example.ha.mixin.KeyBindingAccessor;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -13,6 +14,8 @@ import java.util.concurrent.Executors;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -29,6 +32,14 @@ public final class HaAfkFarming {
     private static final double START_POSITION_ALERT_DISTANCE_SQUARED = 2.0D * 2.0D;
     private static final int START_POSITION_ALERT_SOUND_COUNT = 10;
     private static final int START_POSITION_ALERT_SOUND_DELAY_TICKS = 4;
+    private static final long AUTO_MOVE_LEFT_MILLIS = 200L;
+    private static final long AUTO_MOVE_BACK_MILLIS = 500L;
+    private static final long AUTO_MOVE_LOOK_MILLIS = 150L;
+    private static final int AUTO_MOVE_IDLE_STEP = -1;
+    private static final int AUTO_MOVE_LOOK_OFFSET_STEP = 4;
+    private static final int AUTO_MOVE_LOOK_RESTORE_STEP = 5;
+    private static final float AUTO_MOVE_LOOK_YAW_DELTA = 3.0F;
+    private static final float AUTO_MOVE_LOOK_PITCH_DELTA = 1.0F;
     private static final Random RANDOM = new Random();
     private static final Map<String, Long> LAST_ALERT_MILLIS = new HashMap<String, Long>();
     private static final ExecutorService WEBHOOK_EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
@@ -49,6 +60,21 @@ public final class HaAfkFarming {
     private static boolean monitoringStartPositionAlerted;
     private static int pendingStartPositionAlertSounds;
     private static int pendingStartPositionAlertSoundDelayTicks;
+    private static long nextAutoMoveMillis;
+    private static int autoMoveStep = AUTO_MOVE_IDLE_STEP;
+    private static long autoMoveStepStartMillis;
+    private static long autoMoveStepEndMillis;
+    private static InputUtil.Key autoMovePressedKey = InputUtil.UNKNOWN_KEY;
+    private static float autoMoveStartYaw;
+    private static float autoMoveStartPitch;
+    private static float autoMoveLookYawDelta;
+    private static float autoMoveLookPitchDelta;
+    private static float autoMoveLookFromYaw;
+    private static float autoMoveLookFromPitch;
+    private static float autoMoveLookToYaw;
+    private static float autoMoveLookToPitch;
+    private static boolean autoMoveViewCaptured;
+    private static boolean autoMoveViewAdjusted;
 
     private HaAfkFarming() {
     }
@@ -75,10 +101,13 @@ public final class HaAfkFarming {
             monitoringStartPositionAlerted = false;
             pendingStartPositionAlertSounds = 0;
             pendingStartPositionAlertSoundDelayTicks = 0;
+            resetAutoMove(client, autoMoveStep != AUTO_MOVE_IDLE_STEP || autoMovePressedKey != InputUtil.UNKNOWN_KEY);
+            scheduleNextAutoMove(config, now);
             sendWebhook(config.afkFarmingWebhookUrl, "HashimotoAddons: Monitoring started!");
         }
 
         tickStartPositionAlert(client, config);
+        tickAutoMove(client, config, now);
         tickPlayerAlerts(client, config, now);
         tickKeyAdminAlert(client, config, now);
         tickStatusReport(config, now);
@@ -214,6 +243,277 @@ public final class HaAfkFarming {
         return String.format(Locale.ROOT, "X %.1f / Y %.1f / Z %.1f", Double.valueOf(position.x), Double.valueOf(position.y), Double.valueOf(position.z));
     }
 
+    private static void tickAutoMove(MinecraftClient client, HaConfig config, long now) {
+        if (!config.afkFarmingAutoMoveEnabled) {
+            if (autoMoveStep != AUTO_MOVE_IDLE_STEP || autoMovePressedKey != InputUtil.UNKNOWN_KEY) {
+                resetAutoMove(client, true);
+            }
+            nextAutoMoveMillis = 0L;
+            return;
+        }
+        if (client.currentScreen != null) {
+            if (autoMoveStep != AUTO_MOVE_IDLE_STEP) {
+                resetAutoMove(client, true);
+                scheduleNextAutoMove(config, now);
+            }
+            return;
+        }
+        if (autoMoveStep != AUTO_MOVE_IDLE_STEP) {
+            tickAutoMoveSequence(client, config, now);
+            return;
+        }
+        if (nextAutoMoveMillis <= 0L) {
+            scheduleNextAutoMove(config, now);
+            return;
+        }
+        if (now < nextAutoMoveMillis) {
+            return;
+        }
+        if (monitoringStartPosition != null
+            && client.player != null
+            && client.player.getPos().squaredDistanceTo(monitoringStartPosition) >= START_POSITION_ALERT_DISTANCE_SQUARED) {
+            scheduleNextAutoMove(config, now);
+            return;
+        }
+
+        captureAutoMoveView(client);
+        autoMoveStep = 0;
+        tickAutoMoveSequence(client, config, now);
+    }
+
+    private static void tickAutoMoveSequence(MinecraftClient client, HaConfig config, long now) {
+        if (autoMoveStepEndMillis > 0L && now < autoMoveStepEndMillis) {
+            tickAutoMoveLookInterpolation(client, now);
+            return;
+        }
+        if (autoMoveStepEndMillis > 0L) {
+            tickAutoMoveLookInterpolation(client, autoMoveStepEndMillis);
+        }
+
+        releaseAutoMoveKeys(client);
+        long durationMillis = getAutoMoveStepDurationMillis(autoMoveStep);
+        if (durationMillis <= 0L) {
+            resetAutoMove(client, true);
+            scheduleNextAutoMove(config, now);
+            return;
+        }
+
+        autoMoveStepStartMillis = now;
+        if (isAutoMoveLookStep(autoMoveStep)) {
+            applyAutoMoveLookStep(client, autoMoveStep);
+        } else {
+            KeyBinding nextKey = getAutoMoveStepKey(client, autoMoveStep);
+            if (nextKey == null) {
+                resetAutoMove(client, true);
+                scheduleNextAutoMove(config, now);
+                return;
+            }
+            pressSingleAutoMoveKey(client, nextKey);
+        }
+        autoMoveStepEndMillis = now + durationMillis;
+        autoMoveStep++;
+    }
+
+    private static KeyBinding getAutoMoveStepKey(MinecraftClient client, int step) {
+        if (client == null || client.options == null) {
+            return null;
+        }
+        if (step == 0) {
+            return client.options.keyLeft;
+        }
+        if (step == 1) {
+            return client.options.keyBack;
+        }
+        if (step == 2) {
+            return client.options.keyRight;
+        }
+        if (step == 3) {
+            return client.options.keyBack;
+        }
+        return null;
+    }
+
+    private static long getAutoMoveStepDurationMillis(int step) {
+        if (step == 0 || step == 2) {
+            return AUTO_MOVE_LEFT_MILLIS;
+        }
+        if (step == 1 || step == 3) {
+            return AUTO_MOVE_BACK_MILLIS;
+        }
+        if (step == AUTO_MOVE_LOOK_OFFSET_STEP || step == AUTO_MOVE_LOOK_RESTORE_STEP) {
+            return AUTO_MOVE_LOOK_MILLIS;
+        }
+        return 0L;
+    }
+
+    private static boolean isAutoMoveLookStep(int step) {
+        return step == AUTO_MOVE_LOOK_OFFSET_STEP || step == AUTO_MOVE_LOOK_RESTORE_STEP;
+    }
+
+    private static void captureAutoMoveView(MinecraftClient client) {
+        if (client == null || client.player == null) {
+            autoMoveViewCaptured = false;
+            autoMoveViewAdjusted = false;
+            return;
+        }
+        autoMoveStartYaw = client.player.getYaw(1.0F);
+        autoMoveStartPitch = client.player.getPitch(1.0F);
+        autoMoveLookYawDelta = randomSignedOffset(AUTO_MOVE_LOOK_YAW_DELTA);
+        autoMoveLookPitchDelta = randomSignedOffset(AUTO_MOVE_LOOK_PITCH_DELTA);
+        autoMoveViewCaptured = true;
+        autoMoveViewAdjusted = false;
+    }
+
+    private static void applyAutoMoveLookStep(MinecraftClient client, int step) {
+        if (client == null || client.player == null || !autoMoveViewCaptured) {
+            return;
+        }
+        if (step == AUTO_MOVE_LOOK_OFFSET_STEP) {
+            autoMoveLookFromYaw = client.player.getYaw(1.0F);
+            autoMoveLookFromPitch = client.player.getPitch(1.0F);
+            autoMoveLookToYaw = autoMoveStartYaw + autoMoveLookYawDelta;
+            autoMoveLookToPitch = autoMoveStartPitch + autoMoveLookPitchDelta;
+            autoMoveViewAdjusted = true;
+        } else if (step == AUTO_MOVE_LOOK_RESTORE_STEP) {
+            autoMoveLookFromYaw = client.player.getYaw(1.0F);
+            autoMoveLookFromPitch = client.player.getPitch(1.0F);
+            autoMoveLookToYaw = autoMoveStartYaw;
+            autoMoveLookToPitch = autoMoveStartPitch;
+        }
+        tickAutoMoveLookInterpolation(client, autoMoveStepStartMillis);
+    }
+
+    private static float randomSignedOffset(float magnitude) {
+        if (magnitude <= 0.0F) {
+            return 0.0F;
+        }
+        return RANDOM.nextBoolean() ? magnitude : -magnitude;
+    }
+
+    private static void restoreAutoMoveView(MinecraftClient client) {
+        if (client == null || client.player == null || !autoMoveViewCaptured) {
+            autoMoveViewCaptured = false;
+            autoMoveViewAdjusted = false;
+            return;
+        }
+        setPlayerView(client, autoMoveStartYaw, autoMoveStartPitch);
+        autoMoveViewAdjusted = false;
+    }
+
+    private static void tickAutoMoveLookInterpolation(MinecraftClient client, long now) {
+        int activeStep = autoMoveStep - 1;
+        if (!isAutoMoveLookStep(activeStep) || autoMoveStepEndMillis <= autoMoveStepStartMillis) {
+            return;
+        }
+        double progress = (double) (now - autoMoveStepStartMillis) / (double) (autoMoveStepEndMillis - autoMoveStepStartMillis);
+        float eased = (float) Math.max(0.0D, Math.min(1.0D, progress));
+        float yaw = lerpAngle(autoMoveLookFromYaw, autoMoveLookToYaw, eased);
+        float pitch = lerp(autoMoveLookFromPitch, autoMoveLookToPitch, eased);
+        setPlayerView(client, yaw, pitch);
+        if (activeStep == AUTO_MOVE_LOOK_RESTORE_STEP && eased >= 1.0F) {
+            autoMoveViewAdjusted = false;
+        }
+    }
+
+    private static float lerp(float from, float to, float progress) {
+        return from + (to - from) * progress;
+    }
+
+    private static float lerpAngle(float from, float to, float progress) {
+        return from + wrapDegrees(to - from) * progress;
+    }
+
+    private static float wrapDegrees(float value) {
+        float wrapped = value % 360.0F;
+        if (wrapped >= 180.0F) {
+            wrapped -= 360.0F;
+        }
+        if (wrapped < -180.0F) {
+            wrapped += 360.0F;
+        }
+        return wrapped;
+    }
+
+    private static void setPlayerView(MinecraftClient client, float yaw, float pitch) {
+        if (client == null || client.player == null) {
+            return;
+        }
+        float clampedPitch = Math.max(-90.0F, Math.min(90.0F, pitch));
+        client.player.yaw = yaw;
+        client.player.prevYaw = yaw;
+        client.player.headYaw = yaw;
+        client.player.prevHeadYaw = yaw;
+        client.player.bodyYaw = yaw;
+        client.player.prevBodyYaw = yaw;
+        client.player.pitch = clampedPitch;
+        client.player.prevPitch = clampedPitch;
+    }
+
+    private static void pressSingleAutoMoveKey(MinecraftClient client, KeyBinding keyBinding) {
+        releaseAutoMoveKeys(client);
+        InputUtil.Key key = getBoundKey(keyBinding);
+        if (key == InputUtil.UNKNOWN_KEY) {
+            return;
+        }
+        autoMovePressedKey = key;
+        KeyBinding.setKeyPressed(key, true);
+        KeyBinding.onKeyPressed(key);
+    }
+
+    private static void releaseAutoMoveKeys(MinecraftClient client) {
+        if (client != null && client.options != null) {
+            releaseKeyBinding(client.options.keyForward);
+            releaseKeyBinding(client.options.keyLeft);
+            releaseKeyBinding(client.options.keyBack);
+            releaseKeyBinding(client.options.keyRight);
+        }
+        if (autoMovePressedKey != InputUtil.UNKNOWN_KEY) {
+            KeyBinding.setKeyPressed(autoMovePressedKey, false);
+            autoMovePressedKey = InputUtil.UNKNOWN_KEY;
+        }
+    }
+
+    private static void releaseKeyBinding(KeyBinding keyBinding) {
+        InputUtil.Key key = getBoundKey(keyBinding);
+        if (key != InputUtil.UNKNOWN_KEY) {
+            KeyBinding.setKeyPressed(key, false);
+        }
+    }
+
+    private static InputUtil.Key getBoundKey(KeyBinding keyBinding) {
+        if (keyBinding == null) {
+            return InputUtil.UNKNOWN_KEY;
+        }
+        return ((KeyBindingAccessor) keyBinding).ha$getBoundKey();
+    }
+
+    private static void scheduleNextAutoMove(HaConfig config, long now) {
+        double jitterSeconds = Math.max(0.0D, config.afkFarmingAutoMoveJitterSeconds);
+        double jitterMillis = jitterSeconds <= 0.0D ? 0.0D : (RANDOM.nextDouble() * jitterSeconds * 2.0D - jitterSeconds) * 1000.0D;
+        long intervalMillis = Math.max(1000L, Math.round(config.afkFarmingAutoMoveIntervalSeconds * 1000.0D + jitterMillis));
+        nextAutoMoveMillis = now + intervalMillis;
+    }
+
+    private static void resetAutoMove(MinecraftClient client, boolean releaseKeys) {
+        if (releaseKeys) {
+            releaseAutoMoveKeys(client);
+        }
+        if (autoMoveViewAdjusted) {
+            restoreAutoMoveView(client);
+        }
+        autoMoveStep = AUTO_MOVE_IDLE_STEP;
+        autoMoveStepStartMillis = 0L;
+        autoMoveStepEndMillis = 0L;
+        autoMoveLookYawDelta = 0.0F;
+        autoMoveLookPitchDelta = 0.0F;
+        autoMoveLookFromYaw = 0.0F;
+        autoMoveLookFromPitch = 0.0F;
+        autoMoveLookToYaw = 0.0F;
+        autoMoveLookToPitch = 0.0F;
+        autoMoveViewCaptured = false;
+        autoMoveViewAdjusted = false;
+    }
+
     private static void tickMobMacro(MinecraftClient client, HaTickHandler tickHandler, HaConfig config, long now) {
         if (!config.afkFarmingMobMacroEnabled || tickHandler == null || client.currentScreen != null) {
             mobMacroDraining = false;
@@ -276,6 +576,21 @@ public final class HaAfkFarming {
         return HaBuildFlags.DANGEROUS_FEATURES_ENABLED
             && config.afkFarmingEnabled
             && config.afkFarmingActive;
+    }
+
+    public static long getAutoMoveRemainingMillis() {
+        long now = System.currentTimeMillis();
+        if (autoMoveStep != AUTO_MOVE_IDLE_STEP && autoMoveStepEndMillis > now) {
+            return autoMoveStepEndMillis - now;
+        }
+        if (nextAutoMoveMillis <= 0L) {
+            return 0L;
+        }
+        return Math.max(0L, nextAutoMoveMillis - now);
+    }
+
+    public static boolean isAutoMoveRunningStep() {
+        return autoMoveStep != AUTO_MOVE_IDLE_STEP;
     }
 
     private static MobDebugInfo collectMobDebugInfo(MinecraftClient client, HaConfig config) {
@@ -521,10 +836,12 @@ public final class HaAfkFarming {
     }
 
     private static void resetRuntime(boolean clearAlerts) {
+        resetAutoMove(MinecraftClient.getInstance(), autoMoveStep != AUTO_MOVE_IDLE_STEP || autoMovePressedKey != InputUtil.UNKNOWN_KEY);
         wasRunning = false;
         lastReportMillis = 0L;
         nextMobMacroMillis = 0L;
         nextMobMacroTriggerMillis = 0L;
+        nextAutoMoveMillis = 0L;
         currentMobThreshold = -1;
         lastMobDebugInfo = MobDebugInfo.empty();
         mobMacroDraining = false;

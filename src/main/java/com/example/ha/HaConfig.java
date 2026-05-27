@@ -73,6 +73,10 @@ public final class HaConfig {
     public int afkFarmingMobMinCount = 3;
     public int afkFarmingMobMaxCount = 5;
     public double afkFarmingMobMacroCooldownSeconds = 5.0D;
+    public boolean afkFarmingAutoMoveEnabled = false;
+    public double afkFarmingAutoMoveIntervalSeconds = 300.0D;
+    public double afkFarmingAutoMoveIntervalMinutes = 5.0D;
+    public double afkFarmingAutoMoveJitterSeconds = 10.0D;
     public boolean chestSearchEnabled = false;
     public String chestSearchQuery = "";
     public int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
@@ -180,6 +184,9 @@ public final class HaConfig {
             afkFarmingMobMaxCount = afkFarmingMobMinCount;
         }
         afkFarmingMobMacroCooldownSeconds = clamp(afkFarmingMobMacroCooldownSeconds, 0.1D, 3600.0D);
+        afkFarmingAutoMoveIntervalSeconds = clamp(afkFarmingAutoMoveIntervalSeconds, 1.0D, 86400.0D);
+        afkFarmingAutoMoveIntervalMinutes = afkFarmingAutoMoveIntervalSeconds / 60.0D;
+        afkFarmingAutoMoveJitterSeconds = clamp(afkFarmingAutoMoveJitterSeconds, 0.0D, 300.0D);
         if (chestSearchQuery == null) {
             chestSearchQuery = "";
         } else {
@@ -398,6 +405,16 @@ public final class HaConfig {
             afkFarmingMobMinCount = saved.afkFarmingMobMinCount > 0 ? saved.afkFarmingMobMinCount : 3;
             afkFarmingMobMaxCount = saved.afkFarmingMobMaxCount > 0 ? saved.afkFarmingMobMaxCount : 5;
             afkFarmingMobMacroCooldownSeconds = saved.afkFarmingMobMacroCooldownSeconds > 0.0D ? saved.afkFarmingMobMacroCooldownSeconds : 5.0D;
+            afkFarmingAutoMoveEnabled = saved.afkFarmingAutoMoveEnabled;
+            if (saved.afkFarmingAutoMoveIntervalSeconds > 0.0D) {
+                afkFarmingAutoMoveIntervalSeconds = saved.afkFarmingAutoMoveIntervalSeconds;
+            } else if (saved.afkFarmingAutoMoveIntervalMinutes > 0.0D) {
+                afkFarmingAutoMoveIntervalSeconds = saved.afkFarmingAutoMoveIntervalMinutes * 60.0D;
+            } else {
+                afkFarmingAutoMoveIntervalSeconds = 300.0D;
+            }
+            afkFarmingAutoMoveIntervalMinutes = afkFarmingAutoMoveIntervalSeconds / 60.0D;
+            afkFarmingAutoMoveJitterSeconds = saved.afkFarmingAutoMoveJitterSeconds >= 0.0D ? saved.afkFarmingAutoMoveJitterSeconds : 10.0D;
 
             if (saved.swapEntries != null) {
                 for (SavedSwapEntry savedEntry : saved.swapEntries) {
@@ -561,6 +578,10 @@ public final class HaConfig {
             root.addProperty("afkFarmingMobMinCount", afkFarmingMobMinCount);
             root.addProperty("afkFarmingMobMaxCount", afkFarmingMobMaxCount);
             root.addProperty("afkFarmingMobMacroCooldownSeconds", afkFarmingMobMacroCooldownSeconds);
+            root.addProperty("afkFarmingAutoMoveEnabled", afkFarmingAutoMoveEnabled);
+            root.addProperty("afkFarmingAutoMoveIntervalSeconds", afkFarmingAutoMoveIntervalSeconds);
+            root.addProperty("afkFarmingAutoMoveIntervalMinutes", afkFarmingAutoMoveIntervalSeconds / 60.0D);
+            root.addProperty("afkFarmingAutoMoveJitterSeconds", afkFarmingAutoMoveJitterSeconds);
             root.add("swapEntries", GSON.toJsonTree(toSavedSwapEntries()));
         }
 
@@ -673,6 +694,10 @@ public final class HaConfig {
         afkFarmingMobMinCount = 3;
         afkFarmingMobMaxCount = 5;
         afkFarmingMobMacroCooldownSeconds = 5.0D;
+        afkFarmingAutoMoveEnabled = false;
+        afkFarmingAutoMoveIntervalSeconds = 300.0D;
+        afkFarmingAutoMoveIntervalMinutes = 5.0D;
+        afkFarmingAutoMoveJitterSeconds = 10.0D;
     }
 
     private static int clamp(int value, int min, int max) {
@@ -845,6 +870,10 @@ public final class HaConfig {
         int afkFarmingMobMinCount = 3;
         int afkFarmingMobMaxCount = 5;
         double afkFarmingMobMacroCooldownSeconds = 5.0D;
+        boolean afkFarmingAutoMoveEnabled = false;
+        double afkFarmingAutoMoveIntervalSeconds = 300.0D;
+        double afkFarmingAutoMoveIntervalMinutes = 5.0D;
+        double afkFarmingAutoMoveJitterSeconds = 10.0D;
         boolean chestSearchEnabled = false;
         String chestSearchQuery = "";
         int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
