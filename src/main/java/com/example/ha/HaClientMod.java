@@ -1,5 +1,6 @@
 package com.example.ha;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
@@ -42,6 +43,7 @@ public final class HaClientMod implements ClientModInitializer {
         HudRenderCallback.EVENT.register(HaSubSkillTimerOverlay::render);
         HudRenderCallback.EVENT.register(HaMobEspTracerOverlay::render);
         HudRenderCallback.EVENT.register(HaAfkFarmingDebugOverlay::render);
+        HudRenderCallback.EVENT.register(HaAfkFarmingAutoMoveOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaChestSearchOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaMobEspOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaAfkFarmingCircleOverlay::render);
@@ -56,6 +58,11 @@ public final class HaClientMod implements ClientModInitializer {
             .then(ClientCommandManager.literal("edithud")
                 .executes(context -> openHudEditor()))
             .then(ClientCommandManager.literal("expdebug")
+                .then(ClientCommandManager.literal("clear")
+                    .executes(context -> clearExpDebugLog()))
+                .then(ClientCommandManager.literal("mark")
+                    .then(ClientCommandManager.argument("label", StringArgumentType.greedyString())
+                        .executes(context -> markExpDebugLog(StringArgumentType.getString(context, "label")))))
                 .then(ClientCommandManager.literal("copy")
                     .executes(context -> copyExpDebugLog())))
             .then(ClientCommandManager.literal("tracker")
@@ -108,6 +115,18 @@ public final class HaClientMod implements ClientModInitializer {
         }
         sendMessage("\u00a7cCould not copy Exp Tracker debug log.");
         return 0;
+    }
+
+    private int clearExpDebugLog() {
+        HaExpTracker.clearDebugLog();
+        sendMessage("Cleared Exp Tracker debug log and inserted a reset marker.");
+        return 1;
+    }
+
+    private int markExpDebugLog(String label) {
+        HaExpTracker.addDebugMarker(label);
+        sendMessage("Added Exp Tracker debug marker: " + (label == null || label.trim().isEmpty() ? "(no label)" : label.trim()));
+        return 1;
     }
 
     private int registerHeldTrackerItem(long price) {

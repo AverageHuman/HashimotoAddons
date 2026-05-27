@@ -14,12 +14,13 @@ import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.MobSpawnS2CPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.registry.Registry;
 
 public final class HaExpTracker {
     private static final double TRACKING_DISTANCE_SQUARED = 40.0D * 40.0D;
     private static final int SEEN_TTL_TICKS = 20 * 30;
     private static final int PENDING_TTL_TICKS = 20 * 2;
-    private static final int DEBUG_LIMIT = 80;
+    private static final int DEBUG_LIMIT = 200;
     private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_EXP_EVENTS = new HashMap<String, Integer>();
     private static final Map<Integer, PendingEntity> PENDING_ENTITIES = new HashMap<Integer, PendingEntity>();
@@ -81,10 +82,15 @@ public final class HaExpTracker {
         }
 
         StringBuilder result = new StringBuilder();
+        HaConfig config = HaConfig.get();
         result.append("Exp Tracker Debug Log\r\n");
-        result.append("Tracking: ").append(isTrackingAllowed(HaConfig.get())).append("\r\n");
+        result.append("Tracking: ").append(isTrackingAllowed(config)).append("\r\n");
         result.append("Active: ").append(activeSession).append("\r\n");
-        result.append("Total XP: ").append(HaConfig.get().expTrackerTotal).append("\r\n");
+        result.append("Exp Tracker Enabled: ").append(config.expTrackerEnabled).append("\r\n");
+        result.append("Auto Stop: ").append(!config.expTrackerContinueAfterStart).append("\r\n");
+        result.append("Soulbind Active: ").append(HaSoulbindProtection.isSoulbound()).append("\r\n");
+        result.append("Elapsed Seconds: ").append(config.expTrackerElapsedSeconds).append("\r\n");
+        result.append("Total XP: ").append(config.expTrackerTotal).append("\r\n");
         result.append("Pending: ").append(PENDING_ENTITIES.size()).append("\r\n");
         result.append("Seen: ").append(SEEN_EXP_EVENTS.size()).append("\r\n");
         result.append("\r\n");
@@ -93,6 +99,16 @@ public final class HaExpTracker {
         }
         client.keyboard.setClipboard(result.toString());
         return true;
+    }
+
+    public static void clearDebugLog() {
+        DEBUG_EVENTS.clear();
+        addDebugLine("===== DEBUG CLEARED =====");
+    }
+
+    public static void addDebugMarker(String marker) {
+        String trimmed = marker == null ? "" : marker.trim();
+        addDebugLine("===== MARK " + (trimmed.isEmpty() ? "(no label)" : trimmed) + " =====");
     }
 
     public static void clear() {
@@ -130,24 +146,7 @@ public final class HaExpTracker {
     }
 
     static long parseXp(String value) {
-        if (value == null) {
-            return 0L;
-        }
-
-        String stripped = Formatting.strip(value);
-        if (stripped == null) {
-            stripped = value;
-        }
-        Matcher matcher = XP_PATTERN.matcher(stripped.trim());
-        if (!matcher.find()) {
-            return 0L;
-        }
-
-        try {
-            return Long.parseLong(matcher.group(1).replace(",", ""));
-        } catch (NumberFormatException ignored) {
-            return 0L;
-        }
+        return parseXpDetailed(value).exp;
     }
 
     private static String getEntityName(Entity entity) {
@@ -167,25 +166,26 @@ public final class HaExpTracker {
 
     private static boolean tryRecordExp(MinecraftClient client, HaConfig config, Entity entity, String source) {
         if (client == null || client.player == null || entity == null || entity == client.player) {
-            addDebug(source, entity, 0L, "invalid_entity");
+            addDebug(source, entity, 0L, "invalid_entity", null, null);
             return false;
         }
         if (entity.squaredDistanceTo(client.player) > TRACKING_DISTANCE_SQUARED) {
-            addDebug(source, entity, 0L, "out_of_range");
+            addDebug(source, entity, 0L, "out_of_range", null, null);
             return false;
         }
 
         String name = getEntityName(entity);
-        long exp = parseXp(name);
+        ParseResult parseResult = parseXpDetailed(name);
+        long exp = parseResult.exp;
         if (exp <= 0L) {
-            addDebug(source, entity, 0L, "no_xp");
+            addDebug(source, entity, 0L, "no_xp", parseResult, null);
             return false;
         }
 
         String key = expEventKey(entity, exp);
         if (SEEN_EXP_EVENTS.containsKey(key)) {
             SEEN_EXP_EVENTS.put(key, SEEN_TTL_TICKS);
-            addDebug(source, entity, exp, "duplicate");
+            addDebug(source, entity, exp, "duplicate", parseResult, key);
             return false;
         }
 
@@ -193,7 +193,7 @@ public final class HaExpTracker {
         updateHourlyRate(config);
         config.save();
         SEEN_EXP_EVENTS.put(key, SEEN_TTL_TICKS);
-        addDebug(source, entity, exp, "recorded");
+        addDebug(source, entity, exp, "recorded", parseResult, key);
         return true;
     }
 
@@ -227,7 +227,7 @@ public final class HaExpTracker {
                 }
             }
             if (pending.ttlTicks <= 0) {
-                addDebug(pending.source, pending.id, 0L, "pending_expired");
+                addPendingDebug(pending, "pending_expired", resolvePendingEntityType(client, pending.id));
                 iterator.remove();
             }
         }
@@ -249,7 +249,7 @@ public final class HaExpTracker {
         pending.source = source;
         pending.ttlTicks = PENDING_TTL_TICKS;
         PENDING_ENTITIES.put(Integer.valueOf(id), pending);
-        addDebug(source, id, 0L, "pending_registered");
+        addPendingDebug(pending, "pending_registered", "unresolved");
     }
 
     private static String expEventKey(Entity entity, long exp) {
@@ -328,7 +328,7 @@ public final class HaExpTracker {
         cachedExpPerHour = elapsedSeconds <= 0L ? 0L : Math.round(gained * 3600.0D / elapsedSeconds);
     }
 
-    private static void addDebug(String source, Entity entity, long exp, String result) {
+    private static void addDebug(String source, Entity entity, long exp, String result, ParseResult parseResult, String duplicateKey) {
         if (!shouldLogDebug(source, result)) {
             return;
         }
@@ -342,9 +342,20 @@ public final class HaExpTracker {
             + " result=" + result
             + " id=" + entity.getEntityId()
             + " uuid=" + entity.getUuid()
+            + " type=" + getEntityTypeName(entity)
             + " dist=" + (distance < 0.0D ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", distance))
             + " exp=" + exp
             + " name=" + getEntityName(entity);
+        if (isPacketDebugSource(source)) {
+            line += " customName=" + debugName(entity.getCustomName())
+                + " displayName=" + debugName(entity.getDisplayName())
+                + " entityName=" + debugName(entity.getName())
+                + " parseValue=" + (parseResult == null ? exp : parseResult.exp)
+                + " parseReason=" + (parseResult == null ? "unknown" : parseResult.reason);
+        }
+        if ("duplicate".equals(result) && duplicateKey != null) {
+            line += " duplicateKey=" + duplicateKey;
+        }
         addDebugLine(line);
     }
 
@@ -353,6 +364,21 @@ public final class HaExpTracker {
             return;
         }
         addDebugLine(source + " result=" + result + " id=" + entityId + " exp=" + exp);
+    }
+
+    private static void addPendingDebug(PendingEntity pending, String result, String resolvedType) {
+        if (pending == null || !shouldLogDebug(pending.source, result)) {
+            return;
+        }
+        addDebugLine(
+            pending.source
+                + " result=" + result
+                + " id=" + pending.id
+                + " uuid=" + pending.uuid
+                + " pos=" + String.format(java.util.Locale.ROOT, "%.2f,%.2f,%.2f", pending.x, pending.y, pending.z)
+                + " resolvedType=" + resolvedType
+                + " ttl=" + pending.ttlTicks
+        );
     }
 
     private static boolean shouldLogDebug(String source, String result) {
@@ -374,6 +400,69 @@ public final class HaExpTracker {
         }
     }
 
+    private static ParseResult parseXpDetailed(String value) {
+        ParseResult result = new ParseResult();
+        if (value == null) {
+            result.reason = "value_null";
+            return result;
+        }
+
+        String stripped = Formatting.strip(value);
+        if (stripped == null) {
+            stripped = value;
+        }
+        result.normalized = stripped.trim();
+        if (result.normalized.isEmpty()) {
+            result.reason = "empty_after_strip";
+            return result;
+        }
+
+        Matcher matcher = XP_PATTERN.matcher(result.normalized);
+        if (!matcher.find()) {
+            result.reason = "regex_no_match";
+            return result;
+        }
+
+        result.matchedToken = matcher.group(1);
+        try {
+            result.exp = Long.parseLong(result.matchedToken.replace(",", ""));
+            result.reason = "matched";
+        } catch (NumberFormatException ignored) {
+            result.reason = "number_format_error";
+        }
+        return result;
+    }
+
+    private static boolean isPacketDebugSource(String source) {
+        return source != null
+            && (source.startsWith("entity_spawn")
+                || source.startsWith("mob_spawn")
+                || source.startsWith("tracker_update"));
+    }
+
+    private static String getEntityTypeName(Entity entity) {
+        if (entity == null || entity.getType() == null) {
+            return "none";
+        }
+        return Registry.ENTITY_TYPE.getId(entity.getType()).toString();
+    }
+
+    private static String resolvePendingEntityType(MinecraftClient client, int entityId) {
+        if (client == null || client.world == null) {
+            return "world_unavailable";
+        }
+        Entity entity = client.world.getEntityById(entityId);
+        return entity == null ? "missing" : getEntityTypeName(entity);
+    }
+
+    private static String debugName(Text text) {
+        if (text == null) {
+            return "<null>";
+        }
+        String value = text.getString();
+        return value == null ? "<null-string>" : value.replace("\r", "\\r").replace("\n", "\\n");
+    }
+
     private static final class PendingEntity {
         int id;
         UUID uuid;
@@ -382,5 +471,12 @@ public final class HaExpTracker {
         double z;
         String source = "";
         int ttlTicks;
+    }
+
+    private static final class ParseResult {
+        long exp;
+        String normalized = "";
+        String matchedToken = "";
+        String reason = "unknown";
     }
 }
