@@ -36,7 +36,7 @@ public final class HaConfigScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
 
-        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 14 : 13;
+        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 16 : 15;
         int maxPage = Math.max(0, (totalItems - 1) / ITEMS_PER_PAGE);
         page = Math.min(page, maxPage);
 
@@ -126,48 +126,62 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 7:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Element Rarity"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaElementRarityScreen(this));
+                    }
+                }));
+                break;
+            case 8:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Gear View"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaGearViewScreen(this));
+                    }
+                }));
+                break;
+            case 9:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Tracker"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropTrackerScreen(this));
                     }
                 }));
                 break;
-            case 8:
+            case 10:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Exp Tracker"), button -> {
                     if (client != null) {
                         client.openScreen(new HaExpTrackerScreen(this));
                     }
                 }));
                 break;
-            case 9:
+            case 11:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Chat Filter"), button -> {
                     if (client != null) {
                         client.openScreen(new HaChatFilterListScreen(this, 0));
                     }
                 }));
                 break;
-            case 10:
+            case 12:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Evolution Forge Helper"), button -> {
                     if (client != null) {
                         client.openScreen(new HaEvolutionForgeScreen(this));
                     }
                 }));
                 break;
-            case 11:
+            case 13:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob HP Display"), button -> {
                     if (client != null) {
                         client.openScreen(new HaMobHpDisplayScreen(this));
                     }
                 }));
                 break;
-            case 12:
+            case 14:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Sub Skill Timer"), button -> {
                     if (client != null) {
                         client.openScreen(new HaSubSkillTimerScreen(this));
                     }
                 }));
                 break;
-            case 13:
+            case 15:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Notifier"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropNotifierScreen(this));

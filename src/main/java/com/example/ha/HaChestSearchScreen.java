@@ -8,7 +8,6 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
 
 public final class HaChestSearchScreen extends Screen {
     private static final Text TITLE = new LiteralText("Chest Search");
@@ -39,7 +38,7 @@ public final class HaChestSearchScreen extends Screen {
 
         keyButton = addButton(new ButtonWidget(centerX - 105, top + 24, 210, 20, new LiteralText(""), button -> {
             waitingForShortcutKey = true;
-            keyButton.setMessage(new LiteralText("Press any key..."));
+            keyButton.setMessage(new LiteralText("Press any key or mouse button..."));
         }));
 
         searchField = new TextFieldWidget(this.textRenderer, centerX - 105, top + 72, 210, 20, new LiteralText("Search"));
@@ -81,18 +80,25 @@ public final class HaChestSearchScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (waitingForShortcutKey) {
-            if (keyCode != GLFW.GLFW_KEY_ESCAPE) {
-                HaConfig config = HaConfig.get();
-                config.chestSearchKeyCode = keyCode;
-                config.chestSearchScanCode = scanCode;
-                HaClientMod.updateChestSearchBinding(config.getChestSearchKey());
-                config.save();
+            if (!HaKeyCaptureHelper.shouldIgnoreKeyCapture(keyCode)) {
+                applyBinding(HaKeyCaptureHelper.keyboard(keyCode, scanCode));
             }
             waitingForShortcutKey = false;
             refreshButtons();
             return true;
         }
         return searchField.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (waitingForShortcutKey) {
+            applyBinding(HaKeyCaptureHelper.mouse(button));
+            waitingForShortcutKey = false;
+            refreshButtons();
+            return true;
+        }
+        return searchField.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -125,10 +131,19 @@ public final class HaChestSearchScreen extends Screen {
 
     private void refreshButtons() {
         enabledButton.setMessage(new LiteralText("Chest Search: " + (HaConfig.get().chestSearchEnabled ? "ON" : "OFF")));
-        keyButton.setMessage(new LiteralText(waitingForShortcutKey ? "Press any key..." : "Shortcut Key: " + keyName(HaConfig.get().getChestSearchKey())));
+        keyButton.setMessage(new LiteralText(waitingForShortcutKey ? "Press any key or mouse button..." : "Shortcut Key: " + keyName(HaConfig.get().getChestSearchKey())));
     }
 
     private static String keyName(InputUtil.Key key) {
-        return key == InputUtil.UNKNOWN_KEY ? "Unbound" : key.getLocalizedText().getString();
+        return HaKeyCaptureHelper.keyName(key);
+    }
+
+    private static void applyBinding(HaKeyCaptureHelper.InputBinding binding) {
+        HaConfig config = HaConfig.get();
+        config.chestSearchKeyCode = binding.keyCode;
+        config.chestSearchScanCode = binding.scanCode;
+        config.chestSearchKeyType = binding.type;
+        HaClientMod.updateChestSearchBinding(config.getChestSearchKey());
+        config.save();
     }
 }

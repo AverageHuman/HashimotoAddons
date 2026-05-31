@@ -714,8 +714,8 @@ public final class HaAfkFarming {
     private static String buildStatusMessage(HaConfig config) {
         StringBuilder message = new StringBuilder();
         message.append("========== HashimotoAddons: AFK Farming Report ==========\n");
-        message.append("Current EXP: ").append(config.expTrackerTotal).append('\n');
-        message.append("Estimated EXP/hour: ").append(HaExpTracker.getExpPerHour()).append('\n');
+        message.append("Current EXP: ").append(HaExpTrackerOverlay.formatNumber(config.expTrackerTotalTenths, false)).append('\n');
+        message.append("Estimated EXP/hour: ").append(HaExpTrackerOverlay.formatNumber(HaExpTracker.getExpPerHourTenths(), false)).append('\n');
         message.append("Exp Timer: ").append(formatDuration(HaExpTracker.getElapsedSeconds())).append('\n');
         message.append("Profit: ").append(HaDropTracker.getEstimatedProfit()).append(" Intercoins\n");
         message.append("Estimated Profit/hour: ").append(HaDropTracker.getProfitPerHour()).append(" Intercoins\n");

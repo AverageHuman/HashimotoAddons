@@ -39,6 +39,12 @@ public final class HaConfig {
     public boolean macroEnabled = true;
     public int macroToggleKeyCode = GLFW.GLFW_KEY_H;
     public int macroToggleScanCode = -1;
+    public String macroToggleKeyType = "keysym";
+    public boolean alchemyKilnAutomationEnabled = false;
+    public int alchemyKilnAutomationKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+    public int alchemyKilnAutomationScanCode = -1;
+    public String alchemyKilnAutomationKeyType = "keysym";
+    public int alchemyKilnAutomationClickIntervalTicks = 4;
     public boolean macroStatusHudEnabled = false;
     public int macroStatusHudX = 8;
     public int macroStatusHudY = 8;
@@ -51,12 +57,18 @@ public final class HaConfig {
     public final List<String> favoriteGhostBlockIds = new ArrayList<String>();
     public int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
     public int cameraToggleScanCode = -1;
+    public String cameraToggleKeyType = "keysym";
     public int defaultWeaponHotbarSlot = 0;
     public boolean itemLockEnabled = true;
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
     public int chunkChestOverlayY = 40;
+    public boolean elementRarityEnabled = true;
+    public boolean gearViewEnabled = true;
+    public int gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
+    public int gearViewKeyScanCode = -1;
+    public String gearViewKeyType = "mouse";
     public boolean mobEspEnabled = false;
     public String mobEspTargetName = "";
     public boolean afkFarmingEnabled = false;
@@ -81,6 +93,7 @@ public final class HaConfig {
     public String chestSearchQuery = "";
     public int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
     public int chestSearchScanCode = -1;
+    public String chestSearchKeyType = "keysym";
     public boolean evolutionForgeHelperEnabled = true;
     public boolean dropTrackerEnabled = false;
     public String dropTrackerMode = HaDropTracker.MODE_ALL;
@@ -94,6 +107,8 @@ public final class HaConfig {
     public boolean dropNotifierEnabled = false;
     public boolean dropNotifierContinueAfterStart = false;
     public boolean expTrackerEnabled = false;
+    public long expTrackerTotalTenths = 0L;
+    // Deprecated mirror kept only for backward compatibility with older config files.
     public long expTrackerTotal = 0L;
     public long expTrackerElapsedSeconds = 0L;
     public boolean expTrackerShowTimer = false;
@@ -152,6 +167,7 @@ public final class HaConfig {
 
         autoHealHotbarSlot = clamp(autoHealHotbarSlot, 0, 8);
         defaultWeaponHotbarSlot = clamp(defaultWeaponHotbarSlot, 0, 8);
+        alchemyKilnAutomationClickIntervalTicks = clamp(alchemyKilnAutomationClickIntervalTicks, 4, 200);
         macroStatusHudX = Math.max(0, macroStatusHudX);
         macroStatusHudY = Math.max(0, macroStatusHudY);
         autoHealCooldownSeconds = clamp(autoHealCooldownSeconds, 0.05D, 60.0D);
@@ -196,7 +212,12 @@ public final class HaConfig {
         dropTrackerElapsedSeconds = Math.max(0L, dropTrackerElapsedSeconds);
         dropTrackerOverlayX = Math.max(0, dropTrackerOverlayX);
         dropTrackerOverlayY = Math.max(0, dropTrackerOverlayY);
+        expTrackerTotalTenths = Math.max(0L, expTrackerTotalTenths);
         expTrackerTotal = Math.max(0L, expTrackerTotal);
+        if (expTrackerTotalTenths <= 0L && expTrackerTotal > 0L) {
+            expTrackerTotalTenths = safeMultiplyByTen(expTrackerTotal);
+        }
+        expTrackerTotal = expTrackerTotalTenths / 10L;
         expTrackerElapsedSeconds = Math.max(0L, expTrackerElapsedSeconds);
         expTrackerOverlayX = Math.max(0, expTrackerOverlayX);
         expTrackerOverlayY = Math.max(0, expTrackerOverlayY);
@@ -272,15 +293,23 @@ public final class HaConfig {
     }
 
     public InputUtil.Key getMacroToggleKey() {
-        return InputUtil.fromKeyCode(macroToggleKeyCode, macroToggleScanCode);
+        return getBoundKey(macroToggleKeyType, macroToggleKeyCode, macroToggleScanCode);
+    }
+
+    public InputUtil.Key getAlchemyKilnAutomationKey() {
+        return getBoundKey(alchemyKilnAutomationKeyType, alchemyKilnAutomationKeyCode, alchemyKilnAutomationScanCode);
     }
 
     public InputUtil.Key getCameraToggleKey() {
-        return InputUtil.fromKeyCode(cameraToggleKeyCode, cameraToggleScanCode);
+        return getBoundKey(cameraToggleKeyType, cameraToggleKeyCode, cameraToggleScanCode);
     }
 
     public InputUtil.Key getChestSearchKey() {
-        return InputUtil.fromKeyCode(chestSearchKeyCode, chestSearchScanCode);
+        return getBoundKey(chestSearchKeyType, chestSearchKeyCode, chestSearchScanCode);
+    }
+
+    public InputUtil.Key getGearViewKey() {
+        return getBoundKey(gearViewKeyType, gearViewKeyCode, gearViewKeyScanCode);
     }
 
     public void load() {
@@ -322,12 +351,14 @@ public final class HaConfig {
 
         cameraToggleKeyCode = saved.cameraToggleKeyCode;
         cameraToggleScanCode = saved.cameraToggleScanCode;
+        cameraToggleKeyType = saved.cameraToggleKeyType;
         itemLockEnabled = saved.itemLockEnabled;
         soulbindProtectionEnabled = saved.soulbindProtectionEnabled;
         chestSearchEnabled = saved.chestSearchEnabled;
         chestSearchQuery = saved.chestSearchQuery;
         chestSearchKeyCode = saved.chestSearchKeyCode;
         chestSearchScanCode = saved.chestSearchScanCode;
+        chestSearchKeyType = saved.chestSearchKeyType;
         evolutionForgeHelperEnabled = saved.evolutionForgeHelperEnabled;
         dropTrackerEnabled = saved.dropTrackerEnabled;
         dropTrackerMode = saved.dropTrackerMode;
@@ -341,7 +372,10 @@ public final class HaConfig {
         dropNotifierEnabled = saved.dropNotifierEnabled;
         dropNotifierContinueAfterStart = saved.dropNotifierContinueAfterStart;
         expTrackerEnabled = saved.expTrackerEnabled;
-        expTrackerTotal = saved.expTrackerTotal;
+        expTrackerTotalTenths = saved.expTrackerTotalTenths > 0L
+            ? saved.expTrackerTotalTenths
+            : safeMultiplyByTen(saved.expTrackerTotal);
+        expTrackerTotal = expTrackerTotalTenths / 10L;
         expTrackerElapsedSeconds = saved.expTrackerElapsedSeconds;
         expTrackerShowTimer = saved.expTrackerShowTimer;
         expTrackerShowHourlyRate = saved.expTrackerShowHourlyRate;
@@ -372,6 +406,12 @@ public final class HaConfig {
             macroEnabled = saved.macroEnabled;
             macroToggleKeyCode = saved.macroToggleKeyCode;
             macroToggleScanCode = saved.macroToggleScanCode;
+            macroToggleKeyType = saved.macroToggleKeyType;
+            alchemyKilnAutomationEnabled = saved.alchemyKilnAutomationEnabled;
+            alchemyKilnAutomationKeyCode = saved.alchemyKilnAutomationKeyCode;
+            alchemyKilnAutomationScanCode = saved.alchemyKilnAutomationScanCode;
+            alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
+            alchemyKilnAutomationClickIntervalTicks = saved.alchemyKilnAutomationClickIntervalTicks > 0 ? saved.alchemyKilnAutomationClickIntervalTicks : 4;
             macroStatusHudEnabled = saved.macroStatusHudEnabled;
             macroStatusHudX = saved.macroStatusHudX;
             macroStatusHudY = saved.macroStatusHudY;
@@ -386,10 +426,15 @@ public final class HaConfig {
                 favoriteGhostBlockIds.addAll(saved.favoriteGhostBlockIds);
             }
             defaultWeaponHotbarSlot = saved.defaultWeaponHotbarSlot;
-            chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
-            chunkChestOverlayX = saved.chunkChestOverlayX;
-            chunkChestOverlayY = saved.chunkChestOverlayY;
-            mobEspEnabled = saved.mobEspEnabled;
+        chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
+        chunkChestOverlayX = saved.chunkChestOverlayX;
+        chunkChestOverlayY = saved.chunkChestOverlayY;
+        elementRarityEnabled = saved.elementRarityEnabled;
+        gearViewEnabled = saved.gearViewEnabled;
+        gearViewKeyCode = saved.gearViewKeyCode;
+        gearViewKeyScanCode = saved.gearViewKeyScanCode;
+        gearViewKeyType = saved.gearViewKeyType;
+        mobEspEnabled = saved.mobEspEnabled;
             mobEspTargetName = saved.mobEspTargetName;
             afkFarmingEnabled = saved.afkFarmingEnabled;
             afkFarmingActive = saved.afkFarmingActive;
@@ -494,12 +539,14 @@ public final class HaConfig {
         JsonObject root = new JsonObject();
         root.addProperty("cameraToggleKeyCode", cameraToggleKeyCode);
         root.addProperty("cameraToggleScanCode", cameraToggleScanCode);
+        root.addProperty("cameraToggleKeyType", cameraToggleKeyType);
         root.addProperty("itemLockEnabled", itemLockEnabled);
         root.addProperty("soulbindProtectionEnabled", soulbindProtectionEnabled);
         root.addProperty("chestSearchEnabled", chestSearchEnabled);
         root.addProperty("chestSearchQuery", chestSearchQuery);
         root.addProperty("chestSearchKeyCode", chestSearchKeyCode);
         root.addProperty("chestSearchScanCode", chestSearchScanCode);
+        root.addProperty("chestSearchKeyType", chestSearchKeyType);
         root.addProperty("evolutionForgeHelperEnabled", evolutionForgeHelperEnabled);
         root.addProperty("dropTrackerEnabled", dropTrackerEnabled);
         root.addProperty("dropTrackerMode", dropTrackerMode);
@@ -513,7 +560,8 @@ public final class HaConfig {
         root.addProperty("dropNotifierEnabled", dropNotifierEnabled);
         root.addProperty("dropNotifierContinueAfterStart", dropNotifierContinueAfterStart);
         root.addProperty("expTrackerEnabled", expTrackerEnabled);
-        root.addProperty("expTrackerTotal", expTrackerTotal);
+        root.addProperty("expTrackerTotalTenths", expTrackerTotalTenths);
+        root.addProperty("expTrackerTotal", expTrackerTotalTenths / 10L);
         root.addProperty("expTrackerElapsedSeconds", expTrackerElapsedSeconds);
         root.addProperty("expTrackerShowTimer", expTrackerShowTimer);
         root.addProperty("expTrackerShowHourlyRate", expTrackerShowHourlyRate);
@@ -548,6 +596,12 @@ public final class HaConfig {
             root.addProperty("macroEnabled", macroEnabled);
             root.addProperty("macroToggleKeyCode", macroToggleKeyCode);
             root.addProperty("macroToggleScanCode", macroToggleScanCode);
+            root.addProperty("macroToggleKeyType", macroToggleKeyType);
+            root.addProperty("alchemyKilnAutomationEnabled", alchemyKilnAutomationEnabled);
+            root.addProperty("alchemyKilnAutomationKeyCode", alchemyKilnAutomationKeyCode);
+            root.addProperty("alchemyKilnAutomationScanCode", alchemyKilnAutomationScanCode);
+            root.addProperty("alchemyKilnAutomationKeyType", alchemyKilnAutomationKeyType);
+            root.addProperty("alchemyKilnAutomationClickIntervalTicks", alchemyKilnAutomationClickIntervalTicks);
             root.addProperty("macroStatusHudEnabled", macroStatusHudEnabled);
             root.addProperty("macroStatusHudX", macroStatusHudX);
             root.addProperty("macroStatusHudY", macroStatusHudY);
@@ -559,10 +613,15 @@ public final class HaConfig {
             root.addProperty("selectedGhostBlockId", selectedGhostBlockId);
             root.add("favoriteGhostBlockIds", GSON.toJsonTree(new ArrayList<String>(favoriteGhostBlockIds)));
             root.addProperty("defaultWeaponHotbarSlot", defaultWeaponHotbarSlot);
-            root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
-            root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
-            root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
-            root.addProperty("mobEspEnabled", mobEspEnabled);
+        root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
+        root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
+        root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
+        root.addProperty("elementRarityEnabled", elementRarityEnabled);
+        root.addProperty("gearViewEnabled", gearViewEnabled);
+        root.addProperty("gearViewKeyCode", gearViewKeyCode);
+        root.addProperty("gearViewKeyScanCode", gearViewKeyScanCode);
+        root.addProperty("gearViewKeyType", gearViewKeyType);
+        root.addProperty("mobEspEnabled", mobEspEnabled);
             root.addProperty("mobEspTargetName", mobEspTargetName);
             root.addProperty("afkFarmingEnabled", afkFarmingEnabled);
             root.addProperty("afkFarmingActive", afkFarmingActive);
@@ -664,6 +723,12 @@ public final class HaConfig {
         macroEnabled = false;
         macroToggleKeyCode = GLFW.GLFW_KEY_H;
         macroToggleScanCode = -1;
+        macroToggleKeyType = "keysym";
+        alchemyKilnAutomationEnabled = false;
+        alchemyKilnAutomationKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+        alchemyKilnAutomationScanCode = -1;
+        alchemyKilnAutomationKeyType = "keysym";
+        alchemyKilnAutomationClickIntervalTicks = 4;
         macroStatusHudEnabled = false;
         macroStatusHudX = 8;
         macroStatusHudY = 8;
@@ -678,6 +743,11 @@ public final class HaConfig {
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
         chunkChestOverlayY = 40;
+        elementRarityEnabled = true;
+        gearViewEnabled = true;
+        gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
+        gearViewKeyScanCode = -1;
+        gearViewKeyType = "mouse";
         mobEspEnabled = false;
         mobEspTargetName = "";
         afkFarmingEnabled = false;
@@ -826,6 +896,13 @@ public final class HaConfig {
         }
     }
 
+    private static InputUtil.Key getBoundKey(String type, int keyCode, int scanCode) {
+        if ("mouse".equalsIgnoreCase(type)) {
+            return InputUtil.Type.MOUSE.createFromCode(keyCode);
+        }
+        return InputUtil.fromKeyCode(keyCode, scanCode);
+    }
+
     private static final class SavedConfig {
         boolean autoHealEnabled;
         int autoHealHotbarSlot = 1;
@@ -836,6 +913,12 @@ public final class HaConfig {
         boolean macroEnabled = true;
         int macroToggleKeyCode = GLFW.GLFW_KEY_H;
         int macroToggleScanCode = -1;
+        String macroToggleKeyType = "keysym";
+        boolean alchemyKilnAutomationEnabled = false;
+        int alchemyKilnAutomationKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+        int alchemyKilnAutomationScanCode = -1;
+        String alchemyKilnAutomationKeyType = "keysym";
+        int alchemyKilnAutomationClickIntervalTicks = 4;
         boolean macroStatusHudEnabled = false;
         int macroStatusHudX = 8;
         int macroStatusHudY = 8;
@@ -848,12 +931,18 @@ public final class HaConfig {
         List<String> favoriteGhostBlockIds = new ArrayList<String>();
         int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
         int cameraToggleScanCode = -1;
+        String cameraToggleKeyType = "keysym";
         int defaultWeaponHotbarSlot = 0;
         boolean itemLockEnabled = true;
         boolean soulbindProtectionEnabled = true;
         boolean chunkChestCounterEnabled = false;
         int chunkChestOverlayX = 8;
         int chunkChestOverlayY = 40;
+        boolean elementRarityEnabled = true;
+        boolean gearViewEnabled = true;
+        int gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
+        int gearViewKeyScanCode = -1;
+        String gearViewKeyType = "mouse";
         boolean mobEspEnabled = false;
         String mobEspTargetName = "";
         boolean afkFarmingEnabled = false;
@@ -878,6 +967,7 @@ public final class HaConfig {
         String chestSearchQuery = "";
         int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
         int chestSearchScanCode = -1;
+        String chestSearchKeyType = "keysym";
         boolean evolutionForgeHelperEnabled = true;
         boolean dropTrackerEnabled = false;
         String dropTrackerMode = HaDropTracker.MODE_ALL;
@@ -891,6 +981,7 @@ public final class HaConfig {
         boolean dropNotifierEnabled = false;
         boolean dropNotifierContinueAfterStart = false;
         boolean expTrackerEnabled = false;
+        long expTrackerTotalTenths = 0L;
         long expTrackerTotal = 0L;
         long expTrackerElapsedSeconds = 0L;
         boolean expTrackerShowTimer = false;
@@ -979,5 +1070,15 @@ public final class HaConfig {
             return max;
         }
         return value;
+    }
+
+    private static long safeMultiplyByTen(long value) {
+        if (value <= 0L) {
+            return 0L;
+        }
+        if (value > Long.MAX_VALUE / 10L) {
+            return Long.MAX_VALUE;
+        }
+        return value * 10L;
     }
 }

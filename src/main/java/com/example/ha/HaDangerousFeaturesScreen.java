@@ -6,12 +6,11 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import org.lwjgl.glfw.GLFW;
 
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
     private static final int ITEMS_PER_PAGE = 7;
-    private static final int TOTAL_ITEMS = 10;
+    private static final int TOTAL_ITEMS = 11;
 
     private final Screen parent;
     private final int page;
@@ -71,9 +70,9 @@ public final class HaDangerousFeaturesScreen extends Screen {
     private void addMenuItem(int index, int centerX, int y, HaConfig config) {
         switch (index) {
             case 0:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(waitingForMacroToggleKey ? "Press any key..." : "Change Macro Toggle Key"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(waitingForMacroToggleKey ? "Press any key or mouse button..." : "Change Macro Toggle Key"), button -> {
                     waitingForMacroToggleKey = true;
-                    button.setMessage(new LiteralText("Press any key..."));
+                    button.setMessage(new LiteralText("Press any key or mouse button..."));
                 }));
                 break;
             case 1:
@@ -139,6 +138,13 @@ public final class HaDangerousFeaturesScreen extends Screen {
                     }
                 }));
                 break;
+            case 10:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Alchemy Kiln Assist"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaAlchemyKilnAutomationScreen(this));
+                    }
+                }));
+                break;
             default:
                 break;
         }
@@ -155,12 +161,8 @@ public final class HaDangerousFeaturesScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (waitingForMacroToggleKey) {
-            if (keyCode != GLFW.GLFW_KEY_ESCAPE) {
-                HaConfig config = HaConfig.get();
-                config.macroToggleKeyCode = keyCode;
-                config.macroToggleScanCode = scanCode;
-                HaClientMod.updateMacroToggleBinding(config.getMacroToggleKey());
-                config.save();
+            if (!HaKeyCaptureHelper.shouldIgnoreKeyCapture(keyCode)) {
+                applyBinding(HaKeyCaptureHelper.keyboard(keyCode, scanCode));
             }
             waitingForMacroToggleKey = false;
             if (client != null) {
@@ -169,6 +171,19 @@ public final class HaDangerousFeaturesScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (waitingForMacroToggleKey) {
+            applyBinding(HaKeyCaptureHelper.mouse(button));
+            waitingForMacroToggleKey = false;
+            if (client != null) {
+                client.openScreen(new HaDangerousFeaturesScreen(parent, page));
+            }
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -184,7 +199,7 @@ public final class HaDangerousFeaturesScreen extends Screen {
     }
 
     private static String keyName(InputUtil.Key key) {
-        return key == InputUtil.UNKNOWN_KEY ? "Unbound" : key.getLocalizedText().getString();
+        return HaKeyCaptureHelper.keyName(key);
     }
 
     private static String onOff(boolean value) {
@@ -197,5 +212,14 @@ public final class HaDangerousFeaturesScreen extends Screen {
 
     private static String slotName(int slot) {
         return Integer.toString(slot + 1);
+    }
+
+    private static void applyBinding(HaKeyCaptureHelper.InputBinding binding) {
+        HaConfig config = HaConfig.get();
+        config.macroToggleKeyCode = binding.keyCode;
+        config.macroToggleScanCode = binding.scanCode;
+        config.macroToggleKeyType = binding.type;
+        HaClientMod.updateMacroToggleBinding(config.getMacroToggleKey());
+        config.save();
     }
 }

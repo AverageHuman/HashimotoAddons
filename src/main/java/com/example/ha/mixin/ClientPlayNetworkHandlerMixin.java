@@ -8,7 +8,9 @@ import com.example.ha.HaExpTracker;
 import com.example.ha.HaSubSkillTimer;
 import com.example.ha.HaDropNotifier;
 import com.example.ha.HaAfkFarming;
+import com.example.ha.HaAlchemyKilnAutomation;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.MessageType;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
@@ -27,6 +29,10 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$trackSoulbindMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
         HaSoulbindProtection.onGameMessage(packet.getMessage());
         HaSubSkillTimer.onGameMessage(packet.getMessage());
+        HaAlchemyKilnAutomation.onGameMessage(packet.getMessage());
+        if (packet.getLocation() == MessageType.GAME_INFO) {
+            HaAlchemyKilnAutomation.onHudMessage(packet.getMessage());
+        }
         if (HaChatFilter.shouldHide(packet.getMessage())) {
             ci.cancel();
         }
@@ -57,6 +63,7 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaSoulbindProtection.onDisconnected();
         HaDropNotifier.onDisconnected();
         HaAfkFarming.onDisconnected();
+        HaAlchemyKilnAutomation.onDisconnected();
     }
 
     @Inject(method = "onOpenScreen", at = @At("HEAD"))

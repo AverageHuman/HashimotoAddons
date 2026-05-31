@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.minecraft.client.MinecraftClient;
@@ -21,12 +23,12 @@ public final class HaExpTracker {
     private static final int SEEN_TTL_TICKS = 20 * 30;
     private static final int PENDING_TTL_TICKS = 20 * 2;
     private static final int DEBUG_LIMIT = 200;
-    private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_EXP_EVENTS = new HashMap<String, Integer>();
     private static final Map<Integer, PendingEntity> PENDING_ENTITIES = new HashMap<Integer, PendingEntity>();
     private static final ArrayDeque<String> DEBUG_EVENTS = new ArrayDeque<String>();
     private static boolean activeSession;
-    private static long cachedExpPerHour;
+    private static long cachedExpPerHourTenths;
     private static long lastRateUpdateMillis;
     private static long tickAccumulatorMillis;
     private static long lastTickMillis;
@@ -90,7 +92,7 @@ public final class HaExpTracker {
         result.append("Auto Stop: ").append(!config.expTrackerContinueAfterStart).append("\r\n");
         result.append("Soulbind Active: ").append(HaSoulbindProtection.isSoulbound()).append("\r\n");
         result.append("Elapsed Seconds: ").append(config.expTrackerElapsedSeconds).append("\r\n");
-        result.append("Total XP: ").append(config.expTrackerTotal).append("\r\n");
+        result.append("Total XP: ").append(HaExpTrackerOverlay.formatNumber(config.expTrackerTotalTenths, false)).append("\r\n");
         result.append("Pending: ").append(PENDING_ENTITIES.size()).append("\r\n");
         result.append("Seen: ").append(SEEN_EXP_EVENTS.size()).append("\r\n");
         result.append("\r\n");
@@ -113,11 +115,12 @@ public final class HaExpTracker {
 
     public static void clear() {
         HaConfig config = HaConfig.get();
+        config.expTrackerTotalTenths = 0L;
         config.expTrackerTotal = 0L;
         config.expTrackerElapsedSeconds = 0L;
         tickAccumulatorMillis = 0L;
         lastTickMillis = activeSession ? System.currentTimeMillis() : 0L;
-        cachedExpPerHour = 0L;
+        cachedExpPerHourTenths = 0L;
         lastRateUpdateMillis = 0L;
         config.save();
         SEEN_EXP_EVENTS.clear();
@@ -133,8 +136,8 @@ public final class HaExpTracker {
         return HaConfig.get().expTrackerElapsedSeconds;
     }
 
-    public static long getExpPerHour() {
-        return cachedExpPerHour;
+    public static long getExpPerHourTenths() {
+        return cachedExpPerHourTenths;
     }
 
     public static boolean isTrackingAllowed(HaConfig config) {
@@ -189,7 +192,8 @@ public final class HaExpTracker {
             return false;
         }
 
-        config.expTrackerTotal += exp;
+        config.expTrackerTotalTenths += exp;
+        config.expTrackerTotal = config.expTrackerTotalTenths / 10L;
         updateHourlyRate(config);
         config.save();
         SEEN_EXP_EVENTS.put(key, SEEN_TTL_TICKS);
@@ -324,8 +328,8 @@ public final class HaExpTracker {
         }
         lastRateUpdateMillis = now;
         long elapsedSeconds = config.expTrackerElapsedSeconds;
-        long gained = Math.max(0L, config.expTrackerTotal);
-        cachedExpPerHour = elapsedSeconds <= 0L ? 0L : Math.round(gained * 3600.0D / elapsedSeconds);
+        long gainedTenths = Math.max(0L, config.expTrackerTotalTenths);
+        cachedExpPerHourTenths = elapsedSeconds <= 0L ? 0L : Math.round(gainedTenths * 3600.0D / elapsedSeconds);
     }
 
     private static void addDebug(String source, Entity entity, long exp, String result, ParseResult parseResult, String duplicateKey) {
@@ -425,9 +429,12 @@ public final class HaExpTracker {
 
         result.matchedToken = matcher.group(1);
         try {
-            result.exp = Long.parseLong(result.matchedToken.replace(",", ""));
+            BigDecimal parsed = new BigDecimal(result.matchedToken.replace(",", ""));
+            result.exp = parsed.movePointRight(1).setScale(0, RoundingMode.HALF_UP).longValueExact();
             result.reason = "matched";
         } catch (NumberFormatException ignored) {
+            result.reason = "number_format_error";
+        } catch (ArithmeticException ignored) {
             result.reason = "number_format_error";
         }
         return result;

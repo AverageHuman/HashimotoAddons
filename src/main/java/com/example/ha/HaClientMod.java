@@ -18,20 +18,25 @@ import org.lwjgl.glfw.GLFW;
 
 public final class HaClientMod implements ClientModInitializer {
     private static KeyBinding macroToggleKeyBinding;
+    private static KeyBinding alchemyKilnAutomationKeyBinding;
     private static KeyBinding cameraToggleKeyBinding;
     private static KeyBinding chestSearchKeyBinding;
+    private static KeyBinding gearViewKeyBinding;
     private HaTickHandler tickHandler;
 
     @Override
     public void onInitializeClient() {
         HaConfig.get().load();
         KeyBinding macroBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateMacroToggleKeyBinding() : null;
-        tickHandler = new HaTickHandler(macroBinding, getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding());
+        KeyBinding alchemyBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateAlchemyKilnAutomationKeyBinding() : null;
+        tickHandler = new HaTickHandler(macroBinding, alchemyBinding, getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding(), getOrCreateGearViewKeyBinding());
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
+            updateAlchemyKilnAutomationBinding(HaConfig.get().getAlchemyKilnAutomationKey());
         }
         updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
         updateChestSearchBinding(HaConfig.get().getChestSearchKey());
+        updateGearViewBinding(HaConfig.get().getGearViewKey());
         registerCommand();
         ClientTickEvents.END_CLIENT_TICK.register(tickHandler::onEndClientTick);
         HudRenderCallback.EVENT.register(HaMacroStatusOverlay::render);
@@ -163,6 +168,14 @@ public final class HaClientMod implements ClientModInitializer {
         KeyBinding.updateKeysByCode();
     }
 
+    public static void updateAlchemyKilnAutomationBinding(InputUtil.Key key) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return;
+        }
+        getOrCreateAlchemyKilnAutomationKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
     public static void updateCameraToggleBinding(InputUtil.Key key) {
         getOrCreateCameraToggleKeyBinding().setBoundKey(key);
         KeyBinding.updateKeysByCode();
@@ -170,6 +183,11 @@ public final class HaClientMod implements ClientModInitializer {
 
     public static void updateChestSearchBinding(InputUtil.Key key) {
         getOrCreateChestSearchKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
+    public static void updateGearViewBinding(InputUtil.Key key) {
+        getOrCreateGearViewKeyBinding().setBoundKey(key);
         KeyBinding.updateKeysByCode();
     }
 
@@ -185,6 +203,20 @@ public final class HaClientMod implements ClientModInitializer {
             );
         }
         return macroToggleKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateAlchemyKilnAutomationKeyBinding() {
+        if (alchemyKilnAutomationKeyBinding == null) {
+            alchemyKilnAutomationKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.alchemy_kiln_automation",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return alchemyKilnAutomationKeyBinding;
     }
 
     private static KeyBinding getOrCreateCameraToggleKeyBinding() {
@@ -213,5 +245,19 @@ public final class HaClientMod implements ClientModInitializer {
             );
         }
         return chestSearchKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateGearViewKeyBinding() {
+        if (gearViewKeyBinding == null) {
+            gearViewKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.gear_view",
+                    InputUtil.Type.MOUSE,
+                    GLFW.GLFW_MOUSE_BUTTON_MIDDLE,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return gearViewKeyBinding;
     }
 }

@@ -18,11 +18,11 @@ public final class HaExpTrackerOverlay {
         if (client == null || HaHudVisibility.shouldHideHashimotoHud(client) || !HaConfig.get().expTrackerEnabled) {
             return;
         }
-        drawPanel(matrices, HaConfig.get().expTrackerOverlayX, HaConfig.get().expTrackerOverlayY, HaConfig.get().expTrackerTotal, false);
+        drawPanel(matrices, HaConfig.get().expTrackerOverlayX, HaConfig.get().expTrackerOverlayY, HaConfig.get().expTrackerTotalTenths, false);
     }
 
     public static void drawPreview(MatrixStack matrices, int x, int y, boolean selected) {
-        drawPanel(matrices, x, y, 12345L, true);
+        drawPanel(matrices, x, y, 123456L, true);
         if (selected) {
             MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices, "\u25c0", x - 8, y + 4, 0xFFFFFF);
         }
@@ -31,12 +31,12 @@ public final class HaExpTrackerOverlay {
     public static int getPanelWidth(MinecraftClient client) {
         HaConfig config = HaConfig.get();
         int width = Math.max(116, 16 + client.textRenderer.getWidth("Status: " + statusText()));
-        width = Math.max(width, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotal, config.expTrackerCompactNumbers)));
+        width = Math.max(width, 16 + client.textRenderer.getWidth("Total XP: " + formatNumber(config.expTrackerTotalTenths, config.expTrackerCompactNumbers)));
         if (config.expTrackerShowTimer) {
             width = Math.max(width, 16 + client.textRenderer.getWidth("Timer: " + formatDuration(HaExpTracker.getElapsedSeconds())));
         }
         if (config.expTrackerShowHourlyRate) {
-            width = Math.max(width, 16 + client.textRenderer.getWidth("EXP/hour: " + formatNumber(HaExpTracker.getExpPerHour(), config.expTrackerCompactNumbers)));
+            width = Math.max(width, 16 + client.textRenderer.getWidth("EXP/hour: " + formatNumber(HaExpTracker.getExpPerHourTenths(), config.expTrackerCompactNumbers)));
         }
         return width;
     }
@@ -53,15 +53,21 @@ public final class HaExpTrackerOverlay {
         return 10 + lines * 14;
     }
 
-    public static String formatNumber(long value) {
-        return NumberFormat.getIntegerInstance(Locale.US).format(Math.max(0L, value));
+    public static String formatNumber(long valueTenths) {
+        return formatNumber(valueTenths, false);
     }
 
-    public static String formatNumber(long value, boolean compact) {
-        long safeValue = Math.max(0L, value);
+    public static String formatNumber(long valueTenths, boolean compact) {
+        long safeValueTenths = Math.max(0L, valueTenths);
         if (!compact) {
-            return NumberFormat.getIntegerInstance(Locale.US).format(safeValue);
+            long whole = safeValueTenths / 10L;
+            long tenths = safeValueTenths % 10L;
+            if (tenths == 0L) {
+                return NumberFormat.getIntegerInstance(Locale.US).format(whole);
+            }
+            return NumberFormat.getIntegerInstance(Locale.US).format(whole) + "." + tenths;
         }
+        double safeValue = safeValueTenths / 10.0D;
         if (safeValue >= 1000000000L) {
             return COMPACT_FORMAT.format(safeValue / 1000000000.0D) + "b";
         }
@@ -71,7 +77,10 @@ public final class HaExpTrackerOverlay {
         if (safeValue >= 1000L) {
             return COMPACT_FORMAT.format(safeValue / 1000.0D) + "k";
         }
-        return Long.toString(safeValue);
+        if (safeValueTenths % 10L == 0L) {
+            return Long.toString(safeValueTenths / 10L);
+        }
+        return COMPACT_FORMAT.format(safeValue);
     }
 
     public static String formatDuration(long seconds) {
@@ -85,7 +94,7 @@ public final class HaExpTrackerOverlay {
         return String.format(Locale.US, "%d:%02d", minutes, remainingSeconds);
     }
 
-    private static void drawPanel(MatrixStack matrices, int x, int y, long total, boolean preview) {
+    private static void drawPanel(MatrixStack matrices, int x, int y, long totalTenths, boolean preview) {
         MinecraftClient client = MinecraftClient.getInstance();
         HaConfig config = HaConfig.get();
         int width = preview ? 132 : getPanelWidth(client);
@@ -97,7 +106,7 @@ public final class HaExpTrackerOverlay {
         int statusColor = HaExpTracker.isActiveSession() ? 0x55FF55 : 0xFF5555;
         client.textRenderer.drawWithShadow(matrices, "Status: " + statusText(), x + 5, rowY, statusColor);
         rowY += 14;
-        client.textRenderer.drawWithShadow(matrices, "Total XP: " + formatNumber(total, config.expTrackerCompactNumbers), x + 5, rowY, 0xFFD166);
+        client.textRenderer.drawWithShadow(matrices, "Total XP: " + formatNumber(totalTenths, config.expTrackerCompactNumbers), x + 5, rowY, 0xFFD166);
         rowY += 14;
         if (config.expTrackerShowTimer) {
             long elapsedSeconds = preview ? 3723L : HaExpTracker.getElapsedSeconds();
@@ -105,7 +114,7 @@ public final class HaExpTrackerOverlay {
             rowY += 14;
         }
         if (config.expTrackerShowHourlyRate) {
-            long rate = preview ? 123456L : HaExpTracker.getExpPerHour();
+            long rate = preview ? 1234567L : HaExpTracker.getExpPerHourTenths();
             client.textRenderer.drawWithShadow(matrices, "EXP/hour: " + formatNumber(rate, config.expTrackerCompactNumbers), x + 5, rowY, 0x55FF55);
         }
     }

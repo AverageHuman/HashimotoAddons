@@ -71,6 +71,10 @@ public final class HaButtonTooltips {
     }
 
     private static void addScreenTooltip(List<String> lines, String screenName, String label) {
+        if ("HaConfigScreen".equals(screenName) && "Element Rarity".equals(label)) {
+            lines.add("エレメント系アイテムのスロットを名前色と同じ色で強調表示します。");
+            return;
+        }
         if ("HaConfigScreen".equals(screenName)) {
             addMainMenuTooltip(lines, label);
         } else if ("HaCameraScreen".equals(screenName)) {
@@ -102,6 +106,8 @@ public final class HaButtonTooltips {
         } else if ("HaMobHpDisplayScreen".equals(screenName)
             || "HaMobHpDisplayOverlayScreen".equals(screenName)) {
             addMobHpDisplayTooltip(lines, label);
+        } else if ("HaElementRarityScreen".equals(screenName)) {
+            lines.add("エレメント名を含むアイテム枠をレアリティ色で見やすくします。");
         } else if ("HaAfkFarmingScreen".equals(screenName)) {
             addAfkFarmingTooltip(lines, label);
         }

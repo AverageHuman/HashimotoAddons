@@ -40,6 +40,7 @@ public final class HaHudVisibility {
             || screen instanceof HaDropTrackerOverlayScreen
             || screen instanceof HaExpTrackerScreen
             || screen instanceof HaExpTrackerOverlayScreen
+            || screen instanceof HaAlchemyKilnAutomationScreen
             || screen instanceof HaMobHpDisplayScreen
             || screen instanceof HaMobHpDisplayOverlayScreen;
     }

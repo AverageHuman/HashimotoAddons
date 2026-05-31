@@ -14,6 +14,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ScoreboardObjective;
@@ -33,16 +34,20 @@ public final class HaTickHandler {
     private boolean openHudEditScreenRequested;
     private int healCooldownTicks;
     private final KeyBinding macroToggleKeyBinding;
+    private final KeyBinding alchemyKilnAutomationKeyBinding;
     private final KeyBinding cameraToggleKeyBinding;
     private final KeyBinding chestSearchKeyBinding;
+    private final KeyBinding gearViewKeyBinding;
     private long swapHoldEndWorldTick = -1L;
     private InputUtil.Key simulatedHotbarKey = InputUtil.UNKNOWN_KEY;
     private boolean manaMissingNotified;
 
-    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding) {
+    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding) {
         this.macroToggleKeyBinding = macroToggleKeyBinding;
+        this.alchemyKilnAutomationKeyBinding = alchemyKilnAutomationKeyBinding;
         this.cameraToggleKeyBinding = cameraToggleKeyBinding;
         this.chestSearchKeyBinding = chestSearchKeyBinding;
+        this.gearViewKeyBinding = gearViewKeyBinding;
     }
 
     public void requestOpenConfigScreen() {
@@ -67,6 +72,7 @@ public final class HaTickHandler {
         tickSimulatedHotbarKey(client);
         tickCameraToggle(client);
         tickChestSearchShortcut(client);
+        tickGearView(client, config);
         HaDropTracker.tick(client);
         HaDropNotifier.tick(client);
         HaChestSearchIndex.get().tick(client);
@@ -76,6 +82,8 @@ public final class HaTickHandler {
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
+            tickAlchemyKilnAutomationToggle(client, config);
+            HaAlchemyKilnAutomation.tick(client, config);
             HaAfkFarming.tick(client, this);
         }
 
@@ -171,6 +179,25 @@ public final class HaTickHandler {
         }
     }
 
+    private void tickAlchemyKilnAutomationToggle(MinecraftClient client, HaConfig config) {
+        if (alchemyKilnAutomationKeyBinding == null) {
+            return;
+        }
+        while (alchemyKilnAutomationKeyBinding.wasPressed()) {
+            if (!config.alchemyKilnAutomationEnabled) {
+                if (client.player != null) {
+                    client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:\u00a7cAlchemy Kiln Assist is OFF."), false);
+                }
+                continue;
+            }
+            if (HaAlchemyKilnAutomation.isRunning()) {
+                HaAlchemyKilnAutomation.stop(client, "Alchemy Kiln Assist stopped.");
+            } else {
+                HaAlchemyKilnAutomation.start(client, config);
+            }
+        }
+    }
+
     private void tickChestSearchShortcut(MinecraftClient client) {
         if (isChestSearchShortcutBlocked(client)) {
             while (chestSearchKeyBinding.wasPressed()) {
@@ -181,6 +208,39 @@ public final class HaTickHandler {
 
         while (chestSearchKeyBinding.wasPressed()) {
             client.openScreen(new HaChestSearchScreen(null));
+        }
+    }
+
+    private void tickGearView(MinecraftClient client, HaConfig config) {
+        if (gearViewKeyBinding == null) {
+            return;
+        }
+        if (client.currentScreen != null) {
+            while (gearViewKeyBinding.wasPressed()) {
+                // Consume presses while another screen is open.
+            }
+            return;
+        }
+        while (gearViewKeyBinding.wasPressed()) {
+            if (!config.gearViewEnabled) {
+                if (client.player != null) {
+                    client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:\u00a7cGear View is OFF."), false);
+                }
+                continue;
+            }
+            if (client.crosshairTarget == null || client.crosshairTarget.getType() != net.minecraft.util.hit.HitResult.Type.ENTITY) {
+                if (client.player != null) {
+                    client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:\u00a7cAim at a player first."), false);
+                }
+                continue;
+            }
+            if (!(client.targetedEntity instanceof PlayerEntity)) {
+                if (client.player != null) {
+                    client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:\u00a7cAim at another player first."), false);
+                }
+                continue;
+            }
+            HaGearView.showTargetGear(client);
         }
     }
 
@@ -377,6 +437,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaChunkChestScreen
             || client.currentScreen instanceof HaChunkChestOverlayScreen
             || client.currentScreen instanceof HaChestSearchScreen
+            || client.currentScreen instanceof HaGearViewScreen
             || client.currentScreen instanceof HaEvolutionForgeScreen
             || client.currentScreen instanceof HaManaAlertListScreen
             || client.currentScreen instanceof HaManaAlertEditScreen
@@ -391,6 +452,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaDropNotifierManageScreen
             || client.currentScreen instanceof HaDropNotifierEditScreen
             || client.currentScreen instanceof HaAfkFarmingScreen
+            || client.currentScreen instanceof HaAlchemyKilnAutomationScreen
             || client.currentScreen instanceof HaExpTrackerScreen
             || client.currentScreen instanceof HaExpTrackerOverlayScreen
             || client.currentScreen instanceof HaMobEspScreen;
