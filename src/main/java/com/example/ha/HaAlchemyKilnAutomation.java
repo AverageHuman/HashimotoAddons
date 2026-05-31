@@ -28,6 +28,7 @@ public final class HaAlchemyKilnAutomation {
     private static final int CRAFT_RESULT_TIMEOUT_TICKS = 200;
     private static final int KILN_ENTRY_CLICK_DELAY_TICKS = 20;
     private static final int MIN_CLICK_INTERVAL_TICKS = 4;
+    private static final int TICKET_USE_DELAY_TICKS = 4;
     private static final int OFFHAND_SWAP_SETTLE_TICKS = 2;
     private static final int HUD_MARKER_RECENT_TICKS = 80;
     private static final String OFFHAND_PROTECT_MARKER = "\u2605[ 2 ]";
@@ -194,6 +195,9 @@ public final class HaAlchemyKilnAutomation {
     }
 
     private static void tickUsingTicket(MinecraftClient client) {
+        if (client.world == null || client.world.getTime() - stateStartTick < TICKET_USE_DELAY_TICKS) {
+            return;
+        }
         ActionResult result = client.interactionManager.interactItem(client.player, client.world, Hand.MAIN_HAND);
         if (result == ActionResult.FAIL) {
             fail(client, "\u00a7cCould not use the shortcut ticket.");
