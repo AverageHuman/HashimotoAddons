@@ -1,5 +1,6 @@
 package com.example.ha;
 
+import com.example.ha.mixin.MinecraftClientAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -11,9 +12,7 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
@@ -29,6 +28,7 @@ public final class HaAlchemyKilnAutomation {
     private static final int KILN_ENTRY_CLICK_DELAY_TICKS = 20;
     private static final int MIN_CLICK_INTERVAL_TICKS = 4;
     private static final int TICKET_USE_DELAY_TICKS = 4;
+    private static final int TICKET_USE_RETRY_INTERVAL_TICKS = 4;
     private static final int OFFHAND_SWAP_SETTLE_TICKS = 2;
     private static final int HUD_MARKER_RECENT_TICKS = 80;
     private static final String OFFHAND_PROTECT_MARKER = "\u2605[ 2 ]";
@@ -41,8 +41,10 @@ public final class HaAlchemyKilnAutomation {
     private static int kilnEntrySlotIndex = -1;
     private static long stateStartTick;
     private static long lastCraftClickTick = -1L;
+    private static long lastTicketUseTick = -1L;
     private static long nextCraftAllowedTick = 0L;
     private static int lastGoldCount;
+    private static int ticketUseAttempts;
     private static boolean waitingForGoldIncrease;
     private static boolean materialsMissingReceived;
     private static boolean protectMarkedItemWithOffhand;
@@ -78,7 +80,9 @@ public final class HaAlchemyKilnAutomation {
         state = State.SELECTING_TICKET;
         stateStartTick = client.world.getTime();
         lastCraftClickTick = -1L;
+        lastTicketUseTick = -1L;
         nextCraftAllowedTick = 0L;
+        ticketUseAttempts = 0;
         waitingForGoldIncrease = false;
         materialsMissingReceived = false;
         sendClientMessage(client, "\u00a7aAlchemy Kiln Assist started.");
@@ -195,15 +199,41 @@ public final class HaAlchemyKilnAutomation {
     }
 
     private static void tickUsingTicket(MinecraftClient client) {
-        if (client.world == null || client.world.getTime() - stateStartTick < TICKET_USE_DELAY_TICKS) {
+        if (client.currentScreen != null) {
+            advanceState(client, State.WAITING_SHORTCUT_GUI);
             return;
         }
-        ActionResult result = client.interactionManager.interactItem(client.player, client.world, Hand.MAIN_HAND);
-        if (result == ActionResult.FAIL) {
-            fail(client, "\u00a7cCould not use the shortcut ticket.");
+        if (ticketHotbarSlot < 0 || ticketHotbarSlot > 8) {
+            fail(client, "\u00a7cShortcut ticket was no longer available.");
             return;
         }
-        advanceState(client, State.WAITING_SHORTCUT_GUI);
+        if (!isTicketInMainHand(client.player, ticketHotbarSlot)) {
+            selectHotbarSlot(client, ticketHotbarSlot);
+            advanceState(client, State.USING_TICKET);
+            return;
+        }
+        if (client.player.inventory.selectedSlot != ticketHotbarSlot) {
+            selectHotbarSlot(client, ticketHotbarSlot);
+            advanceState(client, State.USING_TICKET);
+            return;
+        }
+        if (client.world == null) {
+            return;
+        }
+        long now = client.world.getTime();
+        if (now - stateStartTick < TICKET_USE_DELAY_TICKS) {
+            return;
+        }
+        if (timedOut(client, SHORTCUT_WAIT_TIMEOUT_TICKS)) {
+            fail(client, "\u00a7cTimed out trying to use the shortcut ticket.");
+            return;
+        }
+        if (lastTicketUseTick >= 0L && now - lastTicketUseTick < TICKET_USE_RETRY_INTERVAL_TICKS) {
+            return;
+        }
+        ((MinecraftClientAccessor) client).ha$doItemUse();
+        lastTicketUseTick = now;
+        ticketUseAttempts++;
     }
 
     private static void tickWaitingShortcutGui(MinecraftClient client) {
@@ -410,6 +440,19 @@ public final class HaAlchemyKilnAutomation {
         return count;
     }
 
+    private static boolean isTicketInMainHand(ClientPlayerEntity player, int expectedSlot) {
+        if (player == null || expectedSlot < 0 || expectedSlot > 8) {
+            return false;
+        }
+        ItemStack mainHandStack = player.getMainHandStack();
+        ItemStack expectedStack = player.inventory.getStack(expectedSlot);
+        if (mainHandStack == null || mainHandStack.isEmpty() || expectedStack == null || expectedStack.isEmpty()) {
+            return false;
+        }
+        return TICKET_NAME.equals(normalize(mainHandStack.getName().getString()))
+            && mainHandStack == expectedStack;
+    }
+
     private static void selectHotbarSlot(MinecraftClient client, int slot) {
         if (client == null || client.player == null || slot < 0 || slot > 8) {
             return;
@@ -448,8 +491,10 @@ public final class HaAlchemyKilnAutomation {
         kilnEntrySlotIndex = -1;
         stateStartTick = 0L;
         lastCraftClickTick = -1L;
+        lastTicketUseTick = -1L;
         nextCraftAllowedTick = 0L;
         lastGoldCount = 0;
+        ticketUseAttempts = 0;
         waitingForGoldIncrease = false;
         materialsMissingReceived = false;
         protectMarkedItemWithOffhand = false;

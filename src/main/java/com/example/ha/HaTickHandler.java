@@ -115,6 +115,9 @@ public final class HaTickHandler {
         if (!config.macroEnabled) {
             return;
         }
+        if (HaAlchemyKilnAutomation.isRunning()) {
+            return;
+        }
 
         tickAutoSwap(client, config);
         tickAutoHeal(client, config);

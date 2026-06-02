@@ -9,6 +9,7 @@
     "ItemStackTooltipMixin",
     "KeyBindingAccessor",
     "MinecraftClientGhostWallMixin",
+    "MinecraftClientAccessor",
     "MinecraftClientDisconnectMixin",
     "ScreenButtonTooltipMixin",
     "SlotAccessor",
