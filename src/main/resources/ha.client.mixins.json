@@ -5,6 +5,7 @@
   "client": [
     "ClientPlayerEntityMixin",
     "ClientPlayNetworkHandlerMixin",
+    "EntityRendererMixin",
     "GameMenuScreenMixin",
     "ItemStackTooltipMixin",
     "KeyBindingAccessor",

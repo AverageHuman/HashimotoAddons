@@ -75,6 +75,10 @@ public final class HaButtonTooltips {
             lines.add("エレメント系アイテムのスロットを名前色と同じ色で強調表示します。");
             return;
         }
+        if ("HaConfigScreen".equals(screenName) && "Damage Truncation".equals(label)) {
+            lines.add("Shortens numbers above 1000000 into m, b, and t. Labels containing Exp stay unchanged.");
+            return;
+        }
         if ("HaConfigScreen".equals(screenName)) {
             addMainMenuTooltip(lines, label);
         } else if ("HaCameraScreen".equals(screenName)) {
@@ -108,6 +112,8 @@ public final class HaButtonTooltips {
             addMobHpDisplayTooltip(lines, label);
         } else if ("HaElementRarityScreen".equals(screenName)) {
             lines.add("エレメント名を含むアイテム枠をレアリティ色で見やすくします。");
+        } else if ("HaDamageTruncationScreen".equals(screenName)) {
+            lines.add("Shortens numbers above 1000000 into m, b, and t. Labels containing Exp stay unchanged.");
         } else if ("HaAfkFarmingScreen".equals(screenName)) {
             addAfkFarmingTooltip(lines, label);
         }

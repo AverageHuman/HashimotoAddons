@@ -64,6 +64,7 @@ public final class HaConfig {
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
     public int chunkChestOverlayY = 40;
+    public boolean damageTruncationEnabled = false;
     public boolean elementRarityEnabled = true;
     public boolean gearViewEnabled = true;
     public int gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
@@ -429,6 +430,7 @@ public final class HaConfig {
         chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
         chunkChestOverlayX = saved.chunkChestOverlayX;
         chunkChestOverlayY = saved.chunkChestOverlayY;
+        damageTruncationEnabled = saved.damageTruncationEnabled;
         elementRarityEnabled = saved.elementRarityEnabled;
         gearViewEnabled = saved.gearViewEnabled;
         gearViewKeyCode = saved.gearViewKeyCode;
@@ -616,6 +618,7 @@ public final class HaConfig {
         root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
         root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
         root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
+        root.addProperty("damageTruncationEnabled", damageTruncationEnabled);
         root.addProperty("elementRarityEnabled", elementRarityEnabled);
         root.addProperty("gearViewEnabled", gearViewEnabled);
         root.addProperty("gearViewKeyCode", gearViewKeyCode);
@@ -743,6 +746,7 @@ public final class HaConfig {
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
         chunkChestOverlayY = 40;
+        damageTruncationEnabled = false;
         elementRarityEnabled = true;
         gearViewEnabled = true;
         gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
@@ -938,6 +942,7 @@ public final class HaConfig {
         boolean chunkChestCounterEnabled = false;
         int chunkChestOverlayX = 8;
         int chunkChestOverlayY = 40;
+        boolean damageTruncationEnabled = false;
         boolean elementRarityEnabled = true;
         boolean gearViewEnabled = true;
         int gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
