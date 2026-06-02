@@ -31,7 +31,7 @@ public final class HaEvolutionForgeScreen extends Screen {
             config.save();
             updateButtons();
         }));
-        addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Clear Scanned Items"), button -> openClearConfirmation()));
+        addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Clear Learned Data"), button -> openClearConfirmation()));
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
     }
 
@@ -40,8 +40,10 @@ public final class HaEvolutionForgeScreen extends Screen {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 16, 0xFFFFFF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Items: " + HaEvolutionForgeHelper.getCurrentServerItemCount()), this.width / 2, 32, 0xA0E8FF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 44, 0xA0E8FF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Open each forge page once to scan recipes."), this.width / 2, 104, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Forge Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 44, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Observed Stat Bounds: " + HaEvolutionForgeHelper.getCurrentServerObservedBoundCount()), this.width / 2, 56, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Open forge pages to scan recipe ranges."), this.width / 2, 104, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Hover normal item tooltips to learn provisional stat bounds."), this.width / 2, 116, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -59,7 +61,7 @@ public final class HaEvolutionForgeScreen extends Screen {
                     HaEvolutionForgeHelper.clearCurrentServerItems();
                 }
                 client.openScreen(new HaEvolutionForgeScreen(parent));
-            }, new LiteralText("Clear Scanned Items?"), new LiteralText("Evolution Forge targets for this server will be removed."), new LiteralText("\u00a7cClear"), new LiteralText("\u00a7aCancel")));
+            }, new LiteralText("Clear Learned Data?"), new LiteralText("Scanned forge data and observed stat bounds for this server will be removed."), new LiteralText("\u00a7cClear"), new LiteralText("\u00a7aCancel")));
         }
     }
 

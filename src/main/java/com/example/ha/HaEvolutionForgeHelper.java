@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -82,9 +83,7 @@ public final class HaEvolutionForgeHelper {
         }
 
         MinecraftClient client = MinecraftClient.getInstance();
-        if (isEvolutionForgeScreen(client)) {
-            learnDisplayedTooltip(client, stack, tooltip);
-        }
+        learnDisplayedTooltip(client, stack, tooltip);
 
         List<Text> updatedTooltip = appendStatRangeAnnotations(stack, tooltip);
         if (shouldMarkTooltip(stack, updatedTooltip)) {
@@ -104,6 +103,10 @@ public final class HaEvolutionForgeHelper {
         return getStatRangeCount(getDataForCurrentServer());
     }
 
+    public static int getCurrentServerObservedBoundCount() {
+        return getObservedBoundCount(getDataForCurrentServer());
+    }
+
     public static void clearCurrentServerItems() {
         load();
         DATA_BY_SERVER.remove(getServerKey(MinecraftClient.getInstance()));
@@ -115,6 +118,7 @@ public final class HaEvolutionForgeHelper {
         EvolutionForgeData data = getOrCreateData(getServerKey(client));
         int beforeItems = data.items.size();
         int beforeRanges = getStatRangeCount(data);
+        int beforeObservedBounds = getObservedBoundCount(data);
 
         for (int i = 0; i < handler.slots.size(); i++) {
             Slot slot = handler.slots.get(i);
@@ -125,9 +129,10 @@ public final class HaEvolutionForgeHelper {
             List<Text> tooltip = getRawTooltip(client, stack);
             addConsumedItems(data.items, tooltip);
             addStatRanges(data, stack.getName().getString(), tooltip);
+            addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
         }
 
-        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges) {
+        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges || getObservedBoundCount(data) != beforeObservedBounds) {
             save();
         }
     }
@@ -150,11 +155,15 @@ public final class HaEvolutionForgeHelper {
         EvolutionForgeData data = getOrCreateData(getServerKey(client));
         int beforeItems = data.items.size();
         int beforeRanges = getStatRangeCount(data);
+        int beforeObservedBounds = getObservedBoundCount(data);
 
-        addConsumedItems(data.items, tooltip);
-        addStatRanges(data, stack.getName().getString(), tooltip);
+        if (isEvolutionForgeScreen(client)) {
+            addConsumedItems(data.items, tooltip);
+            addStatRanges(data, stack.getName().getString(), tooltip);
+        }
+        addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
 
-        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges) {
+        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges || getObservedBoundCount(data) != beforeObservedBounds) {
             save();
         }
     }
@@ -201,6 +210,44 @@ public final class HaEvolutionForgeHelper {
         }
     }
 
+    private static void addObservedBounds(EvolutionForgeData data, String itemName, List<Text> tooltip, int enhancementLevel) {
+        String normalizedItemName = normalizeItemName(itemName);
+        if (normalizedItemName.isEmpty() || tooltip == null || tooltip.isEmpty()) {
+            return;
+        }
+
+        List<ObservedStatBound> bounds = data.observedBoundsByItem.get(normalizedItemName);
+        for (Text text : tooltip) {
+            ParsedCurrentStat parsed = parseCurrentStat(text == null ? "" : text.getString());
+            if (parsed == null) {
+                continue;
+            }
+
+            double storedValue = parsed.value;
+            StatBoost boost = STAT_BOOSTS.get(parsed.statName);
+            if (enhancementLevel > 0 && boost != null) {
+                storedValue = estimateBaseStatValue(parsed.value, boost, enhancementLevel);
+            }
+
+            ObservedStatBound bound = new ObservedStatBound();
+            bound.statName = parsed.statName;
+            bound.unit = parsed.unit;
+            bound.hasMin = true;
+            bound.hasMax = true;
+            bound.min = storedValue;
+            bound.max = storedValue;
+            String displayValue = enhancementLevel > 0 && boost != null ? formatSignedValue(storedValue) : normalizeRangeDisplay(parsed.valueText, true);
+            bound.displayMin = displayValue;
+            bound.displayMax = displayValue;
+
+            if (bounds == null) {
+                bounds = new ArrayList<ObservedStatBound>();
+                data.observedBoundsByItem.put(normalizedItemName, bounds);
+            }
+            putObservedBound(bounds, bound);
+        }
+    }
+
     private static void addCandidate(Set<String> items, String rawLine) {
         String normalized = normalizeItemName(rawLine);
         if (!normalized.isEmpty()) {
@@ -210,7 +257,8 @@ public final class HaEvolutionForgeHelper {
 
     private static List<Text> appendStatRangeAnnotations(ItemStack stack, List<Text> tooltip) {
         List<StatRange> ranges = getRangesForStack(stack, tooltip);
-        if (ranges.isEmpty()) {
+        List<ObservedStatBound> observedBounds = getObservedBoundsForStack(stack, tooltip);
+        if (ranges.isEmpty() && observedBounds.isEmpty()) {
             return tooltip;
         }
 
@@ -219,7 +267,7 @@ public final class HaEvolutionForgeHelper {
         for (int i = 0; i < tooltip.size(); i++) {
             Text text = tooltip.get(i);
             String originalLine = text == null ? "" : text.getString();
-            String annotatedLine = annotateStatLine(originalLine, ranges, enhancementLevel);
+            String annotatedLine = annotateStatLine(originalLine, ranges, observedBounds, enhancementLevel);
             if (annotatedLine == null) {
                 continue;
             }
@@ -231,45 +279,48 @@ public final class HaEvolutionForgeHelper {
         return updatedTooltip == null ? tooltip : updatedTooltip;
     }
 
-    private static String annotateStatLine(String rawLine, List<StatRange> ranges, int enhancementLevel) {
-        String line = normalizeDisplay(rawLine);
-        if (line.isEmpty() || line.indexOf("||") >= 0 || line.indexOf("|") >= 0 || parseRangeLine(line) != null) {
+    private static String annotateStatLine(String rawLine, List<StatRange> ranges, List<ObservedStatBound> observedBounds, int enhancementLevel) {
+        ParsedCurrentStat parsed = parseCurrentStat(rawLine);
+        if (parsed == null) {
             return null;
         }
 
-        Matcher matcher = CURRENT_VALUE_PATTERN.matcher(line);
-        if (!matcher.matches()) {
-            return null;
-        }
-
-        String prefix = matcher.group(1);
-        String valueText = matcher.group(2);
-        String unitText = matcher.group(3);
-        String unit = normalizeUnit(unitText);
-        String suffix = matcher.group(4);
-        String statName = extractStatName(prefix, suffix);
-        if (statName.isEmpty()) {
-            return null;
-        }
-
-        StatRange range = findRange(ranges, statName, unit);
+        StatRange range = findRange(ranges, parsed.statName, parsed.unit);
         if (range == null) {
-            return null;
+            ObservedStatBound observedBound = findObservedBound(observedBounds, parsed.statName, parsed.unit);
+            if (observedBound == null) {
+                return null;
+            }
+
+            StatBoost observedBoost = STAT_BOOSTS.get(parsed.statName);
+            if (enhancementLevel > 0 && observedBoost != null) {
+                double baseValue = estimateBaseStatValue(parsed.value, observedBoost, enhancementLevel);
+                return parsed.prefix
+                    + parsed.valueText
+                    + "|"
+                    + formatSignedValue(baseValue)
+                    + "("
+                    + formatObservedBound(observedBound)
+                    + ")"
+                    + parsed.unitText
+                    + parsed.suffix;
+            }
+
+            return parsed.prefix
+                + parsed.valueText
+                + "("
+                + formatObservedBound(observedBound)
+                + ")"
+                + parsed.unitText
+                + parsed.suffix;
         }
 
-        double value;
-        try {
-            value = Double.parseDouble(valueText);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-
-        StatBoost boost = STAT_BOOSTS.get(statName);
+        StatBoost boost = STAT_BOOSTS.get(parsed.statName);
         if (enhancementLevel > 0 && boost != null) {
-            double baseValue = estimateBaseStatValue(value, boost, enhancementLevel);
+            double baseValue = estimateBaseStatValue(parsed.value, boost, enhancementLevel);
             int percentage = calculateRangePercentage(baseValue, range);
-            return prefix
-                + valueText
+            return parsed.prefix
+                + parsed.valueText
                 + "|"
                 + formatSignedValue(baseValue)
                 + "("
@@ -279,13 +330,13 @@ public final class HaEvolutionForgeHelper {
                 + " || ("
                 + percentage
                 + "%))"
-                + unitText
-                + suffix;
+                + parsed.unitText
+                + parsed.suffix;
         }
 
-        int percentage = calculateRangePercentage(value, range);
-        return prefix
-            + valueText
+        int percentage = calculateRangePercentage(parsed.value, range);
+        return parsed.prefix
+            + parsed.valueText
             + "("
             + range.displayMin
             + range.separator
@@ -293,8 +344,8 @@ public final class HaEvolutionForgeHelper {
             + " || ("
             + percentage
             + "%))"
-            + unitText
-            + suffix;
+            + parsed.unitText
+            + parsed.suffix;
     }
 
     private static StatRange parseRangeLine(String rawLine) {
@@ -347,6 +398,29 @@ public final class HaEvolutionForgeHelper {
         ranges.add(newRange);
     }
 
+    private static void putObservedBound(List<ObservedStatBound> bounds, ObservedStatBound newBound) {
+        for (ObservedStatBound existing : bounds) {
+            if (!matchesObservedBound(existing, newBound)) {
+                continue;
+            }
+            if (newBound.hasMin && (!existing.hasMin || newBound.min < existing.min)) {
+                existing.hasMin = true;
+                existing.min = newBound.min;
+                existing.displayMin = newBound.displayMin;
+            }
+            if (newBound.hasMax && (!existing.hasMax || newBound.max > existing.max)) {
+                existing.hasMax = true;
+                existing.max = newBound.max;
+                existing.displayMax = newBound.displayMax;
+            }
+            if ((existing.unit == null || existing.unit.isEmpty()) && newBound.unit != null && !newBound.unit.isEmpty()) {
+                existing.unit = newBound.unit;
+            }
+            return;
+        }
+        bounds.add(newBound);
+    }
+
     private static StatRange findRange(List<StatRange> ranges, String statName, String unit) {
         for (StatRange range : ranges) {
             if (range == null || range.statName == null || !range.statName.equals(statName)) {
@@ -354,6 +428,18 @@ public final class HaEvolutionForgeHelper {
             }
             if (range.unit == null || range.unit.isEmpty() || range.unit.equals(unit)) {
                 return range;
+            }
+        }
+        return null;
+    }
+
+    private static ObservedStatBound findObservedBound(List<ObservedStatBound> bounds, String statName, String unit) {
+        for (ObservedStatBound bound : bounds) {
+            if (bound == null || bound.statName == null || !bound.statName.equals(statName)) {
+                continue;
+            }
+            if (bound.unit == null || bound.unit.isEmpty() || bound.unit.equals(unit)) {
+                return bound;
             }
         }
         return null;
@@ -497,6 +583,32 @@ public final class HaEvolutionForgeHelper {
         return new ArrayList<StatRange>();
     }
 
+    private static List<ObservedStatBound> getObservedBoundsForStack(ItemStack stack, List<Text> tooltip) {
+        EvolutionForgeData data = getDataForCurrentServer();
+        if (data.observedBoundsByItem.isEmpty()) {
+            return new ArrayList<ObservedStatBound>();
+        }
+
+        String stackName = normalizeItemName(stack.getName().getString());
+        List<ObservedStatBound> bounds = findObservedBoundsForItemName(data, stackName);
+        if (bounds != null) {
+            return bounds;
+        }
+
+        if (tooltip != null) {
+            for (Text line : tooltip) {
+                if (line == null) {
+                    continue;
+                }
+                bounds = findObservedBoundsForItemName(data, normalizeItemName(line.getString()));
+                if (bounds != null) {
+                    return bounds;
+                }
+            }
+        }
+        return new ArrayList<ObservedStatBound>();
+    }
+
     private static List<StatRange> findRangesForItemName(EvolutionForgeData data, String itemName) {
         if (data == null || itemName == null || itemName.isEmpty()) {
             return null;
@@ -522,6 +634,31 @@ public final class HaEvolutionForgeHelper {
         return bestRanges;
     }
 
+    private static List<ObservedStatBound> findObservedBoundsForItemName(EvolutionForgeData data, String itemName) {
+        if (data == null || itemName == null || itemName.isEmpty()) {
+            return null;
+        }
+
+        List<ObservedStatBound> exact = data.observedBoundsByItem.get(itemName);
+        if (exact != null) {
+            return exact;
+        }
+
+        List<ObservedStatBound> bestBounds = null;
+        int bestLength = 0;
+        for (Map.Entry<String, List<ObservedStatBound>> entry : data.observedBoundsByItem.entrySet()) {
+            String knownItemName = entry.getKey();
+            if (knownItemName == null || knownItemName.length() < 2 || knownItemName.length() <= bestLength) {
+                continue;
+            }
+            if (itemName.length() > knownItemName.length() && itemName.endsWith(knownItemName)) {
+                bestLength = knownItemName.length();
+                bestBounds = entry.getValue();
+            }
+        }
+        return bestBounds;
+    }
+
     private static EvolutionForgeData getDataForCurrentServer() {
         load();
         EvolutionForgeData data = DATA_BY_SERVER.get(getServerKey(MinecraftClient.getInstance()));
@@ -541,6 +678,14 @@ public final class HaEvolutionForgeHelper {
         int count = 0;
         for (List<StatRange> ranges : data.statRangesByItem.values()) {
             count += ranges.size();
+        }
+        return count;
+    }
+
+    private static int getObservedBoundCount(EvolutionForgeData data) {
+        int count = 0;
+        for (List<ObservedStatBound> bounds : data.observedBoundsByItem.values()) {
+            count += bounds.size();
         }
         return count;
     }
@@ -603,6 +748,49 @@ public final class HaEvolutionForgeHelper {
         return normalizeStatName(prefix);
     }
 
+    private static ParsedCurrentStat parseCurrentStat(String rawLine) {
+        String line = normalizeDisplay(rawLine);
+        if (line.isEmpty() || line.indexOf("||") >= 0 || line.indexOf("|") >= 0 || parseRangeLine(line) != null) {
+            return null;
+        }
+
+        Matcher matcher = CURRENT_VALUE_PATTERN.matcher(line);
+        if (!matcher.matches()) {
+            return null;
+        }
+
+        String prefix = matcher.group(1);
+        String valueText = matcher.group(2);
+        String unitText = matcher.group(3);
+        String suffix = matcher.group(4);
+        if (!containsStatDelimiter(prefix) && !containsStatDelimiter(suffix)) {
+            return null;
+        }
+
+        String statName = extractStatName(prefix, suffix);
+        if (statName.isEmpty()) {
+            return null;
+        }
+
+        try {
+            ParsedCurrentStat parsed = new ParsedCurrentStat();
+            parsed.prefix = prefix;
+            parsed.valueText = valueText;
+            parsed.unitText = unitText;
+            parsed.suffix = suffix;
+            parsed.unit = normalizeUnit(unitText);
+            parsed.statName = statName;
+            parsed.value = Double.parseDouble(valueText);
+            return parsed;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean containsStatDelimiter(String value) {
+        return value != null && (value.indexOf(':') >= 0 || value.indexOf('\uff1a') >= 0);
+    }
+
     private static boolean isMeaningfulStatName(String value) {
         if (value == null || value.isEmpty()) {
             return false;
@@ -622,6 +810,34 @@ public final class HaEvolutionForgeHelper {
             return "%";
         }
         return unit == null ? "" : unit;
+    }
+
+    private static boolean matchesObservedBound(ObservedStatBound left, ObservedStatBound right) {
+        if (left == null || right == null || !Objects.equals(left.statName, right.statName)) {
+            return false;
+        }
+        String leftUnit = left.unit == null ? "" : left.unit;
+        String rightUnit = right.unit == null ? "" : right.unit;
+        return leftUnit.isEmpty() || rightUnit.isEmpty() || leftUnit.equals(rightUnit);
+    }
+
+    private static String formatObservedBound(ObservedStatBound bound) {
+        if (bound == null) {
+            return "";
+        }
+        if (bound.hasMin && bound.hasMax) {
+            if (Double.compare(bound.min, bound.max) == 0) {
+                return bound.displayMin;
+            }
+            return bound.displayMin + "~" + bound.displayMax;
+        }
+        if (bound.hasMin) {
+            return ">=" + bound.displayMin;
+        }
+        if (bound.hasMax) {
+            return "<=" + bound.displayMax;
+        }
+        return "";
     }
 
     private static Map<String, StatBoost> createStatBoosts() {
@@ -753,7 +969,30 @@ public final class HaEvolutionForgeHelper {
                             }
                         }
                     }
-                    if (!data.items.isEmpty() || !data.statRangesByItem.isEmpty()) {
+                    if (server.observedBounds != null) {
+                        for (ItemObservedBounds itemBounds : server.observedBounds) {
+                            if (itemBounds == null || itemBounds.itemName == null || itemBounds.bounds == null) {
+                                continue;
+                            }
+                            String normalizedItemName = normalizeItemName(itemBounds.itemName);
+                            if (normalizedItemName.isEmpty()) {
+                                continue;
+                            }
+                            List<ObservedStatBound> bounds = new ArrayList<ObservedStatBound>();
+                            for (ObservedStatBound bound : itemBounds.bounds) {
+                                if (bound != null) {
+                                    bound.normalize();
+                                }
+                                if (bound != null && bound.isValid()) {
+                                    putObservedBound(bounds, bound);
+                                }
+                            }
+                            if (!bounds.isEmpty()) {
+                                data.observedBoundsByItem.put(normalizedItemName, bounds);
+                            }
+                        }
+                    }
+                    if (!data.items.isEmpty() || !data.statRangesByItem.isEmpty() || !data.observedBoundsByItem.isEmpty()) {
                         DATA_BY_SERVER.put(server.serverKey, data);
                     }
                 }
@@ -768,7 +1007,7 @@ public final class HaEvolutionForgeHelper {
             SavedEvolutionForgeItems saved = new SavedEvolutionForgeItems();
             for (Map.Entry<String, EvolutionForgeData> entry : DATA_BY_SERVER.entrySet()) {
                 EvolutionForgeData data = entry.getValue();
-                if (data.items.isEmpty() && data.statRangesByItem.isEmpty()) {
+                if (data.items.isEmpty() && data.statRangesByItem.isEmpty() && data.observedBoundsByItem.isEmpty()) {
                     continue;
                 }
                 ServerItems server = new ServerItems();
@@ -779,6 +1018,12 @@ public final class HaEvolutionForgeHelper {
                     itemRanges.itemName = rangeEntry.getKey();
                     itemRanges.ranges = new ArrayList<StatRange>(rangeEntry.getValue());
                     server.statRanges.add(itemRanges);
+                }
+                for (Map.Entry<String, List<ObservedStatBound>> observedEntry : data.observedBoundsByItem.entrySet()) {
+                    ItemObservedBounds itemBounds = new ItemObservedBounds();
+                    itemBounds.itemName = observedEntry.getKey();
+                    itemBounds.bounds = new ArrayList<ObservedStatBound>(observedEntry.getValue());
+                    server.observedBounds.add(itemBounds);
                 }
                 saved.servers.add(server);
             }
@@ -792,6 +1037,7 @@ public final class HaEvolutionForgeHelper {
     private static final class EvolutionForgeData {
         final Set<String> items = new LinkedHashSet<String>();
         final Map<String, List<StatRange>> statRangesByItem = new LinkedHashMap<String, List<StatRange>>();
+        final Map<String, List<ObservedStatBound>> observedBoundsByItem = new LinkedHashMap<String, List<ObservedStatBound>>();
     }
 
     private static final class SavedEvolutionForgeItems {
@@ -802,11 +1048,17 @@ public final class HaEvolutionForgeHelper {
         String serverKey = "";
         List<String> items = new ArrayList<String>();
         List<ItemStatRanges> statRanges = new ArrayList<ItemStatRanges>();
+        List<ItemObservedBounds> observedBounds = new ArrayList<ItemObservedBounds>();
     }
 
     private static final class ItemStatRanges {
         String itemName = "";
         List<StatRange> ranges = new ArrayList<StatRange>();
+    }
+
+    private static final class ItemObservedBounds {
+        String itemName = "";
+        List<ObservedStatBound> bounds = new ArrayList<ObservedStatBound>();
     }
 
     private static final class StatRange {
@@ -846,6 +1098,54 @@ public final class HaEvolutionForgeHelper {
                 displayMax = formatRangeValue(max, false);
             }
         }
+    }
+
+    private static final class ObservedStatBound {
+        String statName = "";
+        double min;
+        double max;
+        boolean hasMin;
+        boolean hasMax;
+        String unit = "";
+        String displayMin = "";
+        String displayMax = "";
+
+        boolean isValid() {
+            return statName != null && !statName.trim().isEmpty() && (hasMin || hasMax);
+        }
+
+        void normalize() {
+            statName = normalizeStatName(statName);
+            if (unit == null) {
+                unit = "";
+            } else {
+                unit = normalizeUnit(unit);
+            }
+            if (hasMin && hasMax && max < min) {
+                double oldMin = min;
+                min = max;
+                max = oldMin;
+                String oldDisplayMin = displayMin;
+                displayMin = displayMax;
+                displayMax = oldDisplayMin;
+            }
+            if (hasMin && (displayMin == null || displayMin.isEmpty())) {
+                displayMin = formatRangeValue(min, true);
+            }
+            if (hasMax && (displayMax == null || displayMax.isEmpty())) {
+                displayMax = formatRangeValue(max, true);
+            }
+        }
+    }
+
+    private static final class ParsedCurrentStat {
+        String prefix = "";
+        String valueText = "";
+        String unitText = "";
+        String suffix = "";
+        String statName = "";
+        String unit = "";
+        double value;
     }
 
     private static final class StatBoost {

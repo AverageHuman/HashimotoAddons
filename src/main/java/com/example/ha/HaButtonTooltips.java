@@ -136,6 +136,7 @@ public final class HaButtonTooltips {
             lines.add("EXP獲得量と時間あたりEXPの記録を設定します。");
         } else if ("Evolution Forge Helper".equals(label)) {
             lines.add("\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8\u7d20\u6750\u306eLore\u306bEvo?: Yes\u3092\u8ffd\u52a0\u8868\u793a\u3057\u307e\u3059\u3002");
+            lines.add("Open forge pages to scan fixed ranges, and hover normal item tooltips to learn provisional stat bounds.");
         } else if ("Mob HP Display".equals(label)) {
             lines.add("クロスヘア先のMobのHPと残り割合を表示します。");
         } else if ("Chat Filter".equals(label)) {
