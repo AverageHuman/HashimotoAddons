@@ -4,6 +4,7 @@ import com.example.ha.HaSoulbindProtection;
 import com.example.ha.HaChatFilter;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
+import com.example.ha.HaEvolutionForgeHelper;
 import com.example.ha.HaExpTracker;
 import com.example.ha.HaSubSkillTimer;
 import com.example.ha.HaDropNotifier;
@@ -69,5 +70,6 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onOpenScreen", at = @At("HEAD"))
     private void ha$captureChestSearchTarget(OpenScreenS2CPacket packet, CallbackInfo ci) {
         HaChestSearchIndex.get().onContainerScreenOpen(MinecraftClient.getInstance());
+        HaEvolutionForgeHelper.onOpenScreen(packet.getSyncId(), packet.getName());
     }
 }

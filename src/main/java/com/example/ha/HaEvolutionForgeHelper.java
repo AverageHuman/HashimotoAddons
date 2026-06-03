@@ -139,19 +139,45 @@ public final class HaEvolutionForgeHelper {
     private static boolean scanningForgeTooltips;
     private static int lastSyncId = -1;
     private static String lastSignature = "";
+    private static int trackedScreenSyncId = -1;
+    private static String trackedScreenTitle = "";
+    private static String previousContainerTitle = "";
+    private static boolean recipePreviewCanRegisterMaterials;
 
     private HaEvolutionForgeHelper() {
     }
 
     public static void tick(MinecraftClient client) {
-        if (!HaConfig.get().evolutionForgeHelperEnabled || !isEvolutionForgeScreen(client)) {
+        if (!HaConfig.get().evolutionForgeHelperEnabled) {
             lastSyncId = -1;
             lastSignature = "";
+            resetScreenTracking();
+            return;
+        }
+        if (client == null || !(client.currentScreen instanceof GenericContainerScreen)) {
+            lastSyncId = -1;
+            lastSignature = "";
+            resetScreenTracking();
             return;
         }
 
         GenericContainerScreen screen = (GenericContainerScreen) client.currentScreen;
         GenericContainerScreenHandler handler = (GenericContainerScreenHandler) screen.getScreenHandler();
+        String normalizedTitle = getNormalizedCurrentScreenTitle(client);
+        if (handler.syncId != trackedScreenSyncId || !normalizedTitle.equals(trackedScreenTitle)) {
+            recipePreviewCanRegisterMaterials = isRecipePreviewTitle(normalizedTitle) && isForgeRecipeSourceTitle(previousContainerTitle);
+            trackedScreenSyncId = handler.syncId;
+            trackedScreenTitle = normalizedTitle;
+        }
+        if (!isRecipePreviewTitle(normalizedTitle)) {
+            previousContainerTitle = normalizedTitle;
+        }
+        if (!isEvolutionForgeTitle(normalizedTitle) && !isRecipePreviewTitle(normalizedTitle)) {
+            lastSyncId = -1;
+            lastSignature = "";
+            return;
+        }
+
         String signature = createSignature(handler);
         if (handler.syncId == lastSyncId && signature.equals(lastSignature)) {
             return;
@@ -198,6 +224,24 @@ public final class HaEvolutionForgeHelper {
         save();
     }
 
+    public static void onOpenScreen(int syncId, Text title) {
+        String newTitle = normalizeDisplay(title == null ? "" : title.getString());
+        String currentTitle = getNormalizedCurrentScreenTitle(MinecraftClient.getInstance());
+        if (!currentTitle.isEmpty() && !isRecipePreviewTitle(currentTitle)) {
+            previousContainerTitle = currentTitle;
+        }
+
+        recipePreviewCanRegisterMaterials = isRecipePreviewTitle(newTitle) && isForgeRecipeSourceTitle(previousContainerTitle);
+        trackedScreenSyncId = syncId;
+        trackedScreenTitle = newTitle;
+        lastSyncId = -1;
+        lastSignature = "";
+
+        if (!newTitle.isEmpty() && !isRecipePreviewTitle(newTitle)) {
+            previousContainerTitle = newTitle;
+        }
+    }
+
     private static void scanVisiblePage(MinecraftClient client, GenericContainerScreenHandler handler) {
         load();
         EvolutionForgeData data = getOrCreateData(getServerKey(client));
@@ -212,7 +256,9 @@ public final class HaEvolutionForgeHelper {
                 continue;
             }
             List<Text> tooltip = getRawTooltip(client, stack);
-            addConsumedItems(data.items, tooltip);
+            if (shouldRegisterConsumedItems(client)) {
+                addConsumedItems(data.items, tooltip);
+            }
             addStatRanges(data, stack.getName().getString(), tooltip);
             addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
         }
@@ -243,7 +289,9 @@ public final class HaEvolutionForgeHelper {
         int beforeObservedBounds = getObservedBoundCount(data);
 
         if (isEvolutionForgeScreen(client)) {
-            addConsumedItems(data.items, tooltip);
+            if (shouldRegisterConsumedItems(client)) {
+                addConsumedItems(data.items, tooltip);
+            }
             addStatRanges(data, stack.getName().getString(), tooltip);
         }
         addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
@@ -701,9 +749,42 @@ public final class HaEvolutionForgeHelper {
         if (client == null || !(client.currentScreen instanceof GenericContainerScreen)) {
             return false;
         }
-        String title = client.currentScreen.getTitle() == null ? "" : client.currentScreen.getTitle().getString();
-        String normalizedTitle = normalizeDisplay(title);
-        return normalizedTitle.contains(FORGE_TITLE) || normalizedTitle.contains(ARMOR_FORGE_TITLE) || normalizedTitle.contains(RECIPE_PREVIEW_TITLE);
+        String normalizedTitle = getNormalizedCurrentScreenTitle(client);
+        return isEvolutionForgeTitle(normalizedTitle) || isRecipePreviewTitle(normalizedTitle);
+    }
+
+    private static boolean shouldRegisterConsumedItems(MinecraftClient client) {
+        String normalizedTitle = getNormalizedCurrentScreenTitle(client);
+        if (isEvolutionForgeTitle(normalizedTitle)) {
+            return true;
+        }
+        return isRecipePreviewTitle(normalizedTitle) && recipePreviewCanRegisterMaterials;
+    }
+
+    private static boolean isEvolutionForgeTitle(String normalizedTitle) {
+        return normalizedTitle.contains(FORGE_TITLE) || normalizedTitle.contains(ARMOR_FORGE_TITLE);
+    }
+
+    private static boolean isForgeRecipeSourceTitle(String normalizedTitle) {
+        return isEvolutionForgeTitle(normalizedTitle) && !isRecipePreviewTitle(normalizedTitle);
+    }
+
+    private static boolean isRecipePreviewTitle(String normalizedTitle) {
+        return normalizedTitle.contains(RECIPE_PREVIEW_TITLE);
+    }
+
+    private static String getNormalizedCurrentScreenTitle(MinecraftClient client) {
+        if (client == null || client.currentScreen == null || client.currentScreen.getTitle() == null) {
+            return "";
+        }
+        return normalizeDisplay(client.currentScreen.getTitle().getString());
+    }
+
+    private static void resetScreenTracking() {
+        trackedScreenSyncId = -1;
+        trackedScreenTitle = "";
+        previousContainerTitle = "";
+        recipePreviewCanRegisterMaterials = false;
     }
 
     private static boolean matchesAnyTarget(String rawValue, Set<String> targets) {
