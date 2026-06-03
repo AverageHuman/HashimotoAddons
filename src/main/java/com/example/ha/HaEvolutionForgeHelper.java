@@ -11,12 +11,14 @@ import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,7 +31,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 public final class HaEvolutionForgeHelper {
@@ -42,13 +46,91 @@ public final class HaEvolutionForgeHelper {
     private static final String CONSUME_HEADER = "\u88fd\u4f5c\u6642\u6d88\u8cbb\u30a2\u30a4\u30c6\u30e0";
     private static final String LEFT_CLICK = "\u5de6\u30af\u30ea\u30c3\u30af";
     private static final String RIGHT_CLICK = "\u53f3\u30af\u30ea\u30c3\u30af";
+    private static final String ITEM_RANK_LABEL = "\u30a2\u30a4\u30c6\u30e0\u30e9\u30f3\u30af";
     private static final String MARKER = "Evo?: Yes";
     private static final Pattern LEADING_MARKERS = Pattern.compile("^[\\s\\u2715\\u2716\\u00d7xX*\\-:\\uFF1A\\u30FB]+");
     private static final Pattern LEADING_COUNT = Pattern.compile("^[0-9]+\\s+");
     private static final Pattern ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([0-9]+)\\)\\s*$");
+    private static final Pattern ITEM_KEY_ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([1-9]|1[0-2])\\)\\s*$");
     private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
+    private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
+    private static final Map<String, Double> HP_BOOSTER_BONUSES = createHpBoosterBonuses();
+    private static final String[] ITEM_NAME_EXCEPTION_PREFIXES = new String[] {
+        "\u5b8c\u5168\u7121\u6b20\u306e",
+        "\u6975\u81f4\u306e",
+        "\u8a08\u308a\u77e5\u308c\u306a\u3044"
+    };
+    private static final Set<String> TRACKED_STAT_NAMES = new LinkedHashSet<String>(Arrays.asList(
+        "HP\u81ea\u7136\u56de\u5fa9",
+        "MANA\u81ea\u7136\u56de\u5fa9",
+        "SCRI\u5897\u52a0",
+        "\u30a2\u30f3\u30c7\u30c3\u30c9\u7279\u653b",
+        "\u30a8\u30f3\u30c1\u30e3\u30f3\u30c8\u6210\u529f\u7387",
+        "\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u30c0\u30e1\u30fc\u30b8",
+        "\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u7387",
+        "\u30b7\u30e3\u30a4\u30f3\u30d1\u30ef\u30fc",
+        "\u30b9\u30ad\u30eb\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u30c0\u30e1\u30fc\u30b8",
+        "\u30b9\u30ad\u30eb\u30af\u30ea\u30c6\u30a3\u30ab\u30eb\u7387",
+        "\u30b9\u30ad\u30eb\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e",
+        "\u30b9\u30ad\u30eb\u30c0\u30e1\u30fc\u30b8",
+        "\u30c0\u30e1\u30fc\u30b8\u7121\u52b9\u5316\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e",
+        "\u30c0\u30e1\u30fc\u30b8\u7121\u52b9\u5316\u7387",
+        "\u30c9\u30ed\u30c3\u30d7\u7387\u5897\u52a0",
+        "\u30ce\u30c3\u30af\u30d0\u30c3\u30af\u8010\u6027",
+        "\u30d1\u30ea\u30fc\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e",
+        "\u30d1\u30ea\u30fc\u7387",
+        "\u5149 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u5149 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u5149 \u5c5e\u6027\u9632\u5fa1",
+        "\u571f \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u571f \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u571f \u5c5e\u6027\u9632\u5fa1",
+        "\u5bfeMOB\u30c0\u30e1\u30fc\u30b8",
+        "\u5c04\u7a0b",
+        "\u653b\u6483\u529b",
+        "\u653b\u6483\u901f\u5ea6",
+        "\u6642\u7a7a \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u6642\u7a7a \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u6642\u7a7a \u5c5e\u6027\u9632\u5fa1",
+        "\u6700\u5927HP",
+        "\u6700\u5927MANA",
+        "\u6700\u5927\u30b9\u30bf\u30df\u30ca",
+        "\u6b66\u5668\u30c0\u30e1\u30fc\u30b8",
+        "\u6c34 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u6c34 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u6c34 \u5c5e\u6027\u9632\u5fa1",
+        "\u6c37 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u6c37 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u6c37 \u5c5e\u6027\u9632\u5fa1",
+        "\u706b \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u706b \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u706b \u5c5e\u6027\u9632\u5fa1",
+        "\u7269\u7406\u30c0\u30e1\u30fc\u30b8",
+        "\u767a\u5c04\u4f53\u30c0\u30e1\u30fc\u30b8",
+        "\u7d76\u5bfe\u9632\u5fa1",
+        "\u885d\u6483\u7bc4\u56f2",
+        "\u88ab\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b",
+        "\u88ab\u7269\u7406\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b",
+        "\u88ab\u767a\u5c04\u4f53\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b",
+        "\u88ab\u843d\u4e0b\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b",
+        "\u88ab\u9b54\u6cd5\u30b9\u30ad\u30eb\u30c0\u30e1\u30fc\u30b8\u8efd\u6e1b",
+        "\u8ffd\u52a0\u79fb\u52d5\u901f\u5ea6",
+        "\u8ffd\u52a0\u7d4c\u9a13\u5024",
+        "\u95c7 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u95c7 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u95c7 \u5c5e\u6027\u9632\u5fa1",
+        "\u9632\u5177",
+        "\u96f7 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u96f7 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u96f7 \u5c5e\u6027\u9632\u5fa1",
+        "\u9811\u5f37\u3055",
+        "\u98a8 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8",
+        "\u98a8 \u5c5e\u6027\u30c0\u30e1\u30fc\u30b8\u5897\u5e45",
+        "\u98a8 \u5c5e\u6027\u9632\u5fa1",
+        "\u9b54\u6cd5\u30c0\u30e1\u30fc\u30b8"
+    ));
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
     private static boolean loaded;
     private static boolean scanningForgeTooltips;
@@ -191,7 +273,7 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static void addStatRanges(EvolutionForgeData data, String itemName, List<Text> tooltip) {
-        String normalizedItemName = normalizeItemName(itemName);
+        String normalizedItemName = resolveTrackedItemName(itemName, tooltip);
         if (normalizedItemName.isEmpty()) {
             return;
         }
@@ -211,11 +293,12 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static void addObservedBounds(EvolutionForgeData data, String itemName, List<Text> tooltip, int enhancementLevel) {
-        String normalizedItemName = normalizeItemName(itemName);
+        String normalizedItemName = resolveTrackedItemName(itemName, tooltip);
         if (normalizedItemName.isEmpty() || tooltip == null || tooltip.isEmpty()) {
             return;
         }
 
+        ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
         List<ObservedStatBound> bounds = data.observedBoundsByItem.get(normalizedItemName);
         for (Text text : tooltip) {
             ParsedCurrentStat parsed = parseCurrentStat(text == null ? "" : text.getString());
@@ -223,10 +306,10 @@ public final class HaEvolutionForgeHelper {
                 continue;
             }
 
-            double storedValue = parsed.value;
+            double storedValue = applyStatAdjustments(parsed.statName, parsed.value, adjustments);
             StatBoost boost = STAT_BOOSTS.get(parsed.statName);
             if (enhancementLevel > 0 && boost != null) {
-                storedValue = estimateBaseStatValue(parsed.value, boost, enhancementLevel);
+                storedValue = estimateBaseStatValue(storedValue, boost, enhancementLevel);
             }
 
             ObservedStatBound bound = new ObservedStatBound();
@@ -236,7 +319,7 @@ public final class HaEvolutionForgeHelper {
             bound.hasMax = true;
             bound.min = storedValue;
             bound.max = storedValue;
-            String displayValue = enhancementLevel > 0 && boost != null ? formatSignedValue(storedValue) : normalizeRangeDisplay(parsed.valueText, true);
+            String displayValue = formatSignedValue(storedValue);
             bound.displayMin = displayValue;
             bound.displayMax = displayValue;
 
@@ -263,11 +346,12 @@ public final class HaEvolutionForgeHelper {
         }
 
         int enhancementLevel = getEnhancementLevel(stack, tooltip);
+        ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
         List<Text> updatedTooltip = null;
         for (int i = 0; i < tooltip.size(); i++) {
             Text text = tooltip.get(i);
             String originalLine = text == null ? "" : text.getString();
-            String annotatedLine = annotateStatLine(originalLine, ranges, observedBounds, enhancementLevel);
+            String annotatedLine = annotateStatLine(originalLine, ranges, observedBounds, enhancementLevel, adjustments);
             if (annotatedLine == null) {
                 continue;
             }
@@ -279,12 +363,13 @@ public final class HaEvolutionForgeHelper {
         return updatedTooltip == null ? tooltip : updatedTooltip;
     }
 
-    private static String annotateStatLine(String rawLine, List<StatRange> ranges, List<ObservedStatBound> observedBounds, int enhancementLevel) {
+    private static String annotateStatLine(String rawLine, List<StatRange> ranges, List<ObservedStatBound> observedBounds, int enhancementLevel, ItemStatAdjustments adjustments) {
         ParsedCurrentStat parsed = parseCurrentStat(rawLine);
         if (parsed == null) {
             return null;
         }
 
+        double adjustedValue = applyStatAdjustments(parsed.statName, parsed.value, adjustments);
         StatRange range = findRange(ranges, parsed.statName, parsed.unit);
         if (range == null) {
             ObservedStatBound observedBound = findObservedBound(observedBounds, parsed.statName, parsed.unit);
@@ -293,50 +378,26 @@ public final class HaEvolutionForgeHelper {
             }
 
             StatBoost observedBoost = STAT_BOOSTS.get(parsed.statName);
-            if (enhancementLevel > 0 && observedBoost != null) {
-                double baseValue = estimateBaseStatValue(parsed.value, observedBoost, enhancementLevel);
-                return parsed.prefix
-                    + parsed.valueText
-                    + "|"
-                    + formatSignedValue(baseValue)
-                    + "("
-                    + formatObservedBound(observedBound)
-                    + ")"
-                    + parsed.unitText
-                    + parsed.suffix;
+            double trueValue = enhancementLevel > 0 && observedBoost != null
+                ? estimateBaseStatValue(adjustedValue, observedBoost, enhancementLevel)
+                : adjustedValue;
+            if (shouldSuppressObservedBoundAnnotation(trueValue, observedBound)) {
+                return null;
             }
-
-            return parsed.prefix
-                + parsed.valueText
-                + "("
-                + formatObservedBound(observedBound)
-                + ")"
-                + parsed.unitText
-                + parsed.suffix;
+            return formatObservedAnnotation(parsed, observedBound, trueValue);
         }
 
         StatBoost boost = STAT_BOOSTS.get(parsed.statName);
-        if (enhancementLevel > 0 && boost != null) {
-            double baseValue = estimateBaseStatValue(parsed.value, boost, enhancementLevel);
-            int percentage = calculateRangePercentage(baseValue, range);
-            return parsed.prefix
-                + parsed.valueText
-                + "|"
-                + formatSignedValue(baseValue)
-                + "("
-                + range.displayMin
-                + range.separator
-                + range.displayMax
-                + " || ("
-                + percentage
-                + "%))"
-                + parsed.unitText
-                + parsed.suffix;
+        double trueValue = enhancementLevel > 0 && boost != null
+            ? estimateBaseStatValue(adjustedValue, boost, enhancementLevel)
+            : adjustedValue;
+        if (shouldSuppressRangeAnnotation(trueValue, range)) {
+            return null;
         }
-
-        int percentage = calculateRangePercentage(parsed.value, range);
+        int percentage = calculateRangePercentage(trueValue, range);
         return parsed.prefix
             + parsed.valueText
+            + formatTrueValueSuffix(parsed.value, trueValue)
             + "("
             + range.displayMin
             + range.separator
@@ -364,7 +425,7 @@ public final class HaEvolutionForgeHelper {
         String maxText = matcher.group(4);
         String unit = normalizeUnit(matcher.group(5));
         String statName = extractStatName(matcher.group(1), matcher.group(6));
-        if (statName.isEmpty()) {
+        if (statName.isEmpty() || isIgnoredStatName(statName)) {
             return null;
         }
 
@@ -467,6 +528,60 @@ public final class HaEvolutionForgeHelper {
         return multiplier <= 0.0D ? value : value / multiplier;
     }
 
+    private static boolean shouldSuppressRangeAnnotation(double value, StatRange range) {
+        return range != null
+            && Double.compare(range.min, range.max) == 0
+            && Double.compare(value, range.min) == 0;
+    }
+
+    private static boolean shouldSuppressObservedBoundAnnotation(double value, ObservedStatBound bound) {
+        return bound != null
+            && bound.hasMin
+            && bound.hasMax
+            && Double.compare(bound.min, bound.max) == 0
+            && Double.compare(value, bound.min) == 0;
+    }
+
+    private static String formatObservedAnnotation(ParsedCurrentStat parsed, ObservedStatBound observedBound, double trueValue) {
+        if (observedBound.hasMin && observedBound.hasMax) {
+            int percentage = calculateObservedBoundPercentage(trueValue, observedBound);
+            return parsed.prefix
+                + parsed.valueText
+                + formatTrueValueSuffix(parsed.value, trueValue)
+                + "("
+                + observedBound.displayMin
+                + OBSERVED_RANGE_SEPARATOR
+                + observedBound.displayMax
+                + " || ("
+                + percentage
+                + "%))"
+                + parsed.unitText
+                + parsed.suffix;
+        }
+        return parsed.prefix
+            + parsed.valueText
+            + formatTrueValueSuffix(parsed.value, trueValue)
+            + "("
+            + formatObservedBound(observedBound)
+            + ")"
+            + parsed.unitText
+            + parsed.suffix;
+    }
+
+    private static int calculateObservedBoundPercentage(double value, ObservedStatBound bound) {
+        if (bound == null || !bound.hasMin || !bound.hasMax) {
+            return 0;
+        }
+        StatRange syntheticRange = new StatRange();
+        syntheticRange.min = bound.min;
+        syntheticRange.max = bound.max;
+        return calculateRangePercentage(value, syntheticRange);
+    }
+
+    private static String formatTrueValueSuffix(double displayedValue, double trueValue) {
+        return Double.compare(displayedValue, trueValue) == 0 ? "" : "|" + formatSignedValue(trueValue);
+    }
+
     private static String formatSignedValue(double value) {
         double scaled = value * 1000.0D;
         double truncated = (value >= 0.0D ? Math.floor(scaled) : Math.ceil(scaled)) / 1000.0D;
@@ -498,6 +613,35 @@ public final class HaEvolutionForgeHelper {
         } catch (NumberFormatException ignored) {
             return 0;
         }
+    }
+
+    private static ItemStatAdjustments getItemStatAdjustments(List<Text> tooltip) {
+        ItemStatAdjustments adjustments = new ItemStatAdjustments();
+        if (tooltip == null) {
+            return adjustments;
+        }
+        for (Text line : tooltip) {
+            String normalized = normalizeDisplay(line == null ? "" : line.getString());
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            for (Map.Entry<String, Double> entry : HP_BOOSTER_BONUSES.entrySet()) {
+                if (normalized.contains(entry.getKey()) && entry.getValue() > adjustments.maxHpFlatBonus) {
+                    adjustments.maxHpFlatBonus = entry.getValue();
+                }
+            }
+        }
+        return adjustments;
+    }
+
+    private static double applyStatAdjustments(String statName, double value, ItemStatAdjustments adjustments) {
+        if (adjustments == null) {
+            return value;
+        }
+        if ("譛螟ｧHP".equals(statName) && adjustments.maxHpFlatBonus != 0.0D) {
+            return value - adjustments.maxHpFlatBonus;
+        }
+        return value;
     }
 
     private static boolean shouldMarkTooltip(ItemStack stack, List<Text> tooltip) {
@@ -563,7 +707,7 @@ public final class HaEvolutionForgeHelper {
             return new ArrayList<StatRange>();
         }
 
-        String stackName = normalizeItemName(stack.getName().getString());
+        String stackName = resolveTrackedItemName(stack.getName().getString(), tooltip);
         List<StatRange> ranges = findRangesForItemName(data, stackName);
         if (ranges != null) {
             return ranges;
@@ -589,7 +733,7 @@ public final class HaEvolutionForgeHelper {
             return new ArrayList<ObservedStatBound>();
         }
 
-        String stackName = normalizeItemName(stack.getName().getString());
+        String stackName = resolveTrackedItemName(stack.getName().getString(), tooltip);
         List<ObservedStatBound> bounds = findObservedBoundsForItemName(data, stackName);
         if (bounds != null) {
             return bounds;
@@ -717,11 +861,150 @@ public final class HaEvolutionForgeHelper {
 
     private static String normalizeItemName(String value) {
         String result = normalizeDisplay(value);
-        result = ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
+        result = ITEM_KEY_ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
         result = LEADING_MARKERS.matcher(result).replaceFirst("");
         result = toAsciiDigits(result);
         result = LEADING_COUNT.matcher(result).replaceFirst("");
-        return result.trim();
+        result = stripItemNameExceptionPrefixes(result);
+        result = result.trim();
+        if (result.isEmpty()) {
+            return "";
+        }
+
+        String[] tokens = result.split("\\s+");
+        if (tokens.length >= 2) {
+            return (tokens[tokens.length - 2] + " " + tokens[tokens.length - 1]).trim();
+        }
+        return result;
+    }
+
+    private static String stripItemNameExceptionPrefixes(String value) {
+        String result = value == null ? "" : value.trim();
+        boolean changed;
+        do {
+            changed = false;
+            for (String prefix : ITEM_NAME_EXCEPTION_PREFIXES) {
+                if (prefix != null && !prefix.isEmpty() && result.startsWith(prefix)) {
+                    result = result.substring(prefix.length()).trim();
+                    changed = true;
+                }
+            }
+        } while (changed);
+        return result;
+    }
+
+    private static String resolveTrackedItemName(String fallbackName, List<Text> tooltip) {
+        String derived = findRankColoredItemName(tooltip);
+        if (!derived.isEmpty()) {
+            return normalizeItemName(derived);
+        }
+        return normalizeItemName(fallbackName);
+    }
+
+    private static String findRankColoredItemName(List<Text> tooltip) {
+        if (tooltip == null || tooltip.isEmpty()) {
+            return "";
+        }
+
+        Integer rankColor = findItemRankColor(tooltip);
+        if (rankColor == null) {
+            return "";
+        }
+
+        Text nameLine = tooltip.get(0);
+        if (nameLine == null) {
+            return "";
+        }
+
+        List<StyledSegment> segments = collectStyledSegments(nameLine);
+        String bestMatch = "";
+        for (StyledSegment segment : segments) {
+            if (segment == null || segment.text == null) {
+                continue;
+            }
+            String candidate = normalizeDisplay(segment.text);
+            if (candidate.isEmpty() || !Objects.equals(segment.colorRgb, rankColor)) {
+                continue;
+            }
+            candidate = ITEM_KEY_ENHANCEMENT_SUFFIX.matcher(candidate).replaceFirst("").trim();
+            if (candidate.length() > bestMatch.length()) {
+                bestMatch = candidate;
+            }
+        }
+        return bestMatch;
+    }
+
+    private static Integer findItemRankColor(List<Text> tooltip) {
+        if (tooltip == null) {
+            return null;
+        }
+        for (Text line : tooltip) {
+            if (line == null) {
+                continue;
+            }
+            Integer color = findItemRankColor(line);
+            if (color != null) {
+                return color;
+            }
+        }
+        return null;
+    }
+
+    private static Integer findItemRankColor(Text line) {
+        String plain = normalizeDisplay(line == null ? "" : line.getString());
+        if (plain.isEmpty() || plain.indexOf(ITEM_RANK_LABEL) < 0) {
+            return null;
+        }
+
+        List<StyledSegment> segments = collectStyledSegments(line);
+        int consumed = 0;
+        boolean afterDelimiter = false;
+        for (StyledSegment segment : segments) {
+            if (segment == null || segment.text == null || segment.text.isEmpty()) {
+                continue;
+            }
+            String raw = segment.text;
+            for (int i = 0; i < raw.length(); i++) {
+                char ch = raw.charAt(i);
+                if (!afterDelimiter) {
+                    if (ch == ':' || ch == '\uff1a') {
+                        afterDelimiter = true;
+                    }
+                    consumed++;
+                    continue;
+                }
+                if (!Character.isWhitespace(ch)) {
+                    return segment.colorRgb;
+                }
+                consumed++;
+            }
+        }
+        return null;
+    }
+
+    private static List<StyledSegment> collectStyledSegments(Text text) {
+        List<StyledSegment> segments = new ArrayList<StyledSegment>();
+        if (text == null) {
+            return segments;
+        }
+        text.visit((Style style, String part) -> {
+            if (part != null && !part.isEmpty()) {
+                StyledSegment segment = new StyledSegment();
+                segment.text = part;
+                segment.colorRgb = getStyleColorRgb(style);
+                segments.add(segment);
+            }
+            return Optional.empty();
+        }, text.getStyle());
+        return segments;
+    }
+
+    private static Integer getStyleColorRgb(Style style) {
+        if (style == null) {
+            return null;
+        }
+        TextColor color = style.getColor();
+        return color == null ? null : color.getRgb();
     }
 
     private static String normalizeStatName(String value) {
@@ -763,12 +1046,14 @@ public final class HaEvolutionForgeHelper {
         String valueText = matcher.group(2);
         String unitText = matcher.group(3);
         String suffix = matcher.group(4);
-        if (!containsStatDelimiter(prefix) && !containsStatDelimiter(suffix)) {
+        String suffixStatName = normalizeStatName(suffix);
+        boolean suffixOnlyStatLine = normalizeStatName(prefix).isEmpty() && !suffixStatName.isEmpty();
+        if (!containsStatDelimiter(prefix) && !containsStatDelimiter(suffix) && !suffixOnlyStatLine) {
             return null;
         }
 
-        String statName = extractStatName(prefix, suffix);
-        if (statName.isEmpty()) {
+        String statName = !suffixStatName.isEmpty() ? suffixStatName : extractStatName(prefix, suffix);
+        if (statName.isEmpty() || isIgnoredStatName(statName)) {
             return null;
         }
 
@@ -803,6 +1088,10 @@ public final class HaEvolutionForgeHelper {
             }
         }
         return hasLetter;
+    }
+
+        private static boolean isIgnoredStatName(String statName) {
+        return !TRACKED_STAT_NAMES.contains(statName);
     }
 
     private static String normalizeUnit(String unit) {
@@ -872,6 +1161,22 @@ public final class HaEvolutionForgeHelper {
         putPercentBoost(boosts, "\u30c0\u30e1\u30fc\u30b8\u7121\u52b9\u5316\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u77ed\u7e2e", 3.0D);
         boosts.put(normalizeStatName("\u5bfeMOB\u30c0\u30e1\u30fc\u30b8"), new StatBoost(50.0D, true));
         return boosts;
+    }
+
+    private static Map<String, Double> createHpBoosterBonuses() {
+        Map<String, Double> bonuses = new LinkedHashMap<String, Double>();
+        bonuses.put("蛻晉ｴ壼｢怜ｼｷ蜑､", 3.0D);
+        bonuses.put("荳ｭ邏壼｢怜ｼｷ蜑､", 6.0D);
+        bonuses.put("荳顔ｴ壼｢怜ｼｷ蜑､", 10.0D);
+        bonuses.put("譛荳顔ｴ壼｢怜ｼｷ蜑､", 15.0D);
+        bonuses.put("莨晁ｪｬ縺ｮ蠅怜ｼｷ蜑､", 25.0D);
+        bonuses.put("雜・ｶ翫・蠅怜ｼｷ蜑､", 40.0D);
+        bonuses.put("遨ｶ讌ｵ縺ｮ蠅怜ｼｷ蜑､<蠑先ｮｵ>", 100.0D);
+        bonuses.put("遨ｶ讌ｵ縺ｮ蠅怜ｼｷ蜑､<蜿よｮｵ>", 130.0D);
+        bonuses.put("遨ｶ讌ｵ縺ｮ蠅怜ｼｷ蜑､", 70.0D);
+        bonuses.put("辣後ａ縺丞｢怜ｼｷ蜑､ 讌ｵ", 800.0D);
+        bonuses.put("辣後ａ縺丞｢怜ｼｷ蜑､", 500.0D);
+        return bonuses;
     }
 
     private static void putPercentBoost(Map<String, StatBoost> boosts, String statName, double amount) {
@@ -1148,6 +1453,15 @@ public final class HaEvolutionForgeHelper {
         double value;
     }
 
+    private static final class StyledSegment {
+        String text = "";
+        Integer colorRgb;
+    }
+
+    private static final class ItemStatAdjustments {
+        double maxHpFlatBonus;
+    }
+
     private static final class StatBoost {
         final double amount;
         final boolean fixedPerLevel;
@@ -1158,3 +1472,5 @@ public final class HaEvolutionForgeHelper {
         }
     }
 }
+
+
