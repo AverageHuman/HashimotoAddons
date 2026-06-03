@@ -57,6 +57,9 @@ public final class HaEvolutionForgeHelper {
     private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
     private static final Map<String, Double> HP_BOOSTER_BONUSES = createHpBoosterBonuses();
+    private static final double SPECIAL_SUBWEAPON_PERCENT_BOOST = 20.0D;
+    private static final String SUBWEAPON_TOOLTIP_LABEL = "\u30b5\u30d6\u30a6\u30a7\u30dd\u30f3";
+    private static final String SOUL_PROTECTOR_TOOLTIP_LABEL = "\u30bd\u30a6\u30eb\u30d7\u30ed\u30c6\u30af\u30bf\u30fc";
     private static final String[] ITEM_NAME_EXCEPTION_PREFIXES = new String[] {
         "\u5b8c\u5168\u7121\u6b20\u306e",
         "\u6975\u81f4\u306e",
@@ -299,6 +302,7 @@ public final class HaEvolutionForgeHelper {
         }
 
         ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
+        ItemEnhancementProfile enhancementProfile = getItemEnhancementProfile(tooltip);
         List<ObservedStatBound> bounds = data.observedBoundsByItem.get(normalizedItemName);
         for (Text text : tooltip) {
             ParsedCurrentStat parsed = parseCurrentStat(text == null ? "" : text.getString());
@@ -309,7 +313,7 @@ public final class HaEvolutionForgeHelper {
             double storedValue = applyStatAdjustments(parsed.statName, parsed.value, adjustments);
             StatBoost boost = STAT_BOOSTS.get(parsed.statName);
             if (enhancementLevel > 0 && boost != null) {
-                storedValue = estimateBaseStatValue(storedValue, boost, enhancementLevel);
+                storedValue = estimateBaseStatValue(storedValue, boost, enhancementLevel, enhancementProfile);
             }
 
             ObservedStatBound bound = new ObservedStatBound();
@@ -347,11 +351,12 @@ public final class HaEvolutionForgeHelper {
 
         int enhancementLevel = getEnhancementLevel(stack, tooltip);
         ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
+        ItemEnhancementProfile enhancementProfile = getItemEnhancementProfile(tooltip);
         List<Text> updatedTooltip = null;
         for (int i = 0; i < tooltip.size(); i++) {
             Text text = tooltip.get(i);
             String originalLine = text == null ? "" : text.getString();
-            String annotatedLine = annotateStatLine(originalLine, ranges, observedBounds, enhancementLevel, adjustments);
+            String annotatedLine = annotateStatLine(originalLine, ranges, observedBounds, enhancementLevel, adjustments, enhancementProfile);
             if (annotatedLine == null) {
                 continue;
             }
@@ -363,7 +368,7 @@ public final class HaEvolutionForgeHelper {
         return updatedTooltip == null ? tooltip : updatedTooltip;
     }
 
-    private static String annotateStatLine(String rawLine, List<StatRange> ranges, List<ObservedStatBound> observedBounds, int enhancementLevel, ItemStatAdjustments adjustments) {
+    private static String annotateStatLine(String rawLine, List<StatRange> ranges, List<ObservedStatBound> observedBounds, int enhancementLevel, ItemStatAdjustments adjustments, ItemEnhancementProfile enhancementProfile) {
         ParsedCurrentStat parsed = parseCurrentStat(rawLine);
         if (parsed == null) {
             return null;
@@ -379,7 +384,7 @@ public final class HaEvolutionForgeHelper {
 
             StatBoost observedBoost = STAT_BOOSTS.get(parsed.statName);
             double trueValue = enhancementLevel > 0 && observedBoost != null
-                ? estimateBaseStatValue(adjustedValue, observedBoost, enhancementLevel)
+                ? estimateBaseStatValue(adjustedValue, observedBoost, enhancementLevel, enhancementProfile)
                 : adjustedValue;
             if (shouldSuppressObservedBoundAnnotation(trueValue, observedBound)) {
                 return null;
@@ -389,7 +394,7 @@ public final class HaEvolutionForgeHelper {
 
         StatBoost boost = STAT_BOOSTS.get(parsed.statName);
         double trueValue = enhancementLevel > 0 && boost != null
-            ? estimateBaseStatValue(adjustedValue, boost, enhancementLevel)
+            ? estimateBaseStatValue(adjustedValue, boost, enhancementLevel, enhancementProfile)
             : adjustedValue;
         if (shouldSuppressRangeAnnotation(trueValue, range)) {
             return null;
@@ -520,11 +525,15 @@ public final class HaEvolutionForgeHelper {
         return percentage;
     }
 
-    private static double estimateBaseStatValue(double value, StatBoost boost, int enhancementLevel) {
+    private static double estimateBaseStatValue(double value, StatBoost boost, int enhancementLevel, ItemEnhancementProfile enhancementProfile) {
         if (boost.fixedPerLevel) {
             return value - (enhancementLevel * boost.amount);
         }
-        double multiplier = Math.pow(1.0D + (boost.amount / 100.0D), enhancementLevel);
+        double percentPerLevel = boost.amount;
+        if (enhancementProfile != null && enhancementProfile.percentBoostOverride > 0.0D) {
+            percentPerLevel = enhancementProfile.percentBoostOverride;
+        }
+        double multiplier = Math.pow(1.0D + (percentPerLevel / 100.0D), enhancementLevel);
         return multiplier <= 0.0D ? value : value / multiplier;
     }
 
@@ -613,6 +622,24 @@ public final class HaEvolutionForgeHelper {
         } catch (NumberFormatException ignored) {
             return 0;
         }
+    }
+
+    private static ItemEnhancementProfile getItemEnhancementProfile(List<Text> tooltip) {
+        ItemEnhancementProfile profile = new ItemEnhancementProfile();
+        if (tooltip == null) {
+            return profile;
+        }
+        for (Text line : tooltip) {
+            String normalized = normalizeDisplay(line == null ? "" : line.getString());
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            if (normalized.contains(SUBWEAPON_TOOLTIP_LABEL) || normalized.contains(SOUL_PROTECTOR_TOOLTIP_LABEL)) {
+                profile.percentBoostOverride = SPECIAL_SUBWEAPON_PERCENT_BOOST;
+                break;
+            }
+        }
+        return profile;
     }
 
     private static ItemStatAdjustments getItemStatAdjustments(List<Text> tooltip) {
@@ -1462,6 +1489,10 @@ public final class HaEvolutionForgeHelper {
         double maxHpFlatBonus;
     }
 
+    private static final class ItemEnhancementProfile {
+        double percentBoostOverride;
+    }
+
     private static final class StatBoost {
         final double amount;
         final boolean fixedPerLevel;
@@ -1472,5 +1503,6 @@ public final class HaEvolutionForgeHelper {
         }
     }
 }
+
 
 
