@@ -8,6 +8,8 @@ def dangerousFeaturesEnabled = haVariant != 'safe'
 def variantModName = dangerousFeaturesEnabled ? 'HashimotoAddons' : 'HashimotoAddons Safe'
 def variantArchiveName = dangerousFeaturesEnabled ? project.archives_base_name : "${project.archives_base_name}-safe"
 
+layout.buildDirectory.set(layout.projectDirectory.dir("build/${haVariant}"))
+
 version = project.mod_version
 group = project.maven_group
 
@@ -23,7 +25,6 @@ dependencies {
 }
 
 def generatedSourcesDir = layout.buildDirectory.dir("generated/sources/haBuildFlags/${haVariant}")
-
 sourceSets {
     main {
         java.srcDir(generatedSourcesDir)
@@ -69,6 +70,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.withType(AbstractArchiveTask).configureEach {
+    inputs.property("haVariant", haVariant)
     destinationDirectory = layout.buildDirectory.dir("libs/${project.version}")
 }
 
