@@ -71,7 +71,7 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.withType(AbstractArchiveTask).configureEach {
     inputs.property("haVariant", haVariant)
-    destinationDirectory = layout.buildDirectory.dir("libs/${project.version}")
+    destinationDirectory = layout.projectDirectory.dir("build/libs/${project.version}")
 }
 
 java {
