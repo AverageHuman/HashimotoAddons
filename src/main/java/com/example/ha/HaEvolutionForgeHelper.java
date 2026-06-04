@@ -56,7 +56,9 @@ public final class HaEvolutionForgeHelper {
     private static final Pattern ITEM_KEY_ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([1-9]|1[0-2])\\)\\s*$");
     private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
+    private static final Pattern HP_BOOSTER_VALUE_PATTERN = Pattern.compile("増強剤(?:\\s*極)?(?:<[^>]+>)?.*?HP\\s*[+＋]([0-9]+(?:\\.[0-9]+)?)");
     private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
+    private static final String MAX_HP_STAT_NAME = "最大HP";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
     private static final Map<String, Double> HP_BOOSTER_BONUSES = createHpBoosterBonuses();
     private static final double SPECIAL_SUBWEAPON_PERCENT_BOOST = 20.0D;
@@ -346,12 +348,14 @@ public final class HaEvolutionForgeHelper {
             return;
         }
 
+        ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
         List<StatRange> ranges = data.statRangesByItem.get(normalizedItemName);
         for (Text text : tooltip) {
             StatRange range = parseRangeLine(text == null ? "" : text.getString());
             if (range == null) {
                 continue;
             }
+            applyStatRangeAdjustments(range, adjustments);
             if (ranges == null) {
                 ranges = new ArrayList<StatRange>();
                 data.statRangesByItem.put(normalizedItemName, ranges);
@@ -375,7 +379,7 @@ public final class HaEvolutionForgeHelper {
                 continue;
             }
 
-            double storedValue = applyStatAdjustments(parsed.statName, parsed.value, adjustments);
+            double storedValue = applyTrackedStatAdjustments(parsed.statName, parsed.value, adjustments);
             StatBoost boost = STAT_BOOSTS.get(parsed.statName);
             if (enhancementLevel > 0 && boost != null) {
                 storedValue = estimateBaseStatValue(storedValue, boost, enhancementLevel, enhancementProfile);
@@ -475,7 +479,7 @@ public final class HaEvolutionForgeHelper {
             return null;
         }
 
-        double adjustedValue = applyStatAdjustments(parsed.statName, parsed.value, adjustments);
+        double adjustedValue = applyTrackedStatAdjustments(parsed.statName, parsed.value, adjustments);
         StatRange range = findRange(ranges, parsed.statName, parsed.unit);
         if (range == null) {
             ObservedStatBound observedBound = findObservedBound(observedBounds, parsed.statName, parsed.unit);
@@ -753,13 +757,92 @@ public final class HaEvolutionForgeHelper {
             if (normalized.isEmpty()) {
                 continue;
             }
-            for (Map.Entry<String, Double> entry : HP_BOOSTER_BONUSES.entrySet()) {
-                if (normalized.contains(entry.getKey()) && entry.getValue() > adjustments.maxHpFlatBonus) {
-                    adjustments.maxHpFlatBonus = entry.getValue();
-                }
+            Double bonus = getHpBoosterBonus(normalized);
+            if (bonus != null && bonus.doubleValue() > adjustments.maxHpFlatBonus) {
+                adjustments.maxHpFlatBonus = bonus.doubleValue();
             }
         }
         return adjustments;
+    }
+
+    private static Double getHpBoosterBonus(String normalizedLine) {
+        if (normalizedLine == null || normalizedLine.isEmpty() || normalizedLine.indexOf("増強剤") < 0) {
+            return null;
+        }
+
+        if (normalizedLine.contains("煌めく増強剤 極")) {
+            return Double.valueOf(800.0D);
+        }
+        if (normalizedLine.contains("煌めく増強剤")) {
+            return Double.valueOf(500.0D);
+        }
+        if (normalizedLine.contains("究極の増強剤<参段>")) {
+            return Double.valueOf(130.0D);
+        }
+        if (normalizedLine.contains("究極の増強剤<弐段>")) {
+            return Double.valueOf(100.0D);
+        }
+        if (normalizedLine.contains("究極の増強剤")) {
+            return Double.valueOf(70.0D);
+        }
+        if (normalizedLine.contains("超越の増強剤")) {
+            return Double.valueOf(40.0D);
+        }
+        if (normalizedLine.contains("伝説の増強剤")) {
+            return Double.valueOf(25.0D);
+        }
+        if (normalizedLine.contains("最上級増強剤")) {
+            return Double.valueOf(15.0D);
+        }
+        if (normalizedLine.contains("上級増強剤")) {
+            return Double.valueOf(10.0D);
+        }
+        if (normalizedLine.contains("中級増強剤")) {
+            return Double.valueOf(6.0D);
+        }
+        if (normalizedLine.contains("初級増強剤")) {
+            return Double.valueOf(3.0D);
+        }
+
+        Matcher matcher = HP_BOOSTER_VALUE_PATTERN.matcher(normalizedLine);
+        if (matcher.find()) {
+            try {
+                return Double.valueOf(Double.parseDouble(matcher.group(1)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        Double best = null;
+        int bestLength = -1;
+        for (Map.Entry<String, Double> entry : HP_BOOSTER_BONUSES.entrySet()) {
+            if (normalizedLine.contains(entry.getKey()) && entry.getKey().length() > bestLength) {
+                best = entry.getValue();
+                bestLength = entry.getKey().length();
+            }
+        }
+        return best;
+    }
+
+    private static double applyTrackedStatAdjustments(String statName, double value, ItemStatAdjustments adjustments) {
+        if (adjustments == null) {
+            return value;
+        }
+        if (MAX_HP_STAT_NAME.equals(statName) && adjustments.maxHpFlatBonus != 0.0D) {
+            return value - adjustments.maxHpFlatBonus;
+        }
+        return value;
+    }
+
+    private static void applyStatRangeAdjustments(StatRange range, ItemStatAdjustments adjustments) {
+        if (range == null || adjustments == null) {
+            return;
+        }
+        if (MAX_HP_STAT_NAME.equals(range.statName) && adjustments.maxHpFlatBonus != 0.0D) {
+            range.min -= adjustments.maxHpFlatBonus;
+            range.max -= adjustments.maxHpFlatBonus;
+            range.displayMin = formatRangeValue(range.min, true);
+            range.displayMax = formatRangeValue(range.max, false);
+        }
     }
 
     private static double applyStatAdjustments(String statName, double value, ItemStatAdjustments adjustments) {
