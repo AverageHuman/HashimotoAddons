@@ -26,14 +26,14 @@ public final class HaGearViewScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 60;
+        int top = 52;
 
         enabledButton = addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText(""), button -> {
             config.gearViewEnabled = !config.gearViewEnabled;
             config.save();
             refreshButtons();
         }));
-        keyButton = addButton(new ButtonWidget(centerX - 105, top + 30, 210, 20, new LiteralText(""), button -> {
+        keyButton = addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText(""), button -> {
             waitingForViewKey = true;
             refreshButtons();
         }));

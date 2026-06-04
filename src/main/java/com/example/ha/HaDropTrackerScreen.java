@@ -31,8 +31,8 @@ public final class HaDropTrackerScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 36;
-        int spacing = 22;
+        int top = 28;
+        int spacing = 21;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Drop Tracker: " + onOff(config.dropTrackerEnabled)), button -> {
             config.dropTrackerEnabled = !config.dropTrackerEnabled;
             config.save();
