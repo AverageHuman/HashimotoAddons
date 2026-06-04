@@ -22,7 +22,7 @@ public final class HaDamageTruncationScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 52;
+        int top = 60;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Damage Truncation: " + onOff(config.damageTruncationEnabled)), button -> {
             config.damageTruncationEnabled = !config.damageTruncationEnabled;
             config.save();

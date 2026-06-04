@@ -22,7 +22,7 @@ public final class HaElementRarityScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 52;
+        int top = 60;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Element Rarity: " + onOff(config.elementRarityEnabled)), button -> {
             config.elementRarityEnabled = !config.elementRarityEnabled;
             config.save();

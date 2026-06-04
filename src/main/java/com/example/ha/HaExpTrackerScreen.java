@@ -26,7 +26,7 @@ public final class HaExpTrackerScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 36;
+        int top = 44;
         int spacing = 24;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Exp Tracker: " + onOff(config.expTrackerEnabled)), button -> {
             config.expTrackerEnabled = !config.expTrackerEnabled;

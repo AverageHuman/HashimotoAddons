@@ -26,7 +26,7 @@ public final class HaMobHpDisplayScreen extends Screen {
         config.normalize();
 
         int centerX = this.width / 2;
-        int top = 36;
+        int top = 44;
         int spacing = 24;
         addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Mob HP Display: " + onOff(config.mobHpDisplayEnabled)), button -> {
             config.mobHpDisplayEnabled = !config.mobHpDisplayEnabled;
