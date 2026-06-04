@@ -67,6 +67,9 @@ public final class HaEvolutionForgeHelper {
         "\u6975\u81f4\u306e",
         "\u8a08\u308a\u77e5\u308c\u306a\u3044"
     };
+    private static final Set<String> DISABLED_PREFIX_TOKENS = new LinkedHashSet<String>(Arrays.asList(
+        "\u7d14\u771f\u306a\u8a18\u61b6"
+    ));
     private static final Set<String> TRACKED_STAT_NAMES = new LinkedHashSet<String>(Arrays.asList(
         "HP\u81ea\u7136\u56de\u5fa9",
         "MANA\u81ea\u7136\u56de\u5fa9",
@@ -1565,7 +1568,7 @@ public final class HaEvolutionForgeHelper {
                 if (allowed != null && allowed.allowedPrefixTokens != null) {
                     for (String token : allowed.allowedPrefixTokens) {
                         String normalized = normalizeDisplay(token);
-                        if (!normalized.isEmpty()) {
+                        if (!normalized.isEmpty() && !DISABLED_PREFIX_TOKENS.contains(normalized)) {
                             ALLOWED_PREFIX_TOKENS.add(normalized);
                         }
                     }
