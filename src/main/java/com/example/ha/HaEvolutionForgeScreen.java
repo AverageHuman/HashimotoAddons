@@ -39,9 +39,9 @@ public final class HaEvolutionForgeScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 16, 0xFFFFFF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Items: " + HaEvolutionForgeHelper.getCurrentServerItemCount()), this.width / 2, 72, 0xA0E8FF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Forge Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 84, 0xA0E8FF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Observed Stat Bounds: " + HaEvolutionForgeHelper.getCurrentServerObservedBoundCount()), this.width / 2, 96, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Items: " + HaEvolutionForgeHelper.getCurrentServerItemCount()), this.width / 2, 48, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Forge Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 60, 0xA0E8FF);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("Observed Stat Bounds: " + HaEvolutionForgeHelper.getCurrentServerObservedBoundCount()), this.width / 2, 72, 0xA0E8FF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Open forge pages to scan recipe ranges."), this.width / 2, 144, 0xA0A0A0);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Hover normal item tooltips to learn provisional stat bounds."), this.width / 2, 156, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
