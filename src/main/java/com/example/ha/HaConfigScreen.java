@@ -126,35 +126,35 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 7:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Damage Truncation"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 4, 210, 20, new LiteralText("Damage Truncation"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDamageTruncationScreen(this));
                     }
                 }));
                 break;
             case 8:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Element Rarity"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 8, 210, 20, new LiteralText("Element Rarity"), button -> {
                     if (client != null) {
                         client.openScreen(new HaElementRarityScreen(this));
                     }
                 }));
                 break;
             case 9:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Gear View"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 8, 210, 20, new LiteralText("Gear View"), button -> {
                     if (client != null) {
                         client.openScreen(new HaGearViewScreen(this));
                     }
                 }));
                 break;
             case 10:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Tracker"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 6, 210, 20, new LiteralText("Drop Tracker"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropTrackerScreen(this));
                     }
                 }));
                 break;
             case 11:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Exp Tracker"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 8, 210, 20, new LiteralText("Exp Tracker"), button -> {
                     if (client != null) {
                         client.openScreen(new HaExpTrackerScreen(this));
                     }
@@ -168,14 +168,14 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 13:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Evolution Forge Helper"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 16, 210, 20, new LiteralText("Evolution Forge Helper"), button -> {
                     if (client != null) {
                         client.openScreen(new HaEvolutionForgeScreen(this));
                     }
                 }));
                 break;
             case 14:
-                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob HP Display"), button -> {
+                addButton(new ButtonWidget(centerX - 105, y + 6, 210, 20, new LiteralText("Mob HP Display"), button -> {
                     if (client != null) {
                         client.openScreen(new HaMobHpDisplayScreen(this));
                     }

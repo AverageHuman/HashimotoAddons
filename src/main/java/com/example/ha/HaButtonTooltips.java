@@ -110,6 +110,9 @@ public final class HaButtonTooltips {
         } else if ("HaMobHpDisplayScreen".equals(screenName)
             || "HaMobHpDisplayOverlayScreen".equals(screenName)) {
             addMobHpDisplayTooltip(lines, label);
+        } else if ("HaSubSkillTimerScreen".equals(screenName)
+            || "HaSubSkillTimerOverlayScreen".equals(screenName)) {
+            addSubSkillTimerTooltip(lines, label);
         } else if ("HaElementRarityScreen".equals(screenName)) {
             lines.add("エレメント名を含むアイテム枠をレアリティ色で見やすくします。");
         } else if ("HaDamageTruncationScreen".equals(screenName)) {
@@ -257,6 +260,18 @@ public final class HaButtonTooltips {
             lines.add("大きなHPをk/m/b形式で短く表示します。");
         } else if ("Adjust Overlay Position".equals(label)) {
             lines.add("Mob HP Display HUDの表示位置を調整します。");
+        }
+    }
+
+    private static void addSubSkillTimerTooltip(List<String> lines, String label) {
+        if (label.startsWith("Sub Skill Timer")) {
+            lines.add("Sub Skill Timerの有効/無効を切り替えます。");
+        } else if (label.startsWith("Display")) {
+            lines.add("オンスクリーン表示の見た目を切り替えます。");
+        } else if (label.startsWith("Cooldown Seconds")) {
+            lines.add("クールダウン秒数の表示/非表示を切り替えます。");
+        } else if ("Adjust Overlay Position".equals(label)) {
+            lines.add("Sub Skill Timer HUDの表示位置を調整します。");
         }
     }
 
