@@ -62,6 +62,7 @@ public final class HaEvolutionForgeHelper {
     private static final double SPECIAL_SUBWEAPON_PERCENT_BOOST = 20.0D;
     private static final String SUBWEAPON_TOOLTIP_LABEL = "\u30b5\u30d6\u30a6\u30a7\u30dd\u30f3";
     private static final String SOUL_PROTECTOR_TOOLTIP_LABEL = "\u30bd\u30a6\u30eb\u30d7\u30ed\u30c6\u30af\u30bf\u30fc";
+    private static final String NO_TRACK_ITEM_LABEL = "\u306e\u52a0\u8b77";
     private static final String[] ITEM_NAME_EXCEPTION_PREFIXES = new String[] {
         "\u5b8c\u5168\u7121\u6b20\u306e",
         "\u6975\u81f4\u306e",
@@ -414,7 +415,7 @@ public final class HaEvolutionForgeHelper {
 
         Text nameLine = tooltip.get(0);
         String normalizedName = normalizeDisplay(nameLine == null ? "" : nameLine.getString());
-        if (normalizedName.isEmpty()) {
+        if (normalizedName.isEmpty() || shouldSkipTrackingName(normalizedName)) {
             return;
         }
 
@@ -1022,6 +1023,9 @@ public final class HaEvolutionForgeHelper {
     private static String normalizeItemName(String value) {
         loadPrefixTokens();
         String result = normalizeDisplay(value);
+        if (shouldSkipTrackingName(result)) {
+            return "";
+        }
         result = ITEM_KEY_ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
         result = LEADING_MARKERS.matcher(result).replaceFirst("");
         result = toAsciiDigits(result);
@@ -1053,6 +1057,11 @@ public final class HaEvolutionForgeHelper {
             return normalizeItemName(derived);
         }
         return normalizeItemName(fallbackName);
+    }
+
+    private static boolean shouldSkipTrackingName(String value) {
+        String normalized = normalizeDisplay(value);
+        return !normalized.isEmpty() && normalized.contains(NO_TRACK_ITEM_LABEL);
     }
 
     private static String stripAllowedPrefixTokens(String value) {
