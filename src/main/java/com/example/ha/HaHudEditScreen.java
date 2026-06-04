@@ -33,6 +33,7 @@ public final class HaHudEditScreen extends Screen {
         }
         panels.add(new DropTrackerPanel());
         panels.add(new ExpTrackerPanel());
+        panels.add(new ElementTrackerPanel());
         panels.add(new MobHpDisplayPanel());
         panels.add(new SubSkillTimerPanel());
 
@@ -324,6 +325,40 @@ public final class HaHudEditScreen extends Screen {
         void draw(MatrixStack matrices, boolean selected) {
             HaConfig config = HaConfig.get();
             HaMobHpDisplayOverlay.drawPreview(matrices, config.mobHpDisplayOverlayX, config.mobHpDisplayOverlayY, selected);
+        }
+    }
+
+    private static final class ElementTrackerPanel extends HudPanel {
+        @Override
+        int getX() {
+            return HaConfig.get().elementTrackerOverlayX;
+        }
+
+        @Override
+        int getY() {
+            return HaConfig.get().elementTrackerOverlayY;
+        }
+
+        @Override
+        void setPosition(int x, int y) {
+            HaConfig.get().elementTrackerOverlayX = x;
+            HaConfig.get().elementTrackerOverlayY = y;
+        }
+
+        @Override
+        int getWidth() {
+            return HaElementTrackerOverlay.getPanelWidth(MinecraftClient.getInstance());
+        }
+
+        @Override
+        int getHeight() {
+            return HaElementTrackerOverlay.getPanelHeight();
+        }
+
+        @Override
+        void draw(MatrixStack matrices, boolean selected) {
+            HaConfig config = HaConfig.get();
+            HaElementTrackerOverlay.drawPreview(matrices, config.elementTrackerOverlayX, config.elementTrackerOverlayY, selected);
         }
     }
 

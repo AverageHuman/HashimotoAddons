@@ -44,6 +44,7 @@ public final class HaClientMod implements ClientModInitializer {
         HudRenderCallback.EVENT.register(HaChunkChestOverlay::render);
         HudRenderCallback.EVENT.register(HaDropTrackerOverlay::render);
         HudRenderCallback.EVENT.register(HaExpTrackerOverlay::render);
+        HudRenderCallback.EVENT.register(HaElementTrackerOverlay::render);
         HudRenderCallback.EVENT.register(HaMobHpDisplayOverlay::render);
         HudRenderCallback.EVENT.register(HaSubSkillTimerOverlay::render);
         HudRenderCallback.EVENT.register(HaMobEspTracerOverlay::render);

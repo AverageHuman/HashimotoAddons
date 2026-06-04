@@ -36,7 +36,7 @@ public final class HaConfigScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
 
-        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 17 : 16;
+        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 18 : 17;
         int maxPage = Math.max(0, (totalItems - 1) / ITEMS_PER_PAGE);
         page = Math.min(page, maxPage);
 
@@ -161,34 +161,41 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 12:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Element Tracker"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaElementTrackerScreen(this));
+                    }
+                }));
+                break;
+            case 13:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Chat Filter"), button -> {
                     if (client != null) {
                         client.openScreen(new HaChatFilterListScreen(this, 0));
                     }
                 }));
                 break;
-            case 13:
+            case 14:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Evolution Forge Helper"), button -> {
                     if (client != null) {
                         client.openScreen(new HaEvolutionForgeScreen(this));
                     }
                 }));
                 break;
-            case 14:
+            case 15:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob HP Display"), button -> {
                     if (client != null) {
                         client.openScreen(new HaMobHpDisplayScreen(this));
                     }
                 }));
                 break;
-            case 15:
+            case 16:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Sub Skill Timer"), button -> {
                     if (client != null) {
                         client.openScreen(new HaSubSkillTimerScreen(this));
                     }
                 }));
                 break;
-            case 16:
+            case 17:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Notifier"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropNotifierScreen(this));

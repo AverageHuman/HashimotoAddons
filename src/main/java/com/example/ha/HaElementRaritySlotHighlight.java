@@ -21,7 +21,7 @@ public final class HaElementRaritySlotHighlight {
         "\u30a6\u30a3\u30f3\u30c9\u30a8\u30ec\u30e1\u30f3\u30c8",
         "\u30a6\u30a9\u30fc\u30bf\u30fc\u30a8\u30ec\u30e1\u30f3\u30c8",
         "\u30e9\u30a4\u30c8\u30a8\u30ec\u30e1\u30f3\u30c8",
-        "\u30b9\u30da\u30fc\u30b9\u30a8\u30ec\u30e1\u30f3\u30c8"
+        "\u30b9\u30da\u30fc\u30b9\u30bf\u30a4\u30e0\u30a8\u30ec\u30e1\u30f3\u30c8"
     };
     private static final int BORDER_ALPHA = 0xD0;
     private static final int FILL_ALPHA = 0x35;
@@ -74,16 +74,20 @@ public final class HaElementRaritySlotHighlight {
     }
 
     static boolean matchesElementName(ItemStack stack) {
+        return getMatchingElementName(stack) != null;
+    }
+
+    static String getMatchingElementName(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
-            return false;
+            return null;
         }
         String plainName = normalize(stack.getName().getString());
         for (String elementName : ELEMENT_NAMES) {
             if (plainName.contains(elementName)) {
-                return true;
+                return elementName;
             }
         }
-        return false;
+        return null;
     }
 
     static Integer extractHighlightColor(ItemStack stack) {

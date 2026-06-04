@@ -28,6 +28,8 @@ public final class HaConfig {
     public final List<ManaAlertEntry> manaAlertEntries = new ArrayList<ManaAlertEntry>();
     public final List<ChatFilterEntry> chatFilterEntries = new ArrayList<ChatFilterEntry>();
     public final List<DropNotifierEntry> dropNotifierEntries = new ArrayList<DropNotifierEntry>();
+    public final List<ElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<ElementTrackerTargetEntry>();
+    public final List<ElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<ElementTrackerObservedCountEntry>();
 
     public boolean autoHealEnabled = false;
     public int autoHealHotbarSlot = 1;
@@ -118,6 +120,12 @@ public final class HaConfig {
     public boolean expTrackerContinueAfterStart = false;
     public int expTrackerOverlayX = 8;
     public int expTrackerOverlayY = 104;
+    public boolean elementTrackerEnabled = false;
+    public long elementTrackerElapsedSeconds = 0L;
+    public boolean elementTrackerShowTimer = false;
+    public boolean elementTrackerContinueAfterStart = false;
+    public int elementTrackerOverlayX = 8;
+    public int elementTrackerOverlayY = 168;
     public boolean mobHpDisplayEnabled = false;
     public String mobHpDisplayPosition = "hud";
     public boolean mobHpDisplaySlim = false;
@@ -222,6 +230,10 @@ public final class HaConfig {
         expTrackerElapsedSeconds = Math.max(0L, expTrackerElapsedSeconds);
         expTrackerOverlayX = Math.max(0, expTrackerOverlayX);
         expTrackerOverlayY = Math.max(0, expTrackerOverlayY);
+        elementTrackerElapsedSeconds = Math.max(0L, elementTrackerElapsedSeconds);
+        elementTrackerOverlayX = Math.max(0, elementTrackerOverlayX);
+        elementTrackerOverlayY = Math.max(0, elementTrackerOverlayY);
+        normalizeElementTrackerSettings();
         mobHpDisplayPosition = HaMobHpDisplayOverlay.normalizePosition(mobHpDisplayPosition);
         mobHpDisplayOverlayX = Math.max(0, mobHpDisplayOverlayX);
         mobHpDisplayOverlayY = Math.max(0, mobHpDisplayOverlayY);
@@ -293,6 +305,36 @@ public final class HaConfig {
         }
     }
 
+    public ElementTrackerTargetEntry getOrCreateElementTrackerTarget(String elementKey) {
+        String normalizedKey = normalizeElementTrackerKey(elementKey);
+        for (ElementTrackerTargetEntry entry : elementTrackerTargets) {
+            if (normalizedKey.equals(entry.elementKey)) {
+                entry.normalize();
+                return entry;
+            }
+        }
+        ElementTrackerTargetEntry entry = new ElementTrackerTargetEntry();
+        entry.elementKey = normalizedKey;
+        entry.normalize();
+        elementTrackerTargets.add(entry);
+        return entry;
+    }
+
+    public ElementTrackerObservedCountEntry getOrCreateElementTrackerObservedCounts(String elementKey) {
+        String normalizedKey = normalizeElementTrackerKey(elementKey);
+        for (ElementTrackerObservedCountEntry entry : elementTrackerObservedCounts) {
+            if (normalizedKey.equals(entry.elementKey)) {
+                entry.normalize();
+                return entry;
+            }
+        }
+        ElementTrackerObservedCountEntry entry = new ElementTrackerObservedCountEntry();
+        entry.elementKey = normalizedKey;
+        entry.normalize();
+        elementTrackerObservedCounts.add(entry);
+        return entry;
+    }
+
     public InputUtil.Key getMacroToggleKey() {
         return getBoundKey(macroToggleKeyType, macroToggleKeyCode, macroToggleScanCode);
     }
@@ -346,6 +388,8 @@ public final class HaConfig {
         manaAlertEntries.clear();
         chatFilterEntries.clear();
         dropNotifierEntries.clear();
+        elementTrackerTargets.clear();
+        elementTrackerObservedCounts.clear();
         if (saved == null) {
             return;
         }
@@ -384,6 +428,12 @@ public final class HaConfig {
         expTrackerContinueAfterStart = saved.expTrackerContinueAfterStart;
         expTrackerOverlayX = saved.expTrackerOverlayX;
         expTrackerOverlayY = saved.expTrackerOverlayY;
+        elementTrackerEnabled = saved.elementTrackerEnabled;
+        elementTrackerElapsedSeconds = saved.elementTrackerElapsedSeconds;
+        elementTrackerShowTimer = saved.elementTrackerShowTimer;
+        elementTrackerContinueAfterStart = saved.elementTrackerContinueAfterStart;
+        elementTrackerOverlayX = saved.elementTrackerOverlayX;
+        elementTrackerOverlayY = saved.elementTrackerOverlayY;
         mobHpDisplayEnabled = saved.mobHpDisplayEnabled;
         mobHpDisplayPosition = saved.mobHpDisplayPosition;
         mobHpDisplaySlim = saved.mobHpDisplaySlim;
@@ -398,6 +448,36 @@ public final class HaConfig {
         subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
         lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
+        if (saved.elementTrackerTargets != null) {
+            for (SavedElementTrackerTargetEntry savedEntry : saved.elementTrackerTargets) {
+                ElementTrackerTargetEntry entry = new ElementTrackerTargetEntry();
+                if (savedEntry != null) {
+                    entry.elementKey = savedEntry.elementKey;
+                    entry.enabled = savedEntry.enabled;
+                    entry.targetRank = savedEntry.targetRank;
+                }
+                entry.normalize();
+                elementTrackerTargets.add(entry);
+            }
+        }
+        if (saved.elementTrackerObservedCounts != null) {
+            for (SavedElementTrackerObservedCountEntry savedEntry : saved.elementTrackerObservedCounts) {
+                ElementTrackerObservedCountEntry entry = new ElementTrackerObservedCountEntry();
+                if (savedEntry != null) {
+                    entry.elementKey = savedEntry.elementKey;
+                    entry.commonCount = savedEntry.commonCount;
+                    entry.rareCount = savedEntry.rareCount;
+                    entry.superiorCount = savedEntry.superiorCount;
+                    entry.epicCount = savedEntry.epicCount;
+                    entry.legendaryCount = savedEntry.legendaryCount;
+                    entry.transcendentCount = savedEntry.transcendentCount;
+                    entry.untouchableCount = savedEntry.untouchableCount;
+                    entry.uniqueCount = savedEntry.uniqueCount;
+                }
+                entry.normalize();
+                elementTrackerObservedCounts.add(entry);
+            }
+        }
 
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             autoHealEnabled = saved.autoHealEnabled;
@@ -571,6 +651,12 @@ public final class HaConfig {
         root.addProperty("expTrackerContinueAfterStart", expTrackerContinueAfterStart);
         root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
         root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
+        root.addProperty("elementTrackerEnabled", elementTrackerEnabled);
+        root.addProperty("elementTrackerElapsedSeconds", elementTrackerElapsedSeconds);
+        root.addProperty("elementTrackerShowTimer", elementTrackerShowTimer);
+        root.addProperty("elementTrackerContinueAfterStart", elementTrackerContinueAfterStart);
+        root.addProperty("elementTrackerOverlayX", elementTrackerOverlayX);
+        root.addProperty("elementTrackerOverlayY", elementTrackerOverlayY);
         root.addProperty("mobHpDisplayEnabled", mobHpDisplayEnabled);
         root.addProperty("mobHpDisplayPosition", mobHpDisplayPosition);
         root.addProperty("mobHpDisplaySlim", mobHpDisplaySlim);
@@ -589,6 +675,8 @@ public final class HaConfig {
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries()));
         root.add("chatFilterEntries", GSON.toJsonTree(toSavedChatFilterEntries()));
         root.add("dropNotifierEntries", GSON.toJsonTree(toSavedDropNotifierEntries()));
+        root.add("elementTrackerTargets", GSON.toJsonTree(toSavedElementTrackerTargets()));
+        root.add("elementTrackerObservedCounts", GSON.toJsonTree(toSavedElementTrackerObservedCounts()));
 
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             root.addProperty("autoHealEnabled", autoHealEnabled);
@@ -712,6 +800,36 @@ public final class HaConfig {
             SavedDropNotifierEntry savedEntry = new SavedDropNotifierEntry();
             savedEntry.enabled = entry.enabled;
             savedEntry.matchText = entry.matchText;
+            savedEntries.add(savedEntry);
+        }
+        return savedEntries;
+    }
+
+    private List<SavedElementTrackerTargetEntry> toSavedElementTrackerTargets() {
+        List<SavedElementTrackerTargetEntry> savedEntries = new ArrayList<SavedElementTrackerTargetEntry>();
+        for (ElementTrackerTargetEntry entry : elementTrackerTargets) {
+            SavedElementTrackerTargetEntry savedEntry = new SavedElementTrackerTargetEntry();
+            savedEntry.elementKey = entry.elementKey;
+            savedEntry.enabled = entry.enabled;
+            savedEntry.targetRank = entry.targetRank;
+            savedEntries.add(savedEntry);
+        }
+        return savedEntries;
+    }
+
+    private List<SavedElementTrackerObservedCountEntry> toSavedElementTrackerObservedCounts() {
+        List<SavedElementTrackerObservedCountEntry> savedEntries = new ArrayList<SavedElementTrackerObservedCountEntry>();
+        for (ElementTrackerObservedCountEntry entry : elementTrackerObservedCounts) {
+            SavedElementTrackerObservedCountEntry savedEntry = new SavedElementTrackerObservedCountEntry();
+            savedEntry.elementKey = entry.elementKey;
+            savedEntry.commonCount = entry.commonCount;
+            savedEntry.rareCount = entry.rareCount;
+            savedEntry.superiorCount = entry.superiorCount;
+            savedEntry.epicCount = entry.epicCount;
+            savedEntry.legendaryCount = entry.legendaryCount;
+            savedEntry.transcendentCount = entry.transcendentCount;
+            savedEntry.untouchableCount = entry.untouchableCount;
+            savedEntry.uniqueCount = entry.uniqueCount;
             savedEntries.add(savedEntry);
         }
         return savedEntries;
@@ -900,6 +1018,79 @@ public final class HaConfig {
         }
     }
 
+    public static final class ElementTrackerTargetEntry {
+        public String elementKey = "";
+        public boolean enabled = false;
+        public String targetRank = HaElementTracker.ElementRank.LEGENDARY.getKey();
+
+        public void normalize() {
+            elementKey = normalizeElementTrackerKey(elementKey);
+            targetRank = normalizeElementTrackerRank(targetRank);
+        }
+    }
+
+    public static final class ElementTrackerObservedCountEntry {
+        public String elementKey = "";
+        public long commonCount = 0L;
+        public long rareCount = 0L;
+        public long superiorCount = 0L;
+        public long epicCount = 0L;
+        public long legendaryCount = 0L;
+        public long transcendentCount = 0L;
+        public long untouchableCount = 0L;
+        public long uniqueCount = 0L;
+
+        public void normalize() {
+            elementKey = normalizeElementTrackerKey(elementKey);
+            commonCount = Math.max(0L, commonCount);
+            rareCount = Math.max(0L, rareCount);
+            superiorCount = Math.max(0L, superiorCount);
+            epicCount = Math.max(0L, epicCount);
+            legendaryCount = Math.max(0L, legendaryCount);
+            transcendentCount = Math.max(0L, transcendentCount);
+            untouchableCount = Math.max(0L, untouchableCount);
+            uniqueCount = Math.max(0L, uniqueCount);
+        }
+    }
+
+    private void normalizeElementTrackerSettings() {
+        for (int i = elementTrackerTargets.size() - 1; i >= 0; i--) {
+            ElementTrackerTargetEntry entry = elementTrackerTargets.get(i);
+            if (entry == null) {
+                elementTrackerTargets.remove(i);
+                continue;
+            }
+            entry.normalize();
+        }
+        for (int i = elementTrackerObservedCounts.size() - 1; i >= 0; i--) {
+            ElementTrackerObservedCountEntry entry = elementTrackerObservedCounts.get(i);
+            if (entry == null) {
+                elementTrackerObservedCounts.remove(i);
+                continue;
+            }
+            entry.normalize();
+        }
+        for (String elementKey : HaElementTracker.getElementKeys()) {
+            getOrCreateElementTrackerTarget(elementKey);
+            getOrCreateElementTrackerObservedCounts(elementKey);
+        }
+    }
+
+    private static String normalizeElementTrackerKey(String elementKey) {
+        if (elementKey == null) {
+            return "";
+        }
+        return elementKey.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static String normalizeElementTrackerRank(String targetRank) {
+        if (targetRank == null || targetRank.trim().isEmpty()) {
+            return HaElementTracker.ElementRank.LEGENDARY.getKey();
+        }
+        HaElementTracker.ElementRank rank = HaElementTracker.ElementRank.fromKey(targetRank);
+        return rank == null ? HaElementTracker.ElementRank.LEGENDARY.getKey() : rank.getKey();
+    }
+
     private static InputUtil.Key getBoundKey(String type, int keyCode, int scanCode) {
         if ("mouse".equalsIgnoreCase(type)) {
             return InputUtil.Type.MOUSE.createFromCode(keyCode);
@@ -995,6 +1186,12 @@ public final class HaConfig {
         boolean expTrackerContinueAfterStart = false;
         int expTrackerOverlayX = 8;
         int expTrackerOverlayY = 104;
+        boolean elementTrackerEnabled = false;
+        long elementTrackerElapsedSeconds = 0L;
+        boolean elementTrackerShowTimer = false;
+        boolean elementTrackerContinueAfterStart = false;
+        int elementTrackerOverlayX = 8;
+        int elementTrackerOverlayY = 168;
         boolean mobHpDisplayEnabled = false;
         String mobHpDisplayPosition = "hud";
         boolean mobHpDisplaySlim = false;
@@ -1009,6 +1206,8 @@ public final class HaConfig {
         int subSkillTimerOverlayY = 200;
         boolean chatFilterEnabled = false;
         Set<Integer> lockedSlotIds = new HashSet<Integer>();
+        List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
+        List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
         List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
         List<SavedHpAlertEntry> hpAlertEntries = new ArrayList<SavedHpAlertEntry>();
         List<SavedManaAlertEntry> manaAlertEntries = new ArrayList<SavedManaAlertEntry>();
@@ -1045,6 +1244,24 @@ public final class HaConfig {
     private static final class SavedDropNotifierEntry {
         boolean enabled = true;
         String matchText = "";
+    }
+
+    private static final class SavedElementTrackerTargetEntry {
+        String elementKey = "";
+        boolean enabled = false;
+        String targetRank = HaElementTracker.ElementRank.LEGENDARY.getKey();
+    }
+
+    private static final class SavedElementTrackerObservedCountEntry {
+        String elementKey = "";
+        long commonCount = 0L;
+        long rareCount = 0L;
+        long superiorCount = 0L;
+        long epicCount = 0L;
+        long legendaryCount = 0L;
+        long transcendentCount = 0L;
+        long untouchableCount = 0L;
+        long uniqueCount = 0L;
     }
 
     public static final String[] TITLE_COLORS = new String[] {

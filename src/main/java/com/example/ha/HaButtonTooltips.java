@@ -107,6 +107,10 @@ public final class HaButtonTooltips {
         } else if ("HaExpTrackerScreen".equals(screenName)
             || "HaExpTrackerOverlayScreen".equals(screenName)) {
             addExpTrackerTooltip(lines, label);
+        } else if ("HaElementTrackerScreen".equals(screenName)
+            || "HaElementTrackerTargetScreen".equals(screenName)
+            || "HaElementTrackerOverlayScreen".equals(screenName)) {
+            addElementTrackerTooltip(lines, screenName, label);
         } else if ("HaMobHpDisplayScreen".equals(screenName)
             || "HaMobHpDisplayOverlayScreen".equals(screenName)) {
             addMobHpDisplayTooltip(lines, label);
@@ -137,6 +141,8 @@ public final class HaButtonTooltips {
             lines.add("拾得アイテムと推定利益の記録を設定します。");
         } else if ("Exp Tracker".equals(label)) {
             lines.add("EXP獲得量と時間あたりEXPの記録を設定します。");
+        } else if ("Element Tracker".equals(label)) {
+            lines.add("エレメントの収集進捗と目標レアリティ到達までの予想時間を表示します。");
         } else if ("Evolution Forge Helper".equals(label)) {
             lines.add("\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8\u7d20\u6750\u306eLore\u306bEvo?: Yes\u3092\u8ffd\u52a0\u8868\u793a\u3057\u307e\u3059\u3002");
             lines.add("Open forge pages to scan fixed ranges, and hover normal item tooltips to learn provisional stat bounds.");
@@ -244,6 +250,26 @@ public final class HaButtonTooltips {
             lines.add("EXP表示をk/m/b形式に省略するか切り替えます。");
         } else if ("Reset Total".equals(label)) {
             lines.add("合計EXPとタイマーをリセットします。");
+        }
+    }
+
+    private static void addElementTrackerTooltip(List<String> lines, String screenName, String label) {
+        if (label.startsWith("Element Tracker")) {
+            lines.add("Element Trackerの有効/無効を切り替えます。");
+        } else if ("Select Target Element".equals(label)) {
+            lines.add("追跡するエレメントと目標レアリティを設定します。");
+        } else if ("Adjust Overlay Position".equals(label)) {
+            lines.add("Element Tracker HUDの表示位置を調整します。");
+        } else if (label.startsWith("Show Timer")) {
+            lines.add("HUDに経過時間を表示するか切り替えます。");
+        } else if (label.startsWith("Auto Stop")) {
+            lines.add("Soulbindでなくなった後も計測を続けるか切り替えます。");
+        } else if ("Reset Data".equals(label)) {
+            lines.add("収集済みのエレメント個数と経過時間をリセットします。");
+        } else if ("HaElementTrackerTargetScreen".equals(screenName) && label.startsWith("Target:")) {
+            lines.add("このエレメントの目標レアリティを切り替えます。");
+        } else if ("HaElementTrackerTargetScreen".equals(screenName) && (label.endsWith(": ON") || label.endsWith(": OFF"))) {
+            lines.add("このエレメントを追跡対象にするか切り替えます。");
         }
     }
 

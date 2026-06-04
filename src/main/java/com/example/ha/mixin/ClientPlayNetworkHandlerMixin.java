@@ -5,6 +5,7 @@ import com.example.ha.HaChatFilter;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
 import com.example.ha.HaEvolutionForgeHelper;
+import com.example.ha.HaElementTracker;
 import com.example.ha.HaExpTracker;
 import com.example.ha.HaSubSkillTimer;
 import com.example.ha.HaDropNotifier;
@@ -42,6 +43,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onItemPickupAnimation", at = @At("HEAD"))
     private void ha$trackPickedUpItems(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
         HaDropTracker.onItemPickup(packet);
+        HaElementTracker.onItemPickup(packet);
     }
 
     @Inject(method = "onEntitySpawn", at = @At("TAIL"))

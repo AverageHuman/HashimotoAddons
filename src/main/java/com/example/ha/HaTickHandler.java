@@ -78,6 +78,7 @@ public final class HaTickHandler {
         HaChestSearchIndex.get().tick(client);
         HaEvolutionForgeHelper.tick(client);
         HaExpTracker.tick(client);
+        HaElementTracker.tick(client);
         HaSubSkillTimer.tick(client, config);
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
@@ -458,6 +459,9 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaAlchemyKilnAutomationScreen
             || client.currentScreen instanceof HaExpTrackerScreen
             || client.currentScreen instanceof HaExpTrackerOverlayScreen
+            || client.currentScreen instanceof HaElementTrackerScreen
+            || client.currentScreen instanceof HaElementTrackerTargetScreen
+            || client.currentScreen instanceof HaElementTrackerOverlayScreen
             || client.currentScreen instanceof HaMobEspScreen;
     }
 
