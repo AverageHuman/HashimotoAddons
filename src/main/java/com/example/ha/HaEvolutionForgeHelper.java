@@ -177,11 +177,6 @@ public final class HaEvolutionForgeHelper {
         if (!isRecipePreviewTitle(normalizedTitle)) {
             previousContainerTitle = normalizedTitle;
         }
-        if (!isEvolutionForgeTitle(normalizedTitle) && !isRecipePreviewTitle(normalizedTitle)) {
-            lastSyncId = -1;
-            lastSignature = "";
-            return;
-        }
 
         String signature = createSignature(handler);
         if (handler.syncId == lastSyncId && signature.equals(lastSignature)) {
@@ -253,6 +248,8 @@ public final class HaEvolutionForgeHelper {
         int beforeItems = data.items.size();
         int beforeRanges = getStatRangeCount(data);
         int beforeObservedBounds = getObservedBoundCount(data);
+        int beforePrefixTokenCount = PREFIX_TOKEN_CANDIDATES.size();
+        boolean shouldScanForgeData = isEvolutionForgeScreen(client);
 
         for (int i = 0; i < handler.slots.size(); i++) {
             Slot slot = handler.slots.get(i);
@@ -261,14 +258,20 @@ public final class HaEvolutionForgeHelper {
                 continue;
             }
             List<Text> tooltip = getRawTooltip(client, stack);
-            if (shouldRegisterConsumedItems(client)) {
+            if (shouldScanForgeData && shouldRegisterConsumedItems(client)) {
                 addConsumedItems(data.items, tooltip);
             }
-            addStatRanges(data, stack.getName().getString(), tooltip);
+            if (shouldScanForgeData) {
+                addStatRanges(data, stack.getName().getString(), tooltip);
+            }
+            collectPrefixTokens(client, tooltip);
             addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
         }
 
-        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges || getObservedBoundCount(data) != beforeObservedBounds) {
+        if (data.items.size() != beforeItems
+            || getStatRangeCount(data) != beforeRanges
+            || getObservedBoundCount(data) != beforeObservedBounds
+            || PREFIX_TOKEN_CANDIDATES.size() != beforePrefixTokenCount) {
             save();
         }
     }
