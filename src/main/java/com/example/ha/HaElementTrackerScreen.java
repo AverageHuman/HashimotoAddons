@@ -26,10 +26,10 @@ public final class HaElementTrackerScreen extends Screen {
         int centerX = this.width / 2;
         int top = 36;
         int spacing = 24;
-        addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Element Tracker: " + onOff(config.elementTrackerEnabled)), button -> {
+        addButton(new ButtonWidget(centerX - 105, top, 210, 20, new LiteralText("Element Tracker: " + stateLabel(config.elementTrackerEnabled)), button -> {
             config.elementTrackerEnabled = !config.elementTrackerEnabled;
             config.save();
-            button.setMessage(new LiteralText("Element Tracker: " + onOff(config.elementTrackerEnabled)));
+            button.setMessage(new LiteralText("Element Tracker: " + stateLabel(config.elementTrackerEnabled)));
         }));
 
         addButton(new ButtonWidget(centerX - 105, top + spacing, 210, 20, new LiteralText("Select Target Element"), button -> {
@@ -78,11 +78,11 @@ public final class HaElementTrackerScreen extends Screen {
 
     private void refreshButtons() {
         HaConfig config = HaConfig.get();
-        timerButton.setMessage(new LiteralText("Show Timer: " + onOff(config.elementTrackerShowTimer)));
-        continueAfterStartButton.setMessage(new LiteralText("Auto Stop: " + onOff(!config.elementTrackerContinueAfterStart)));
+        timerButton.setMessage(new LiteralText("Show Timer: " + stateLabel(config.elementTrackerShowTimer)));
+        continueAfterStartButton.setMessage(new LiteralText("Auto Stop: " + stateLabel(!config.elementTrackerContinueAfterStart)));
     }
 
-    private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+    private static String stateLabel(boolean enabled) {
+        return enabled ? "\u00a7aEnabled" : "\u00a7cDisabled";
     }
 }

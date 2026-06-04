@@ -24,27 +24,27 @@ public final class HaElementTrackerTargetScreen extends Screen {
         int centerX = this.width / 2;
         int top = 28;
         int spacing = 20;
-        int rarityX = centerX - 135;
-        int rarityWidth = 104;
-        int toggleX = centerX - 23;
+        int toggleX = centerX - 135;
         int toggleWidth = 158;
+        int rarityX = centerX + 31;
+        int rarityWidth = 104;
 
         int row = 0;
         for (HaElementTracker.ElementType type : HaElementTracker.ElementType.values()) {
             final HaElementTracker.ElementType elementType = type;
             int y = top + row * spacing;
 
-            addButton(new ButtonWidget(rarityX, y, rarityWidth, 20, new LiteralText(""), button -> {
+            addButton(new ButtonWidget(toggleX, y, toggleWidth, 20, new LiteralText(""), button -> {
                 HaConfig.ElementTrackerTargetEntry target = HaConfig.get().getOrCreateElementTrackerTarget(elementType.getKey());
-                HaElementTracker.ElementRank currentRank = HaElementTracker.ElementRank.fromKey(target.targetRank);
-                target.targetRank = (currentRank == null ? HaElementTracker.ElementRank.LEGENDARY : currentRank).nextTarget().getKey();
+                target.enabled = !target.enabled;
                 HaConfig.get().save();
                 refreshButtons();
             }));
 
-            addButton(new ButtonWidget(toggleX, y, toggleWidth, 20, new LiteralText(""), button -> {
+            addButton(new ButtonWidget(rarityX, y, rarityWidth, 20, new LiteralText(""), button -> {
                 HaConfig.ElementTrackerTargetEntry target = HaConfig.get().getOrCreateElementTrackerTarget(elementType.getKey());
-                target.enabled = !target.enabled;
+                HaElementTracker.ElementRank currentRank = HaElementTracker.ElementRank.fromKey(target.targetRank);
+                target.targetRank = (currentRank == null ? HaElementTracker.ElementRank.LEGENDARY : currentRank).nextTarget().getKey();
                 HaConfig.get().save();
                 refreshButtons();
             }));
@@ -79,13 +79,29 @@ public final class HaElementTrackerTargetScreen extends Screen {
             if (index * 2 + 1 >= this.buttons.size()) {
                 break;
             }
-            this.buttons.get(index * 2).setMessage(new LiteralText("Target: " + (rank == null ? "Legendary" : rank.getLabel())));
-            this.buttons.get(index * 2 + 1).setMessage(new LiteralText(type.getDisplayName() + ": " + onOff(target.enabled)));
+            this.buttons.get(index * 2).setMessage(new LiteralText(type.getDisplayName() + ": " + stateLabel(target.enabled)));
+            this.buttons.get(index * 2 + 1).setMessage(new LiteralText(coloredRankLabel(rank)));
             index++;
         }
     }
 
-    private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+    private static String stateLabel(boolean enabled) {
+        return enabled ? "\u00a7aEnabled" : "\u00a7cDisabled";
+    }
+
+    private static String coloredRankLabel(HaElementTracker.ElementRank rank) {
+        HaElementTracker.ElementRank resolved = rank == null ? HaElementTracker.ElementRank.LEGENDARY : rank;
+        switch (resolved) {
+            case LEGENDARY:
+                return "\u00a76Legendary";
+            case TRANSCENDENT:
+                return "\u00a73Transcendent";
+            case UNTOUCHABLE:
+                return "\u00a74Untouchable";
+            case UNIQUE:
+                return "\u00a7dUnique";
+            default:
+                return resolved.getLabel();
+        }
     }
 }

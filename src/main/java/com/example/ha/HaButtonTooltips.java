@@ -266,9 +266,10 @@ public final class HaButtonTooltips {
             lines.add("Soulbindでなくなった後も計測を続けるか切り替えます。");
         } else if ("Reset Data".equals(label)) {
             lines.add("収集済みのエレメント個数と経過時間をリセットします。");
-        } else if ("HaElementTrackerTargetScreen".equals(screenName) && label.startsWith("Target:")) {
+        } else if ("HaElementTrackerTargetScreen".equals(screenName)
+            && (label.contains("Legendary") || label.contains("Transcendent") || label.contains("Untouchable") || label.contains("Unique"))) {
             lines.add("このエレメントの目標レアリティを切り替えます。");
-        } else if ("HaElementTrackerTargetScreen".equals(screenName) && (label.endsWith(": ON") || label.endsWith(": OFF"))) {
+        } else if ("HaElementTrackerTargetScreen".equals(screenName) && (label.endsWith(": Enabled") || label.endsWith(": Disabled"))) {
             lines.add("このエレメントを追跡対象にするか切り替えます。");
         }
     }
