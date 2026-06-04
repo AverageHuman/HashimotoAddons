@@ -40,6 +40,8 @@ public final class HaEvolutionForgeHelper {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.########", DecimalFormatSymbols.getInstance(Locale.US));
     private static final Path STORAGE_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("evolution_forge_items.json");
+    private static final Path PREFIX_TOKEN_CANDIDATES_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("prefix_token_candidates.json");
+    private static final Path ALLOWED_PREFIX_TOKENS_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("allowed_prefix_tokens.json");
     private static final String FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8";
     private static final String ARMOR_FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30a2\u30fc\u30de\u30fc\u30d5\u30a9\u30fc\u30b8";
     private static final String RECIPE_PREVIEW_TITLE = "\u30ec\u30b7\u30d4\u30d7\u30ec\u30d3\u30e5\u30fc";
@@ -135,7 +137,10 @@ public final class HaEvolutionForgeHelper {
         "\u9b54\u6cd5\u30c0\u30e1\u30fc\u30b8"
     ));
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
+    private static final Map<String, PrefixTokenCandidate> PREFIX_TOKEN_CANDIDATES = new LinkedHashMap<String, PrefixTokenCandidate>();
+    private static final Set<String> ALLOWED_PREFIX_TOKENS = new LinkedHashSet<String>();
     private static boolean loaded;
+    private static boolean prefixTokensLoaded;
     private static boolean scanningForgeTooltips;
     private static int lastSyncId = -1;
     private static String lastSignature = "";
@@ -287,6 +292,7 @@ public final class HaEvolutionForgeHelper {
         int beforeItems = data.items.size();
         int beforeRanges = getStatRangeCount(data);
         int beforeObservedBounds = getObservedBoundCount(data);
+        int beforePrefixTokenCount = PREFIX_TOKEN_CANDIDATES.size();
 
         if (isEvolutionForgeScreen(client)) {
             if (shouldRegisterConsumedItems(client)) {
@@ -294,9 +300,13 @@ public final class HaEvolutionForgeHelper {
             }
             addStatRanges(data, stack.getName().getString(), tooltip);
         }
+        collectPrefixTokens(client, tooltip);
         addObservedBounds(data, stack.getName().getString(), tooltip, getEnhancementLevel(stack, tooltip));
 
-        if (data.items.size() != beforeItems || getStatRangeCount(data) != beforeRanges || getObservedBoundCount(data) != beforeObservedBounds) {
+        if (data.items.size() != beforeItems
+            || getStatRangeCount(data) != beforeRanges
+            || getObservedBoundCount(data) != beforeObservedBounds
+            || PREFIX_TOKEN_CANDIDATES.size() != beforePrefixTokenCount) {
             save();
         }
     }
@@ -387,6 +397,42 @@ public final class HaEvolutionForgeHelper {
         String normalized = normalizeItemName(rawLine);
         if (!normalized.isEmpty()) {
             items.add(normalized);
+        }
+    }
+
+    private static void collectPrefixTokens(MinecraftClient client, List<Text> tooltip) {
+        loadPrefixTokens();
+        if (tooltip == null || tooltip.isEmpty()) {
+            return;
+        }
+
+        Text nameLine = tooltip.get(0);
+        String normalizedName = normalizeDisplay(nameLine == null ? "" : nameLine.getString());
+        if (normalizedName.isEmpty()) {
+            return;
+        }
+
+        String[] tokens = normalizedName.split("\\s+");
+        String serverKey = getServerKey(client);
+        for (int i = 0; i < tokens.length; i++) {
+            String token = normalizeDisplay(tokens[i]);
+            if (token.isEmpty()) {
+                continue;
+            }
+            PrefixTokenCandidate candidate = PREFIX_TOKEN_CANDIDATES.get(token);
+            if (candidate == null) {
+                candidate = new PrefixTokenCandidate();
+                candidate.token = token;
+                PREFIX_TOKEN_CANDIDATES.put(token, candidate);
+            }
+            candidate.count++;
+            if (!serverKey.isEmpty()) {
+                candidate.servers.add(serverKey);
+            }
+            candidate.positions.add(Integer.valueOf(i));
+            if (candidate.examples.size() < 10) {
+                candidate.examples.add(normalizedName);
+            }
         }
     }
 
@@ -968,21 +1014,15 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static String normalizeItemName(String value) {
+        loadPrefixTokens();
         String result = normalizeDisplay(value);
         result = ITEM_KEY_ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
         result = LEADING_MARKERS.matcher(result).replaceFirst("");
         result = toAsciiDigits(result);
         result = LEADING_COUNT.matcher(result).replaceFirst("");
         result = stripItemNameExceptionPrefixes(result);
+        result = stripAllowedPrefixTokens(result);
         result = result.trim();
-        if (result.isEmpty()) {
-            return "";
-        }
-
-        String[] tokens = result.split("\\s+");
-        if (tokens.length >= 2) {
-            return (tokens[tokens.length - 2] + " " + tokens[tokens.length - 1]).trim();
-        }
         return result;
     }
 
@@ -1007,6 +1047,36 @@ public final class HaEvolutionForgeHelper {
             return normalizeItemName(derived);
         }
         return normalizeItemName(fallbackName);
+    }
+
+    private static String stripAllowedPrefixTokens(String value) {
+        String result = value == null ? "" : value.trim();
+        if (result.isEmpty() || ALLOWED_PREFIX_TOKENS.isEmpty()) {
+            return result;
+        }
+
+        List<String> tokens = new ArrayList<String>(Arrays.asList(result.split("\\s+")));
+        while (!tokens.isEmpty()) {
+            String first = normalizeDisplay(tokens.get(0));
+            if (first.isEmpty() || !ALLOWED_PREFIX_TOKENS.contains(first)) {
+                break;
+            }
+            tokens.remove(0);
+        }
+        if (tokens.isEmpty()) {
+            return "";
+        }
+        StringBuilder rebuilt = new StringBuilder();
+        for (String token : tokens) {
+            if (token == null || token.isEmpty()) {
+                continue;
+            }
+            if (rebuilt.length() > 0) {
+                rebuilt.append(' ');
+            }
+            rebuilt.append(token);
+        }
+        return rebuilt.toString().trim();
     }
 
     private static String findRankColoredItemName(List<Text> tooltip) {
@@ -1333,11 +1403,41 @@ public final class HaEvolutionForgeHelper {
         return formatted;
     }
 
+    private static List<String> normalizeStringList(List<String> values) {
+        List<String> result = new ArrayList<String>();
+        if (values == null) {
+            return result;
+        }
+        Set<String> seen = new LinkedHashSet<String>();
+        for (String value : values) {
+            String normalized = normalizeDisplay(value);
+            if (!normalized.isEmpty() && seen.add(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private static List<Integer> normalizeIntegerList(List<Integer> values) {
+        List<Integer> result = new ArrayList<Integer>();
+        if (values == null) {
+            return result;
+        }
+        Set<Integer> seen = new LinkedHashSet<Integer>();
+        for (Integer value : values) {
+            if (value != null && value.intValue() >= 0 && seen.add(value)) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
     private static void load() {
         if (loaded) {
             return;
         }
         loaded = true;
+        loadPrefixTokens();
         if (!Files.exists(STORAGE_FILE)) {
             return;
         }
@@ -1417,6 +1517,7 @@ public final class HaEvolutionForgeHelper {
     private static void save() {
         try {
             Files.createDirectories(STORAGE_FILE.getParent());
+            savePrefixTokens();
             SavedEvolutionForgeItems saved = new SavedEvolutionForgeItems();
             for (Map.Entry<String, EvolutionForgeData> entry : DATA_BY_SERVER.entrySet()) {
                 EvolutionForgeData data = entry.getValue();
@@ -1447,6 +1548,63 @@ public final class HaEvolutionForgeHelper {
         }
     }
 
+    private static void loadPrefixTokens() {
+        if (prefixTokensLoaded) {
+            return;
+        }
+        prefixTokensLoaded = true;
+        ALLOWED_PREFIX_TOKENS.clear();
+        PREFIX_TOKEN_CANDIDATES.clear();
+
+        if (Files.exists(ALLOWED_PREFIX_TOKENS_FILE)) {
+            try (Reader reader = Files.newBufferedReader(ALLOWED_PREFIX_TOKENS_FILE, StandardCharsets.UTF_8)) {
+                AllowedPrefixTokensFile allowed = GSON.fromJson(reader, AllowedPrefixTokensFile.class);
+                if (allowed != null && allowed.allowedPrefixTokens != null) {
+                    for (String token : allowed.allowedPrefixTokens) {
+                        String normalized = normalizeDisplay(token);
+                        if (!normalized.isEmpty()) {
+                            ALLOWED_PREFIX_TOKENS.add(normalized);
+                        }
+                    }
+                }
+            } catch (IOException ignored) {
+            }
+        }
+
+        if (Files.exists(PREFIX_TOKEN_CANDIDATES_FILE)) {
+            try (Reader reader = Files.newBufferedReader(PREFIX_TOKEN_CANDIDATES_FILE, StandardCharsets.UTF_8)) {
+                PrefixTokenCandidatesFile saved = GSON.fromJson(reader, PrefixTokenCandidatesFile.class);
+                if (saved != null && saved.candidates != null) {
+                    for (PrefixTokenCandidate candidate : saved.candidates) {
+                        if (candidate == null) {
+                            continue;
+                        }
+                        candidate.normalize();
+                        if (!candidate.isValid()) {
+                            continue;
+                        }
+                        PREFIX_TOKEN_CANDIDATES.put(candidate.token, candidate);
+                    }
+                }
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static void savePrefixTokens() throws IOException {
+        Files.createDirectories(PREFIX_TOKEN_CANDIDATES_FILE.getParent());
+        PrefixTokenCandidatesFile saved = new PrefixTokenCandidatesFile();
+        for (PrefixTokenCandidate candidate : PREFIX_TOKEN_CANDIDATES.values()) {
+            if (candidate == null || !candidate.isValid()) {
+                continue;
+            }
+            saved.candidates.add(candidate.copy());
+        }
+        try (Writer writer = Files.newBufferedWriter(PREFIX_TOKEN_CANDIDATES_FILE, StandardCharsets.UTF_8)) {
+            GSON.toJson(saved, writer);
+        }
+    }
+
     private static final class EvolutionForgeData {
         final Set<String> items = new LinkedHashSet<String>();
         final Map<String, List<StatRange>> statRangesByItem = new LinkedHashMap<String, List<StatRange>>();
@@ -1455,6 +1613,46 @@ public final class HaEvolutionForgeHelper {
 
     private static final class SavedEvolutionForgeItems {
         List<ServerItems> servers = new ArrayList<ServerItems>();
+    }
+
+    private static final class PrefixTokenCandidatesFile {
+        List<PrefixTokenCandidate> candidates = new ArrayList<PrefixTokenCandidate>();
+    }
+
+    private static final class AllowedPrefixTokensFile {
+        List<String> allowedPrefixTokens = new ArrayList<String>();
+    }
+
+    private static final class PrefixTokenCandidate {
+        String token = "";
+        int count;
+        List<String> examples = new ArrayList<String>();
+        List<String> servers = new ArrayList<String>();
+        List<Integer> positions = new ArrayList<Integer>();
+
+        void normalize() {
+            token = normalizeDisplay(token);
+            examples = normalizeStringList(examples);
+            servers = normalizeStringList(servers);
+            positions = normalizeIntegerList(positions);
+            if (count < 0) {
+                count = 0;
+            }
+        }
+
+        boolean isValid() {
+            return token != null && !token.isEmpty();
+        }
+
+        PrefixTokenCandidate copy() {
+            PrefixTokenCandidate copy = new PrefixTokenCandidate();
+            copy.token = token;
+            copy.count = count;
+            copy.examples = new ArrayList<String>(examples);
+            copy.servers = new ArrayList<String>(servers);
+            copy.positions = new ArrayList<Integer>(positions);
+            return copy;
+        }
     }
 
     private static final class ServerItems {
