@@ -18,4 +18,5 @@ Thumbs.db
 *.tmp
 
 # Local handoff notes
+session_notes.md
 session_notes_*.md
