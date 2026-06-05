@@ -94,7 +94,7 @@ public final class HaChatFilterEditScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "ON" : "OFF")));
+        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "§aEnabled" : "§cDisabled")));
     }
 
     private void saveFilter() {

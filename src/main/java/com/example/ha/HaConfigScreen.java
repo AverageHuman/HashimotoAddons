@@ -227,7 +227,7 @@ public final class HaConfigScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 
     private boolean isMouseOverCameraButton(int mouseX, int mouseY) {

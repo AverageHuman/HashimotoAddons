@@ -115,7 +115,7 @@ public final class HaAutoHealScreen extends Screen {
 
     private void refreshButtons() {
         HaConfig config = HaConfig.get();
-        healToggleButton.setMessage(new LiteralText("Auto Heal: " + (config.autoHealEnabled ? "ON" : "OFF")));
+        healToggleButton.setMessage(new LiteralText("Auto Heal: " + (config.autoHealEnabled ? "§aEnabled" : "§cDisabled")));
         healSlotButton.setMessage(new LiteralText("Heal Key: " + (config.autoHealHotbarSlot + 1)));
     }
 

@@ -45,7 +45,7 @@ public final class HaChatFilterManageScreen extends Screen {
         for (int i = startIndex; i < endIndex; i++) {
             final int filterIndex = i;
             HaConfig.ChatFilterEntry entry = config.chatFilterEntries.get(i);
-            String label = "Edit Filter: " + trimForList(entry.matchText) + " / " + (entry.enabled ? "Enabled" : "Disabled");
+            String label = "Edit Filter: " + trimForList(entry.matchText) + " / " + (entry.enabled ? "§aEnabled" : "§cDisabled");
             addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(label), button -> {
                 if (client != null) {
                     client.openScreen(new HaChatFilterEditScreen(this, filterIndex, page));

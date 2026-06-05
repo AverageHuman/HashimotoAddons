@@ -62,6 +62,6 @@ public final class HaChatFilterListScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Chat Filter Status: " + (HaConfig.get().chatFilterEnabled ? "Enabled" : "Disabled")));
+        enabledButton.setMessage(new LiteralText("Chat Filter Status: " + (HaConfig.get().chatFilterEnabled ? "§aEnabled" : "§cDisabled")));
     }
 }

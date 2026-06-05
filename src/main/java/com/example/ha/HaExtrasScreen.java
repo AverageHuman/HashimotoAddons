@@ -103,6 +103,6 @@ public final class HaExtrasScreen extends Screen {
     }
 
     static String enabledLabel(boolean value) {
-        return value ? "Enabled" : "Disabled";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 }

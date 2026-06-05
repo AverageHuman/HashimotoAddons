@@ -127,7 +127,7 @@ public final class HaAlchemyKilnAutomationScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 
     private static String keyName(InputUtil.Key key) {

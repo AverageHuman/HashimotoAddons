@@ -45,7 +45,7 @@ public final class HaManaAlertListScreen extends Screen {
         for (int i = startIndex; i < endIndex; i++) {
             final int alertIndex = i;
             HaConfig.ManaAlertEntry entry = config.manaAlertEntries.get(i);
-            String label = trimForList(entry.titleText) + " / " + entry.manaPercentage + "% / " + HaConfig.TITLE_COLOR_NAMES[entry.colorIndex] + " / " + (entry.enabled ? "ON" : "OFF");
+            String label = trimForList(entry.titleText) + " / " + entry.manaPercentage + "% / " + HaConfig.TITLE_COLOR_NAMES[entry.colorIndex] + " / " + (entry.enabled ? "§aEnabled" : "§cDisabled");
             addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(label), button -> {
                 if (client != null) {
                     client.openScreen(new HaManaAlertEditScreen(this, alertIndex, page));

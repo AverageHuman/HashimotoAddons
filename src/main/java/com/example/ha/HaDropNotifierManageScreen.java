@@ -45,7 +45,7 @@ public final class HaDropNotifierManageScreen extends Screen {
         for (int i = startIndex; i < endIndex; i++) {
             final int entryIndex = i;
             HaConfig.DropNotifierEntry entry = config.dropNotifierEntries.get(i);
-            String label = "Edit Item: " + trimForList(entry.matchText) + " / " + (entry.enabled ? "Enabled" : "Disabled");
+            String label = "Edit Item: " + trimForList(entry.matchText) + " / " + (entry.enabled ? "§aEnabled" : "§cDisabled");
             addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(label), button -> {
                 if (client != null) {
                     client.openScreen(new HaDropNotifierEditScreen(this, entryIndex, page));

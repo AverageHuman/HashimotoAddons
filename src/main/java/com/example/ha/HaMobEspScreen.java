@@ -84,7 +84,7 @@ public final class HaMobEspScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Mob ESP: " + (HaConfig.get().mobEspEnabled ? "ON" : "OFF")));
+        enabledButton.setMessage(new LiteralText("Mob ESP: " + (HaConfig.get().mobEspEnabled ? "§aEnabled" : "§cDisabled")));
     }
 
     private void save() {

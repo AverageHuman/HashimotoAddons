@@ -76,7 +76,7 @@ public final class HaButtonTooltips {
             return;
         }
         if ("HaConfigScreen".equals(screenName) && "Damage Truncation".equals(label)) {
-            lines.add("Shortens numbers above 1000000 into m, b, and t. Labels containing Exp stay unchanged.");
+            lines.add("1000000以上の数値をm、b、t表記に短縮して表示します。Expを含む表示はそのままです。");
             return;
         }
         if ("HaConfigScreen".equals(screenName)) {
@@ -120,7 +120,7 @@ public final class HaButtonTooltips {
         } else if ("HaElementRarityScreen".equals(screenName)) {
             lines.add("エレメント名を含むアイテム枠をレアリティ色で見やすくします。");
         } else if ("HaDamageTruncationScreen".equals(screenName)) {
-            lines.add("Shortens numbers above 1000000 into m, b, and t. Labels containing Exp stay unchanged.");
+            lines.add("1000000以上の数値をm、b、t表記に短縮して表示します。Expを含む表示はそのままです。");
         } else if ("HaAfkFarmingScreen".equals(screenName)) {
             addAfkFarmingTooltip(lines, label);
         }
@@ -145,9 +145,13 @@ public final class HaButtonTooltips {
             lines.add("エレメントの収集進捗と目標レアリティ到達までの予想時間を表示します。");
         } else if ("Evolution Forge Helper".equals(label)) {
             lines.add("\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8\u7d20\u6750\u306eLore\u306bEvo?: Yes\u3092\u8ffd\u52a0\u8868\u793a\u3057\u307e\u3059\u3002");
-            lines.add("Open forge pages to scan fixed ranges, and hover normal item tooltips to learn provisional stat bounds.");
+            lines.add("フォージ画面を開いて固定ステータス範囲を読み取り、通常アイテムのツールチップをホバーして暫定ステータス範囲を学習します。");
         } else if ("Mob HP Display".equals(label)) {
             lines.add("クロスヘア先のMobのHPと残り割合を表示します。");
+        } else if ("Sub Skill Timer".equals(label)) {
+            lines.add("サブスキルの再使用時間を画面上に表示します。");
+        } else if ("Drop Notifier".equals(label)) {
+            lines.add("指定したアイテムのドロップを検知したときに通知します。");
         } else if ("Chat Filter".equals(label)) {
             lines.add("指定した文字を含むチャット表示を非表示にします。");
         }

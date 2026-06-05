@@ -42,8 +42,8 @@ public final class HaEvolutionForgeScreen extends Screen {
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Scanned Items: " + HaEvolutionForgeHelper.getCurrentServerItemCount()), this.width / 2, 48, 0xA0E8FF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Forge Stat Ranges: " + HaEvolutionForgeHelper.getCurrentServerStatRangeCount()), this.width / 2, 60, 0xA0E8FF);
         drawCenteredText(matrices, this.textRenderer, new LiteralText("Observed Stat Bounds: " + HaEvolutionForgeHelper.getCurrentServerObservedBoundCount()), this.width / 2, 72, 0xA0E8FF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Open forge pages to scan recipe ranges."), this.width / 2, 144, 0xA0A0A0);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Hover normal item tooltips to learn provisional stat bounds."), this.width / 2, 156, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("\u30d5\u30a9\u30fc\u30b8\u753b\u9762\u3092\u958b\u304f\u3068\u30ec\u30b7\u30d4\u306e\u30b9\u30c6\u30fc\u30bf\u30b9\u7bc4\u56f2\u3092\u8aad\u307f\u53d6\u308a\u307e\u3059\u3002"), this.width / 2, 144, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText("\u901a\u5e38\u30a2\u30a4\u30c6\u30e0\u306e\u30c4\u30fc\u30eb\u30c1\u30c3\u30d7\u3092\u30db\u30d0\u30fc\u3059\u308b\u3068\u6682\u5b9a\u30b9\u30c6\u30fc\u30bf\u30b9\u7bc4\u56f2\u3092\u5b66\u7fd2\u3057\u307e\u3059\u3002"), this.width / 2, 156, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -72,6 +72,6 @@ public final class HaEvolutionForgeScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "\u00a7aEnabled" : "\u00a7cDisabled";
     }
 }

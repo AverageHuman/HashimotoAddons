@@ -130,7 +130,7 @@ public final class HaChestSearchScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Chest Search: " + (HaConfig.get().chestSearchEnabled ? "ON" : "OFF")));
+        enabledButton.setMessage(new LiteralText("Chest Search: " + (HaConfig.get().chestSearchEnabled ? "§aEnabled" : "§cDisabled")));
         keyButton.setMessage(new LiteralText(waitingForShortcutKey ? "Press any key or mouse button..." : "Shortcut Key: " + keyName(HaConfig.get().getChestSearchKey())));
     }
 

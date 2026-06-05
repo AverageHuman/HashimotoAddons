@@ -112,7 +112,7 @@ public final class HaDropTrackerScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 
     private void refreshButtons() {

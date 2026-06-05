@@ -49,6 +49,6 @@ public final class HaElementRarityScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 }

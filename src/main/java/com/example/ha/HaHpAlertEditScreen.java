@@ -116,7 +116,7 @@ public final class HaHpAlertEditScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "ON" : "OFF")));
+        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "§aEnabled" : "§cDisabled")));
         colorButton.setMessage(new LiteralText("Title Color: " + HaConfig.TITLE_COLOR_NAMES[colorIndex]));
     }
 

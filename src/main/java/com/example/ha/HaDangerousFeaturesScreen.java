@@ -203,7 +203,7 @@ public final class HaDangerousFeaturesScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
+        return value ? "§aEnabled" : "§cDisabled";
     }
 
     private static int nextSlot(int current) {

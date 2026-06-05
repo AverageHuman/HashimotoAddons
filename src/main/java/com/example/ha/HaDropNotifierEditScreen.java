@@ -93,7 +93,7 @@ public final class HaDropNotifierEditScreen extends Screen {
     }
 
     private void refreshButtons() {
-        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "ON" : "OFF")));
+        enabledButton.setMessage(new LiteralText("Enabled: " + (enabled ? "§aEnabled" : "§cDisabled")));
     }
 
     private void saveEntry() {
