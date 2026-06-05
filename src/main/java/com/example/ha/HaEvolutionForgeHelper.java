@@ -68,6 +68,7 @@ public final class HaEvolutionForgeHelper {
     private static final String[] ITEM_NAME_EXCEPTION_PREFIXES = new String[] {
         "\u5b8c\u5168\u7121\u6b20\u306e",
         "\u6975\u81f4\u306e",
+        "\u5353\u8d8a\u3057\u305f",
         "\u8a08\u308a\u77e5\u308c\u306a\u3044"
     };
     private static final Set<String> DISABLED_PREFIX_TOKENS = new LinkedHashSet<String>(Arrays.asList(
