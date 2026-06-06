@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.MessageType;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
@@ -16,18 +17,26 @@ public final class HaRitualBookTimer {
     private static final String PURCHASE_SUFFIX = "\u306e\u5100\u5f0f\u66f8\u7269\u3092\u8cfc\u5165\u3057\u307e\u3057\u305f\u3002";
     private static final long TIMER_DURATION_MILLIS = 10L * 60L * 1000L;
     private static final int MAX_VISIBLE_TIMERS = 3;
+    private static final long DUPLICATE_MESSAGE_WINDOW_MILLIS = 1500L;
     private static final List<RitualTimerEntry> ACTIVE_TIMERS = new ArrayList<RitualTimerEntry>();
+    private static String lastProcessedMessage = "";
+    private static long lastProcessedAtMillis;
 
     private HaRitualBookTimer() {
     }
 
-    public static void onGameMessage(Text message) {
-        if (!HaConfig.get().ritualBookTimerEnabled || message == null) {
+    public static void onGameMessage(Text message, MessageType location) {
+        if (!HaConfig.get().ritualBookTimerEnabled || message == null || location == MessageType.GAME_INFO) {
             return;
         }
 
         String text = Formatting.strip(message.getString());
         if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (text.equals(lastProcessedMessage) && now - lastProcessedAtMillis <= DUPLICATE_MESSAGE_WINDOW_MILLIS) {
             return;
         }
 
@@ -47,7 +56,9 @@ public final class HaRitualBookTimer {
             return;
         }
 
-        ACTIVE_TIMERS.add(0, new RitualTimerEntry(noun, System.currentTimeMillis() + TIMER_DURATION_MILLIS));
+        lastProcessedMessage = text;
+        lastProcessedAtMillis = now;
+        ACTIVE_TIMERS.add(0, new RitualTimerEntry(noun, now + TIMER_DURATION_MILLIS));
     }
 
     public static void tick(MinecraftClient client, HaConfig config) {
@@ -68,6 +79,8 @@ public final class HaRitualBookTimer {
 
     public static void onDisconnected() {
         ACTIVE_TIMERS.clear();
+        lastProcessedMessage = "";
+        lastProcessedAtMillis = 0L;
     }
 
     public static boolean hasActiveTimers() {

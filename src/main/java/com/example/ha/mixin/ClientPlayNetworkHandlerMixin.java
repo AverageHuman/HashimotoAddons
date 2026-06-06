@@ -32,7 +32,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$trackSoulbindMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
         HaSoulbindProtection.onGameMessage(packet.getMessage());
         HaSubSkillTimer.onGameMessage(packet.getMessage());
-        HaRitualBookTimer.onGameMessage(packet.getMessage());
+        HaRitualBookTimer.onGameMessage(packet.getMessage(), packet.getLocation());
         HaAlchemyKilnAutomation.onGameMessage(packet.getMessage());
         if (packet.getLocation() == MessageType.GAME_INFO) {
             HaAlchemyKilnAutomation.onHudMessage(packet.getMessage());
