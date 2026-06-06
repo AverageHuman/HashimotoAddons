@@ -39,6 +39,7 @@ public final class HaRitualBookTimerOverlay {
         }
 
         int width = 148;
+        width = Math.max(width, 16 + client.textRenderer.getWidth("Ritual Book Timer"));
         for (HaRitualBookTimer.RitualTimerView entry : entries) {
             width = Math.max(width, 16 + client.textRenderer.getWidth(entry.getDisplayText()));
         }
@@ -50,7 +51,7 @@ public final class HaRitualBookTimerOverlay {
         if (HaConfig.get().ritualBookTimerSlim) {
             return rows * 10;
         }
-        return 10 + rows * 14;
+        return 10 + (1 + rows) * 14;
     }
 
     private static void drawPanel(MatrixStack matrices, int x, int y, List<HaRitualBookTimer.RitualTimerView> entries, boolean slim, boolean preview) {
@@ -68,7 +69,8 @@ public final class HaRitualBookTimerOverlay {
         int height = getPanelHeight();
         DrawableHelper.fill(matrices, x, y, x + width, y + height, 0x90000000);
         DrawableHelper.fill(matrices, x, y, x + width, y + 1, 0xFFB084F5);
-        int rowY = y + 4;
+        client.textRenderer.drawWithShadow(matrices, "Ritual Book Timer", x + 5, y + 4, 0xFFFFFF);
+        int rowY = y + 18;
         for (HaRitualBookTimer.RitualTimerView entry : entries) {
             client.textRenderer.drawWithShadow(matrices, entry.getDisplayText(), x + 5, rowY, timerColor(entry.getRemainingRatio()));
             rowY += 14;

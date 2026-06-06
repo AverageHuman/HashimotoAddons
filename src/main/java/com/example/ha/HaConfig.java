@@ -679,6 +679,10 @@ public final class HaConfig {
         root.addProperty("subSkillTimerCooldownSeconds", subSkillTimerCooldownSeconds);
         root.addProperty("subSkillTimerOverlayX", subSkillTimerOverlayX);
         root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
+        root.addProperty("ritualBookTimerEnabled", ritualBookTimerEnabled);
+        root.addProperty("ritualBookTimerSlim", ritualBookTimerSlim);
+        root.addProperty("ritualBookTimerOverlayX", ritualBookTimerOverlayX);
+        root.addProperty("ritualBookTimerOverlayY", ritualBookTimerOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
