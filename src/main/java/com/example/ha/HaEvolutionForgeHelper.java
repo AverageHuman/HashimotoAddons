@@ -1127,10 +1127,14 @@ public final class HaEvolutionForgeHelper {
         do {
             changed = false;
             for (String prefix : ITEM_NAME_EXCEPTION_PREFIXES) {
-                if (prefix != null && !prefix.isEmpty() && result.startsWith(prefix)) {
-                    result = result.substring(prefix.length()).trim();
-                    changed = true;
+                if (prefix == null || prefix.isEmpty() || !result.startsWith(prefix)) {
+                    continue;
                 }
+                if (result.length() <= prefix.length() || !Character.isWhitespace(result.charAt(prefix.length()))) {
+                    continue;
+                }
+                result = result.substring(prefix.length()).trim();
+                    changed = true;
             }
         } while (changed);
         return result;
