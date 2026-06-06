@@ -36,7 +36,7 @@ public final class HaConfigScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
 
-        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 18 : 17;
+        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 19 : 18;
         int maxPage = Math.max(0, (totalItems - 1) / ITEMS_PER_PAGE);
         page = Math.min(page, maxPage);
 
@@ -196,6 +196,13 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 17:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Ritual Book Timer"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaRitualBookTimerScreen(this));
+                    }
+                }));
+                break;
+            case 18:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Notifier"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropNotifierScreen(this));

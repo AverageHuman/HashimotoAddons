@@ -80,6 +80,7 @@ public final class HaTickHandler {
         HaExpTracker.tick(client);
         HaElementTracker.tick(client);
         HaSubSkillTimer.tick(client, config);
+        HaRitualBookTimer.tick(client, config);
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);

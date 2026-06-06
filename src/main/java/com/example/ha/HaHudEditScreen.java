@@ -36,6 +36,7 @@ public final class HaHudEditScreen extends Screen {
         panels.add(new ElementTrackerPanel());
         panels.add(new MobHpDisplayPanel());
         panels.add(new SubSkillTimerPanel());
+        panels.add(new RitualBookTimerPanel());
 
         addButton(new ButtonWidget(this.width / 2 - 105, this.height - 28, 210, 20, new LiteralText("Done"), button -> onClose()));
     }
@@ -393,6 +394,40 @@ public final class HaHudEditScreen extends Screen {
         void draw(MatrixStack matrices, boolean selected) {
             HaConfig config = HaConfig.get();
             HaSubSkillTimerOverlay.drawPreview(matrices, config.subSkillTimerOverlayX, config.subSkillTimerOverlayY, selected);
+        }
+    }
+
+    private static final class RitualBookTimerPanel extends HudPanel {
+        @Override
+        int getX() {
+            return HaConfig.get().ritualBookTimerOverlayX;
+        }
+
+        @Override
+        int getY() {
+            return HaConfig.get().ritualBookTimerOverlayY;
+        }
+
+        @Override
+        void setPosition(int x, int y) {
+            HaConfig.get().ritualBookTimerOverlayX = x;
+            HaConfig.get().ritualBookTimerOverlayY = y;
+        }
+
+        @Override
+        int getWidth() {
+            return HaRitualBookTimerOverlay.getPanelWidth(MinecraftClient.getInstance());
+        }
+
+        @Override
+        int getHeight() {
+            return HaRitualBookTimerOverlay.getPanelHeight();
+        }
+
+        @Override
+        void draw(MatrixStack matrices, boolean selected) {
+            HaConfig config = HaConfig.get();
+            HaRitualBookTimerOverlay.drawPreview(matrices, config.ritualBookTimerOverlayX, config.ritualBookTimerOverlayY, selected);
         }
     }
 }
