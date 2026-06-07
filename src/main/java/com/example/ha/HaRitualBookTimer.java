@@ -15,7 +15,7 @@ import net.minecraft.util.Formatting;
 public final class HaRitualBookTimer {
     private static final String PURCHASE_PREFIX = "\u30a4\u30f3\u30bf\u30fc\u30b3\u30a4\u30f3\u30671\u500b\u306e";
     private static final String PURCHASE_SUFFIX = "\u306e\u5100\u5f0f\u66f8\u7269\u3092\u8cfc\u5165\u3057\u307e\u3057\u305f\u3002";
-    private static final long TIMER_DURATION_MILLIS = 10L * 60L * 1000L;
+    private static final long TIMER_DURATION_MILLIS = 10L * 60L * 1000L + 10_000L;
     private static final int MAX_VISIBLE_TIMERS = 3;
     private static final long DUPLICATE_MESSAGE_WINDOW_MILLIS = 1500L;
     private static final List<RitualTimerEntry> ACTIVE_TIMERS = new ArrayList<RitualTimerEntry>();
@@ -104,7 +104,7 @@ public final class HaRitualBookTimer {
 
     public static List<RitualTimerView> getPreviewTimers() {
         List<RitualTimerView> result = new ArrayList<RitualTimerView>();
-        result.add(new RitualTimerView("\u708e", 10L * 60L * 1000L));
+        result.add(new RitualTimerView("\u708e", TIMER_DURATION_MILLIS));
         result.add(new RitualTimerView("\u6c34", 7L * 60L * 1000L + 35_000L));
         result.add(new RitualTimerView("\u98a8", 95_000L));
         return result;
