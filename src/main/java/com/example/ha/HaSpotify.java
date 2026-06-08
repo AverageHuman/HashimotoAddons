@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Base64;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -124,7 +125,7 @@ public final class HaSpotify {
     }
 
     private static TrackInfo detectChromeTrack() {
-        List<String> lines = runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-Command", buildChromeMediaScript());
+        List<String> lines = runPowerShellScript(buildChromeMediaScript());
         lastChromeDebugLines = new ArrayList<String>(lines);
         for (String line : lines) {
             TrackInfo info = parseChromeMediaLine(line);
@@ -191,6 +192,11 @@ public final class HaSpotify {
                 process.destroy();
             }
         }
+    }
+
+    private static List<String> runPowerShellScript(String script) {
+        String encoded = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+        return runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-EncodedCommand", encoded);
     }
 
     private static List<String> readLines(InputStream inputStream, Charset charset) throws IOException {
