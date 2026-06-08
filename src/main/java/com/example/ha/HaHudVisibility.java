@@ -49,6 +49,8 @@ public final class HaHudVisibility {
             || screen instanceof HaSubSkillTimerScreen
             || screen instanceof HaSubSkillTimerOverlayScreen
             || screen instanceof HaRitualBookTimerScreen
-            || screen instanceof HaRitualBookTimerOverlayScreen;
+            || screen instanceof HaRitualBookTimerOverlayScreen
+            || screen instanceof HaSpotifyScreen
+            || screen instanceof HaSpotifyOverlayScreen;
     }
 }

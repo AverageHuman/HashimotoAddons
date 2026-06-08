@@ -36,7 +36,7 @@ public final class HaConfigScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
 
-        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 19 : 18;
+        int totalItems = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? 20 : 19;
         int maxPage = Math.max(0, (totalItems - 1) / ITEMS_PER_PAGE);
         page = Math.min(page, maxPage);
 
@@ -203,6 +203,13 @@ public final class HaConfigScreen extends Screen {
                 }));
                 break;
             case 18:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Spotify"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaSpotifyScreen(this));
+                    }
+                }));
+                break;
+            case 19:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Drop Notifier"), button -> {
                     if (client != null) {
                         client.openScreen(new HaDropNotifierScreen(this));
@@ -234,7 +241,7 @@ public final class HaConfigScreen extends Screen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "§aEnabled" : "§cDisabled";
+        return value ? "\u00a7aEnabled" : "\u00a7cDisabled";
     }
 
     private boolean isMouseOverCameraButton(int mouseX, int mouseY) {

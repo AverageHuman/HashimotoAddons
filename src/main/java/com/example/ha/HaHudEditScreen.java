@@ -37,6 +37,7 @@ public final class HaHudEditScreen extends Screen {
         panels.add(new MobHpDisplayPanel());
         panels.add(new SubSkillTimerPanel());
         panels.add(new RitualBookTimerPanel());
+        panels.add(new SpotifyPanel());
 
         addButton(new ButtonWidget(this.width / 2 - 105, this.height - 28, 210, 20, new LiteralText("Done"), button -> onClose()));
     }
@@ -428,6 +429,40 @@ public final class HaHudEditScreen extends Screen {
         void draw(MatrixStack matrices, boolean selected) {
             HaConfig config = HaConfig.get();
             HaRitualBookTimerOverlay.drawPreview(matrices, config.ritualBookTimerOverlayX, config.ritualBookTimerOverlayY, selected);
+        }
+    }
+
+    private static final class SpotifyPanel extends HudPanel {
+        @Override
+        int getX() {
+            return HaConfig.get().spotifyOverlayX;
+        }
+
+        @Override
+        int getY() {
+            return HaConfig.get().spotifyOverlayY;
+        }
+
+        @Override
+        void setPosition(int x, int y) {
+            HaConfig.get().spotifyOverlayX = x;
+            HaConfig.get().spotifyOverlayY = y;
+        }
+
+        @Override
+        int getWidth() {
+            return HaSpotifyOverlay.getPanelWidth(MinecraftClient.getInstance());
+        }
+
+        @Override
+        int getHeight() {
+            return HaSpotifyOverlay.getPanelHeight();
+        }
+
+        @Override
+        void draw(MatrixStack matrices, boolean selected) {
+            HaConfig config = HaConfig.get();
+            HaSpotifyOverlay.drawPreview(matrices, config.spotifyOverlayX, config.spotifyOverlayY, selected);
         }
     }
 }
