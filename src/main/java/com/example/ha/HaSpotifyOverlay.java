@@ -13,7 +13,7 @@ public final class HaSpotifyOverlay {
     private static final String CHROME_PREFIX_CHROME_TEXT = "Chrome > ";
     private static final String WIDTH_SAMPLE = "Google Chrome > 123456789012345678901234567890";
     private static final int SPOTIFY_PREFIX_COLOR = 0x55FF55;
-    private static final int CHROME_PREFIX_GOOGLE_COLOR = 0xAA0000;
+    private static final int CHROME_PREFIX_GOOGLE_COLOR = 0x5555FF;
     private static final int CHROME_PREFIX_CHROME_COLOR = 0xFFFF55;
     private static final int SPOTIFY_ARTIST_COLOR = 0x55FFFF;
     private static final int CHROME_ARTIST_COLOR = 0x55FFFF;
