@@ -142,7 +142,7 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int copySpotifyDebug() {
-        if (HaSpotify.copyDebugSummaryToClipboard()) {
+        if (HaSpotify.copyDebugSummaryToClipboard(net.minecraft.client.MinecraftClient.getInstance())) {
             sendMessage("Copied Spotify debug log to clipboard.");
             return 1;
         }

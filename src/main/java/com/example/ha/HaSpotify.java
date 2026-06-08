@@ -4,8 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,6 +32,7 @@ public final class HaSpotify {
     private static final TrackInfo PAUSED_TRACK = TrackInfo.special("Paused", TrackState.PAUSED);
     private static final TrackInfo NOT_OPEN_TRACK = TrackInfo.special("None(maybe not open)", TrackState.NOT_OPEN);
     private static volatile TrackInfo currentTrack = NOT_OPEN_TRACK;
+    private static volatile List<String> lastSpotifyDebugLines = new ArrayList<String>();
     private static volatile List<String> lastChromeDebugLines = new ArrayList<String>();
     private static volatile boolean pollInFlight;
     private static int pollCooldownTicks;
@@ -97,9 +96,10 @@ public final class HaSpotify {
 
     private static TrackInfo detectSpotifyTrack() {
         WindowQueryResult result = queryWindowTitlesWithPowerShell();
-        if (!result.hasProcess) {
+        if (!result.commandSucceeded) {
             result = queryWindowTitlesWithTaskList();
         }
+        lastSpotifyDebugLines = new ArrayList<String>(result.debugLines);
         if (!result.hasProcess) {
             return NOT_OPEN_TRACK;
         }
@@ -126,19 +126,22 @@ public final class HaSpotify {
 
     private static WindowQueryResult queryWindowTitlesWithPowerShell() {
         String script = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+            + "Write-Output '__HA_QUERY_OK__'; "
             + "$processes = Get-Process " + PROCESS_NAME + " -ErrorAction SilentlyContinue; "
             + "if (-not $processes) { Write-Output '__HA_NO_PROCESS__'; exit }; "
             + "Write-Output '__HA_PROCESS_FOUND__'; "
             + "$processes | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -ne 'N/A' } "
             + "| Select-Object -ExpandProperty MainWindowTitle";
         List<String> lines = runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-Command", script);
-        return WindowQueryResult.fromCommandLines(lines, "__HA_PROCESS_FOUND__", "__HA_NO_PROCESS__");
+        return WindowQueryResult.fromCommandLines(lines, "__HA_PROCESS_FOUND__", "__HA_NO_PROCESS__", "powershell");
     }
 
     private static WindowQueryResult queryWindowTitlesWithTaskList() {
         List<String> lines = runCommand(Charset.defaultCharset(), "tasklist", "/v", "/fo", "csv", "/fi", "imagename eq spotify.exe");
         List<String> titles = new ArrayList<String>();
         boolean hasProcess = false;
+        List<String> debugLines = new ArrayList<String>();
+        debugLines.add("__HA_QUERY_OK__");
         for (String line : lines) {
             List<String> fields = parseCsvLine(line);
             if (fields.size() < 9) {
@@ -149,11 +152,12 @@ public final class HaSpotify {
             }
             hasProcess = true;
             String title = fields.get(fields.size() - 1).trim();
+            debugLines.add("TASKLIST\t" + title);
             if (!title.isEmpty() && !"N/A".equalsIgnoreCase(title)) {
                 titles.add(title);
             }
         }
-        return new WindowQueryResult(hasProcess, titles);
+        return new WindowQueryResult(hasProcess, true, titles, debugLines, "tasklist");
     }
 
     private static List<String> runCommand(Charset charset, String... command) {
@@ -244,7 +248,11 @@ public final class HaSpotify {
             + "}; "
             + "$manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); "
             + "if ($null -eq $manager) { Write-Output '__HA_CHROME_ERROR__`tNO_MANAGER'; exit }; "
-            + "foreach ($session in $manager.GetSessions()) { "
+            + "$sessions = New-Object System.Collections.ArrayList; "
+            + "$currentSession = $manager.GetCurrentSession(); "
+            + "if ($null -ne $currentSession) { [void]$sessions.Add($currentSession) }; "
+            + "foreach ($sessionItem in $manager.GetSessions()) { if ($sessions -notcontains $sessionItem) { [void]$sessions.Add($sessionItem) } }; "
+            + "foreach ($session in $sessions) { "
             + "$source = $session.SourceAppUserModelId; "
             + "$playbackInfo = $session.GetPlaybackInfo(); "
             + "$status = if ($null -eq $playbackInfo) { 'Unknown' } else { $playbackInfo.PlaybackStatus.ToString() }; "
@@ -272,15 +280,11 @@ public final class HaSpotify {
         builder.append("Variant: ");
         builder.append(HaBuildFlags.VARIANT);
         builder.append('\n');
+        builder.append("Spotify debug lines:");
+        appendLines(builder, lastSpotifyDebugLines);
+        builder.append('\n');
         builder.append("Chrome debug lines:");
-        List<String> lines = lastChromeDebugLines;
-        if (lines == null || lines.isEmpty()) {
-            builder.append("\n(none)");
-        } else {
-            for (String line : lines) {
-                builder.append('\n').append(line);
-            }
-        }
+        appendLines(builder, lastChromeDebugLines);
         return builder.toString();
     }
 
@@ -288,6 +292,18 @@ public final class HaSpotify {
         int sessionCount = 0;
         int matchedCount = 0;
         int errorCount = 0;
+        int spotifyTitleCount = 0;
+        boolean spotifyCommandOk = false;
+        List<String> spotifyLines = lastSpotifyDebugLines;
+        if (spotifyLines != null) {
+            for (String line : spotifyLines) {
+                if ("__HA_QUERY_OK__".equals(line)) {
+                    spotifyCommandOk = true;
+                } else {
+                    spotifyTitleCount++;
+                }
+            }
+        }
         List<String> lines = lastChromeDebugLines;
         if (lines != null) {
             for (String line : lines) {
@@ -306,6 +322,10 @@ public final class HaSpotify {
         builder.append(currentTrack == null ? "null" : summarizeTrack(currentTrack));
         builder.append(" variant=");
         builder.append(HaBuildFlags.VARIANT);
+        builder.append(" spotifyQuery=");
+        builder.append(spotifyCommandOk ? "ok" : "fail");
+        builder.append(" spotifyTitles=");
+        builder.append(spotifyTitleCount);
         builder.append(" sessions=");
         builder.append(sessionCount);
         builder.append(" matched=");
@@ -324,12 +344,25 @@ public final class HaSpotify {
         return builder.toString();
     }
 
-    public static boolean copyDebugSummaryToClipboard() {
+    public static boolean copyDebugSummaryToClipboard(MinecraftClient client) {
         try {
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(getDebugSummary()), null);
+            if (client == null || client.keyboard == null) {
+                return false;
+            }
+            client.keyboard.setClipboard(getDebugSummary());
             return true;
         } catch (Throwable ignored) {
             return false;
+        }
+    }
+
+    private static void appendLines(StringBuilder builder, List<String> lines) {
+        if (lines == null || lines.isEmpty()) {
+            builder.append("\n(none)");
+            return;
+        }
+        for (String line : lines) {
+            builder.append('\n').append(line);
         }
     }
 
@@ -506,26 +539,40 @@ public final class HaSpotify {
 
     private static final class WindowQueryResult {
         final boolean hasProcess;
+        final boolean commandSucceeded;
         final List<String> titles;
+        final List<String> debugLines;
+        final String source;
 
-        WindowQueryResult(boolean hasProcess, List<String> titles) {
+        WindowQueryResult(boolean hasProcess, boolean commandSucceeded, List<String> titles, List<String> debugLines, String source) {
             this.hasProcess = hasProcess;
+            this.commandSucceeded = commandSucceeded;
             this.titles = titles == null ? new ArrayList<String>() : titles;
+            this.debugLines = debugLines == null ? new ArrayList<String>() : debugLines;
+            this.source = source == null ? "" : source;
         }
 
-        static WindowQueryResult fromCommandLines(List<String> lines, String foundMarker, String notFoundMarker) {
+        static WindowQueryResult fromCommandLines(List<String> lines, String foundMarker, String notFoundMarker, String source) {
             boolean hasProcess = false;
+            boolean commandSucceeded = false;
             List<String> titles = new ArrayList<String>();
+            List<String> debugLines = new ArrayList<String>();
             for (String line : lines) {
-                if (foundMarker.equals(line)) {
+                if ("__HA_QUERY_OK__".equals(line)) {
+                    commandSucceeded = true;
+                    debugLines.add(line);
+                } else if (foundMarker.equals(line)) {
                     hasProcess = true;
+                    debugLines.add(line);
                 } else if (notFoundMarker.equals(line)) {
                     hasProcess = false;
+                    debugLines.add(line);
                 } else if (!line.isEmpty()) {
                     titles.add(line);
+                    debugLines.add(line);
                 }
             }
-            return new WindowQueryResult(hasProcess, titles);
+            return new WindowQueryResult(hasProcess, commandSucceeded, titles, debugLines, source);
         }
     }
 }
