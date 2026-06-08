@@ -42,7 +42,7 @@ public final class HaSpotifyScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 16, 0xFFFFFF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Shows the current Spotify desktop track in a slim HUD."), this.width / 2, 32, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText(getDescriptionText()), this.width / 2, 32, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -57,5 +57,12 @@ public final class HaSpotifyScreen extends Screen {
 
     private static String onOff(boolean value) {
         return value ? "\u00a7aEnabled" : "\u00a7cDisabled";
+    }
+
+    private static String getDescriptionText() {
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return "Shows Spotify first, then Chrome media in a slim HUD.";
+        }
+        return "Shows the current Spotify desktop track in a slim HUD.";
     }
 }

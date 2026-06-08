@@ -19,6 +19,7 @@ public final class HaSpotify {
     private static final int POLL_INTERVAL_TICKS = 20;
     private static final long COMMAND_TIMEOUT_MILLIS = 1500L;
     private static final String PROCESS_NAME = "Spotify";
+    private static final String CHROME_AUMID_TOKEN = "chrome";
     private static final ExecutorService POLLER = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable runnable) {
@@ -79,6 +80,19 @@ public final class HaSpotify {
     }
 
     private static TrackInfo detectCurrentTrack() {
+        TrackInfo spotifyTrack = detectSpotifyTrack();
+        if (spotifyTrack.isPlaying() || !HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return spotifyTrack;
+        }
+
+        TrackInfo chromeTrack = detectChromeTrack();
+        if (chromeTrack != null) {
+            return chromeTrack;
+        }
+        return spotifyTrack;
+    }
+
+    private static TrackInfo detectSpotifyTrack() {
         WindowQueryResult result = queryWindowTitlesWithPowerShell();
         if (!result.hasProcess) {
             result = queryWindowTitlesWithTaskList();
@@ -93,6 +107,17 @@ public final class HaSpotify {
             }
         }
         return PAUSED_TRACK;
+    }
+
+    private static TrackInfo detectChromeTrack() {
+        List<String> lines = runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-Command", buildChromeMediaScript());
+        for (String line : lines) {
+            TrackInfo info = parseChromeMediaLine(line);
+            if (info != null) {
+                return info;
+            }
+        }
+        return null;
     }
 
     private static WindowQueryResult queryWindowTitlesWithPowerShell() {
@@ -181,6 +206,57 @@ public final class HaSpotify {
         return new TrackInfo(artist, songTitle);
     }
 
+    private static TrackInfo parseChromeMediaLine(String line) {
+        if (line == null || !line.startsWith("__HA_CHROME__\t")) {
+            return null;
+        }
+
+        String[] fields = line.split("\t", 3);
+        if (fields.length < 3) {
+            return null;
+        }
+
+        String artist = normalizeWindowTitle(fields[1]);
+        String title = normalizeWindowTitle(fields[2]);
+        if (artist.isEmpty() || title.isEmpty()) {
+            return null;
+        }
+        return new TrackInfo(artist, title, TrackState.PLAYING, TrackSource.CHROME);
+    }
+
+    private static String buildChromeMediaScript() {
+        return "$ErrorActionPreference = 'SilentlyContinue'; "
+            + "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+            + "try { "
+            + "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
+            + "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null; "
+            + "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null; "
+            + "function haAwait($op, [Type]$resultType) { "
+            + "$method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethodDefinition -and $_.GetParameters().Length -eq 1 } | Select-Object -First 1; "
+            + "if ($null -eq $method) { return $null }; "
+            + "$generic = $method.MakeGenericMethod($resultType); "
+            + "$task = $generic.Invoke($null, @($op)); "
+            + "return $task.GetAwaiter().GetResult(); "
+            + "}; "
+            + "$manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); "
+            + "if ($null -eq $manager) { exit }; "
+            + "foreach ($session in $manager.GetSessions()) { "
+            + "$source = $session.SourceAppUserModelId; "
+            + "if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }; "
+            + "$playbackInfo = $session.GetPlaybackInfo(); "
+            + "if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }; "
+            + "$props = haAwait ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.GlobalSystemMediaTransportControlsSessionMediaProperties]); "
+            + "if ($null -eq $props) { continue }; "
+            + "$artist = [string]$props.Artist; "
+            + "$title = [string]$props.Title; "
+            + "if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }; "
+            + "$artist = $artist.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
+            + "$title = $title.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
+            + "Write-Output ('__HA_CHROME__' + \"`t\" + $artist + \"`t\" + $title); "
+            + "} "
+            + "} catch { }";
+    }
+
     private static String normalizeWindowTitle(String value) {
         if (value == null) {
             return "";
@@ -247,20 +323,25 @@ public final class HaSpotify {
         final String artist;
         final String title;
         final TrackState state;
+        final TrackSource source;
 
         TrackInfo(String artist, String title) {
-            this(artist, title, TrackState.PLAYING);
+            this(artist, title, TrackState.PLAYING, TrackSource.SPOTIFY);
         }
 
-        private TrackInfo(String artist, String title, TrackState state) {
+        private TrackInfo(String artist, String title, TrackState state, TrackSource source) {
             this.artist = sanitize(artist);
             this.title = sanitize(title);
             this.state = state == null ? TrackState.PLAYING : state;
+            this.source = source == null ? TrackSource.SPOTIFY : source;
         }
 
         String getArtistSegment() {
             if (state != TrackState.PLAYING) {
                 return "";
+            }
+            if (source == TrackSource.CHROME) {
+                return artist + " ";
             }
             return "[" + artist + "] ";
         }
@@ -280,15 +361,23 @@ public final class HaSpotify {
         }
 
         String getFullText() {
-            return "Spotify > " + getTrackInfoText();
+            return getPrefixText() + getTrackInfoText();
         }
 
         boolean isStatusText() {
             return state != TrackState.PLAYING;
         }
 
+        boolean isPlaying() {
+            return state == TrackState.PLAYING;
+        }
+
+        String getPrefixText() {
+            return source == TrackSource.CHROME ? "Google Chrome > " : "Spotify > ";
+        }
+
         static TrackInfo special(String text, TrackState state) {
-            return new TrackInfo("", text, state);
+            return new TrackInfo("", text, state, TrackSource.SPOTIFY);
         }
 
         private static String sanitize(String value) {
@@ -301,6 +390,11 @@ public final class HaSpotify {
         PLAYING,
         PAUSED,
         NOT_OPEN
+    }
+
+    enum TrackSource {
+        SPOTIFY,
+        CHROME
     }
 
     private static final class WindowQueryResult {

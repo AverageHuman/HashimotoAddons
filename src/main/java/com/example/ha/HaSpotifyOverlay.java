@@ -7,10 +7,16 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Util;
 
 public final class HaSpotifyOverlay {
-    private static final String PREFIX_TEXT = "Spotify > ";
-    private static final String WIDTH_SAMPLE = "Spotify > 123456789012345678901234567890";
-    private static final int PREFIX_COLOR = 0x55FF55;
-    private static final int ARTIST_COLOR = 0x55FFFF;
+    private static final String SPOTIFY_PREFIX_TEXT = "Spotify > ";
+    private static final String CHROME_PREFIX_TEXT = "Google Chrome > ";
+    private static final String CHROME_PREFIX_GOOGLE_TEXT = "Google ";
+    private static final String CHROME_PREFIX_CHROME_TEXT = "Chrome > ";
+    private static final String WIDTH_SAMPLE = "Google Chrome > 123456789012345678901234567890";
+    private static final int SPOTIFY_PREFIX_COLOR = 0x55FF55;
+    private static final int CHROME_PREFIX_GOOGLE_COLOR = 0xAA0000;
+    private static final int CHROME_PREFIX_CHROME_COLOR = 0xFFFF55;
+    private static final int SPOTIFY_ARTIST_COLOR = 0x55FFFF;
+    private static final int CHROME_ARTIST_COLOR = 0x55FFFF;
     private static final int SEPARATOR_COLOR = 0xAAAAAA;
     private static final int TITLE_COLOR = 0xFFAA00;
     private static final int STATUS_COLOR = 0xFF5555;
@@ -53,14 +59,15 @@ public final class HaSpotifyOverlay {
         }
 
         MinecraftClient client = MinecraftClient.getInstance();
-        int prefixWidth = client.textRenderer.getWidth(PREFIX_TEXT);
+        String prefixText = track.getPrefixText();
+        int prefixWidth = client.textRenderer.getWidth(prefixText);
         int maxTotalWidth = getMaxTotalWidth(client);
         int trackWindowWidth = Math.max(0, maxTotalWidth - prefixWidth);
         int trackInfoWidth = getTrackInfoWidth(client, track);
         int overflowWidth = Math.max(0, trackInfoWidth - trackWindowWidth);
         int scrollOffset = overflowWidth > 0 ? getScrollOffsetPixels(overflowWidth, Util.getMeasuringTimeMs()) : 0;
 
-        client.textRenderer.drawWithShadow(matrices, PREFIX_TEXT, x, y, PREFIX_COLOR);
+        drawPrefix(matrices, client, x, y, track);
         if (trackWindowWidth <= 0) {
             return;
         }
@@ -84,7 +91,7 @@ public final class HaSpotifyOverlay {
             client.textRenderer.drawWithShadow(matrices, track.title, drawX, y, STATUS_COLOR);
             return;
         }
-        client.textRenderer.drawWithShadow(matrices, artistSegment, drawX, y, ARTIST_COLOR);
+        client.textRenderer.drawWithShadow(matrices, artistSegment, drawX, y, getArtistColor(track));
         drawX += client.textRenderer.getWidth(artistSegment);
         client.textRenderer.drawWithShadow(matrices, separatorSegment, drawX, y, SEPARATOR_COLOR);
         drawX += client.textRenderer.getWidth(separatorSegment);
@@ -97,6 +104,21 @@ public final class HaSpotifyOverlay {
 
     private static int getMaxTotalWidth(MinecraftClient client) {
         return client.textRenderer.getWidth(WIDTH_SAMPLE);
+    }
+
+    private static void drawPrefix(MatrixStack matrices, MinecraftClient client, int x, int y, HaSpotify.TrackInfo track) {
+        if (track.source != HaSpotify.TrackSource.CHROME) {
+            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_TEXT, x, y, SPOTIFY_PREFIX_COLOR);
+            return;
+        }
+
+        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_GOOGLE_TEXT, x, y, CHROME_PREFIX_GOOGLE_COLOR);
+        int chromeOffset = client.textRenderer.getWidth(CHROME_PREFIX_GOOGLE_TEXT);
+        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_CHROME_TEXT, x + chromeOffset, y, CHROME_PREFIX_CHROME_COLOR);
+    }
+
+    private static int getArtistColor(HaSpotify.TrackInfo track) {
+        return track.source == HaSpotify.TrackSource.CHROME ? CHROME_ARTIST_COLOR : SPOTIFY_ARTIST_COLOR;
     }
 
     private static int getScrollOffsetPixels(int overflowWidth, long nowMillis) {
