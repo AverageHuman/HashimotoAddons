@@ -244,43 +244,51 @@ public final class HaSpotify {
     }
 
     private static String buildChromeMediaScript() {
-        return "$ErrorActionPreference = 'SilentlyContinue'; "
-            + "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
-            + "try { "
-            + "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
-            + "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null; "
-            + "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null; "
-            + "function haAwait($op, [Type]$resultType) { "
-            + "$method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethodDefinition -and $_.GetParameters().Length -eq 1 } | Select-Object -First 1; "
-            + "if ($null -eq $method) { Write-Output '__HA_CHROME_ERROR__`tAS_TASK_MISSING'; return $null }; "
-            + "$generic = $method.MakeGenericMethod($resultType); "
-            + "$task = $generic.Invoke($null, @($op)); "
-            + "return $task.GetAwaiter().GetResult(); "
-            + "}; "
-            + "$manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); "
-            + "if ($null -eq $manager) { Write-Output '__HA_CHROME_ERROR__`tNO_MANAGER'; exit }; "
-            + "$sessions = New-Object System.Collections.ArrayList; "
-            + "$currentSession = $manager.GetCurrentSession(); "
-            + "if ($null -ne $currentSession) { [void]$sessions.Add($currentSession) }; "
-            + "foreach ($sessionItem in $manager.GetSessions()) { if ($sessions -notcontains $sessionItem) { [void]$sessions.Add($sessionItem) } }; "
-            + "foreach ($session in $sessions) { "
-            + "$source = $session.SourceAppUserModelId; "
-            + "$playbackInfo = $session.GetPlaybackInfo(); "
-            + "$status = if ($null -eq $playbackInfo) { 'Unknown' } else { $playbackInfo.PlaybackStatus.ToString() }; "
-            + "$op = $session.TryGetMediaPropertiesAsync(); "
-            + "$resultType = $op.GetType().GenericTypeArguments[0]; "
-            + "$props = haAwait $op $resultType; "
-            + "$artist = [string]$props.Artist; "
-            + "$title = [string]$props.Title; "
-            + "$artist = $artist.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
-            + "$title = $title.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
-            + "Write-Output ('__HA_CHROME_SESSION__' + \"`t\" + $source + \"`t\" + $status + \"`t\" + $artist + \"`t\" + $title); "
-            + "if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }; "
-            + "if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }; "
-            + "if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }; "
-            + "Write-Output ('__HA_CHROME__' + \"`t\" + $artist + \"`t\" + $title); "
-            + "} "
-            + "} catch { Write-Output ('__HA_CHROME_ERROR__`t' + $_.Exception.Message.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' ')) }";
+        return String.join("\n",
+            "$ErrorActionPreference = 'SilentlyContinue'",
+            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
+            "try {",
+            "    Add-Type -AssemblyName System.Runtime.WindowsRuntime",
+            "    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null",
+            "    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null",
+            "    function haAwait($op, [Type]$resultType) {",
+            "        $method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethodDefinition -and $_.GetParameters().Length -eq 1 } | Select-Object -First 1",
+            "        if ($null -eq $method) { Write-Output '__HA_CHROME_ERROR__`tAS_TASK_MISSING'; return $null }",
+            "        $generic = $method.MakeGenericMethod($resultType)",
+            "        $task = $generic.Invoke($null, @($op))",
+            "        return $task.GetAwaiter().GetResult()",
+            "    }",
+            "    $manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])",
+            "    if ($null -eq $manager) { Write-Output '__HA_CHROME_ERROR__`tNO_MANAGER'; exit }",
+            "    $sessions = New-Object System.Collections.ArrayList",
+            "    $currentSession = $manager.GetCurrentSession()",
+            "    if ($null -ne $currentSession) { [void]$sessions.Add($currentSession) }",
+            "    foreach ($sessionItem in $manager.GetSessions()) {",
+            "        if ($sessions -notcontains $sessionItem) { [void]$sessions.Add($sessionItem) }",
+            "    }",
+            "    foreach ($session in $sessions) {",
+            "        $source = $session.SourceAppUserModelId",
+            "        $playbackInfo = $session.GetPlaybackInfo()",
+            "        $status = if ($null -eq $playbackInfo) { 'Unknown' } else { $playbackInfo.PlaybackStatus.ToString() }",
+            "        $op = $session.TryGetMediaPropertiesAsync()",
+            "        $resultType = $op.GetType().GenericTypeArguments[0]",
+            "        $props = haAwait $op $resultType",
+            "        $artist = [string]$props.Artist",
+            "        $title = [string]$props.Title",
+            "        $artist = $artist.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "        $title = $title.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "        Write-Output ('__HA_CHROME_SESSION__' + \"`t\" + $source + \"`t\" + $status + \"`t\" + $artist + \"`t\" + $title)",
+            "        if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }",
+            "        if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }",
+            "        if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }",
+            "        Write-Output ('__HA_CHROME__' + \"`t\" + $artist + \"`t\" + $title)",
+            "    }",
+            "} catch {",
+            "    $message = $_.Exception.Message",
+            "    if ($null -eq $message) { $message = 'UNKNOWN_ERROR' }",
+            "    $message = $message.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "    Write-Output ('__HA_CHROME_ERROR__`t' + $message)",
+            "}");
     }
 
     public static String getDebugSummary() {
