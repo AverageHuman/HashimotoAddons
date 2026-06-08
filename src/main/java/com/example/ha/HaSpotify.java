@@ -85,7 +85,6 @@ public final class HaSpotify {
     private static TrackInfo detectCurrentTrack() {
         TrackInfo spotifyTrack = detectSpotifyTrack();
         if (spotifyTrack.isPlaying()
-            || !HaBuildFlags.DANGEROUS_FEATURES_ENABLED
             || !HaConfig.get().spotifyChromeDetectionEnabled) {
             return spotifyTrack;
         }

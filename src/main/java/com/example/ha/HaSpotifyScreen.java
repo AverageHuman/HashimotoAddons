@@ -29,13 +29,11 @@ public final class HaSpotifyScreen extends Screen {
             button.setMessage(new LiteralText("Spotify: " + onOff(config.spotifyEnabled)));
         }));
 
-        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
-            addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)), button -> {
-                config.spotifyChromeDetectionEnabled = !config.spotifyChromeDetectionEnabled;
-                config.save();
-                button.setMessage(new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)));
-            }));
-        }
+        addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)), button -> {
+            config.spotifyChromeDetectionEnabled = !config.spotifyChromeDetectionEnabled;
+            config.save();
+            button.setMessage(new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)));
+        }));
 
         addButton(new ButtonWidget(centerX - 105, top + 56, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
             if (client != null) {
@@ -68,9 +66,6 @@ public final class HaSpotifyScreen extends Screen {
     }
 
     private static String getDescriptionText() {
-        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
-            return "Shows Spotify first, with optional Chrome media fallback.";
-        }
-        return "Shows the current Spotify desktop track in a slim HUD.";
+        return "Shows Spotify first, with optional Chrome media fallback.";
     }
 }
