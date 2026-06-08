@@ -136,8 +136,8 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int showSpotifyDebug() {
-        String summary = HaSpotify.getDebugSummary().replace('\r', ' ').replace('\n', ' ');
-        sendMessage("Spotify debug: " + summary);
+        sendMessage("Spotify debug: " + HaSpotify.getChatDebugSummary());
+        sendMessage("Use /ha spotifydebug copy for the full clipboard log.");
         return 1;
     }
 

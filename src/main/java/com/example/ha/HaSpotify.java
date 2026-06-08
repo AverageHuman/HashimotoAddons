@@ -284,6 +284,46 @@ public final class HaSpotify {
         return builder.toString();
     }
 
+    public static String getChatDebugSummary() {
+        int sessionCount = 0;
+        int matchedCount = 0;
+        int errorCount = 0;
+        List<String> lines = lastChromeDebugLines;
+        if (lines != null) {
+            for (String line : lines) {
+                if (line.startsWith("__HA_CHROME_SESSION__")) {
+                    sessionCount++;
+                } else if (line.startsWith("__HA_CHROME__")) {
+                    matchedCount++;
+                } else if (line.startsWith("__HA_CHROME_ERROR__")) {
+                    errorCount++;
+                }
+            }
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("track=");
+        builder.append(currentTrack == null ? "null" : summarizeTrack(currentTrack));
+        builder.append(" variant=");
+        builder.append(HaBuildFlags.VARIANT);
+        builder.append(" sessions=");
+        builder.append(sessionCount);
+        builder.append(" matched=");
+        builder.append(matchedCount);
+        builder.append(" errors=");
+        builder.append(errorCount);
+        if (errorCount > 0 && lines != null) {
+            for (String line : lines) {
+                if (line.startsWith("__HA_CHROME_ERROR__")) {
+                    builder.append(" firstError=");
+                    builder.append(sanitizeForChat(line.substring("__HA_CHROME_ERROR__".length())));
+                    break;
+                }
+            }
+        }
+        return builder.toString();
+    }
+
     public static boolean copyDebugSummaryToClipboard() {
         try {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(getDebugSummary()), null);
@@ -291,6 +331,37 @@ public final class HaSpotify {
         } catch (Throwable ignored) {
             return false;
         }
+    }
+
+    private static String summarizeTrack(TrackInfo track) {
+        if (track == null) {
+            return "null";
+        }
+        if (!track.isPlaying()) {
+            return sanitizeForChat(track.title);
+        }
+        return sanitizeForChat(track.getPrefixText() + track.artist + " - " + track.title);
+    }
+
+    private static String sanitizeForChat(String value) {
+        String normalized = normalizeWindowTitle(value);
+        if (normalized.isEmpty()) {
+            return "(empty)";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < normalized.length(); i++) {
+            char ch = normalized.charAt(i);
+            if (ch >= 32 && ch <= 126) {
+                builder.append(ch);
+            } else {
+                builder.append('?');
+            }
+        }
+        String text = builder.toString();
+        if (text.length() > 120) {
+            return text.substring(0, 120) + "...";
+        }
+        return text;
     }
 
     private static String normalizeWindowTitle(String value) {
