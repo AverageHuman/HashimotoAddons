@@ -137,16 +137,17 @@ public final class HaClientMod implements ClientModInitializer {
 
     private int showSpotifyDebug() {
         sendMessage("Spotify debug: " + HaSpotify.getChatDebugSummary());
-        sendMessage("Use /ha spotifydebug copy for the full clipboard log.");
+        sendMessage("Use /ha spotifydebug copy to save the full JSON log.");
         return 1;
     }
 
     private int copySpotifyDebug() {
-        if (HaSpotify.copyDebugSummaryToClipboard(net.minecraft.client.MinecraftClient.getInstance())) {
-            sendMessage("Copied Spotify debug log to clipboard.");
+        String outputPath = HaSpotify.saveDebugSummaryToFile();
+        if (outputPath != null) {
+            sendMessage("Saved Spotify debug log: " + outputPath);
             return 1;
         }
-        sendMessage("\u00a7cCould not copy Spotify debug log.");
+        sendMessage("\u00a7cCould not save Spotify debug log.");
         return 0;
     }
 

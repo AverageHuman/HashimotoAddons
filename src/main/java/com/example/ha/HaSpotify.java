@@ -1,25 +1,36 @@
 package com.example.ha;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 
 public final class HaSpotify {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int POLL_INTERVAL_TICKS = 20;
     private static final long COMMAND_TIMEOUT_MILLIS = 3000L;
     private static final String PROCESS_NAME = "Spotify";
     private static final String CHROME_AUMID_TOKEN = "chrome";
+    private static final Path DEBUG_DIR = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("Spotify debug");
     private static final ExecutorService POLLER = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable runnable) {
@@ -344,16 +355,34 @@ public final class HaSpotify {
         return builder.toString();
     }
 
-    public static boolean copyDebugSummaryToClipboard(MinecraftClient client) {
+    public static String saveDebugSummaryToFile() {
         try {
-            if (client == null || client.keyboard == null) {
-                return false;
-            }
-            client.keyboard.setClipboard(getDebugSummary());
-            return true;
+            Files.createDirectories(DEBUG_DIR);
+            String fileName = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS").format(new Date()) + ".json";
+            Path outputFile = DEBUG_DIR.resolve(fileName);
+            JsonObject root = new JsonObject();
+            root.addProperty("savedAt", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
+            root.addProperty("variant", HaBuildFlags.VARIANT);
+            root.addProperty("currentTrack", currentTrack == null ? "null" : currentTrack.getFullText());
+            root.addProperty("chatSummary", getChatDebugSummary());
+            root.add("spotifyDebugLines", toJsonArray(lastSpotifyDebugLines));
+            root.add("chromeDebugLines", toJsonArray(lastChromeDebugLines));
+            Files.write(outputFile, GSON.toJson(root).getBytes(StandardCharsets.UTF_8));
+            return outputFile.toString();
         } catch (Throwable ignored) {
-            return false;
+            return null;
         }
+    }
+
+    private static JsonArray toJsonArray(List<String> lines) {
+        JsonArray array = new JsonArray();
+        if (lines == null) {
+            return array;
+        }
+        for (String line : lines) {
+            array.add(line == null ? "" : line);
+        }
+        return array;
     }
 
     private static void appendLines(StringBuilder builder, List<String> lines) {
