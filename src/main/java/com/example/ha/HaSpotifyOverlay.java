@@ -7,14 +7,21 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Util;
 
 public final class HaSpotifyOverlay {
-    private static final String SPOTIFY_PREFIX_TEXT = "Spotify > ";
-    private static final String CHROME_PREFIX_TEXT = "Google Chrome > ";
+    private static final String SPOTIFY_PREFIX_TEXT = "Sporify > ";
+    private static final String SPOTIFY_PREFIX_SPORIFY_TEXT = "Sporify ";
+    private static final String SPOTIFY_PREFIX_ARROW_TEXT = "> ";
     private static final String CHROME_PREFIX_GOOGLE_TEXT = "Google ";
-    private static final String CHROME_PREFIX_CHROME_TEXT = "Chrome > ";
+    private static final String CHROME_PREFIX_CHROME_TEXT = "Chrome ";
+    private static final String CHROME_PREFIX_ARROW_TEXT = "> ";
     private static final String WIDTH_SAMPLE = "Google Chrome > 123456789012345678901234567890";
-    private static final int SPOTIFY_PREFIX_COLOR = 0x55FF55;
-    private static final int CHROME_PREFIX_GOOGLE_COLOR = 0x5555FF;
-    private static final int CHROME_PREFIX_CHROME_COLOR = 0xFFFF55;
+    private static final int SPOTIFY_PREFIX_SPORIFY_COLOR = 0x55FF55;
+    private static final int SPOTIFY_PREFIX_ARROW_COLOR = 0x000000;
+    private static final int CHROME_PREFIX_GOOGLE_G_COLOR = 0xFF5555;
+    private static final int CHROME_PREFIX_GOOGLE_O1_COLOR = 0xFFFF55;
+    private static final int CHROME_PREFIX_GOOGLE_O2_COLOR = 0x55FF55;
+    private static final int CHROME_PREFIX_GOOGLE_GLE_COLOR = 0x5555FF;
+    private static final int CHROME_PREFIX_CHROME_COLOR = 0xFFFFFF;
+    private static final int CHROME_PREFIX_ARROW_COLOR = 0x000000;
     private static final int SPOTIFY_ARTIST_COLOR = 0x55FFFF;
     private static final int CHROME_ARTIST_COLOR = 0x55FFFF;
     private static final int SEPARATOR_COLOR = 0xAAAAAA;
@@ -108,13 +115,24 @@ public final class HaSpotifyOverlay {
 
     private static void drawPrefix(MatrixStack matrices, MinecraftClient client, int x, int y, HaSpotify.TrackInfo track) {
         if (track.source != HaSpotify.TrackSource.CHROME) {
-            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_TEXT, x, y, SPOTIFY_PREFIX_COLOR);
+            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_SPORIFY_TEXT, x, y, SPOTIFY_PREFIX_SPORIFY_COLOR);
+            int arrowOffset = client.textRenderer.getWidth(SPOTIFY_PREFIX_SPORIFY_TEXT);
+            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_ARROW_TEXT, x + arrowOffset, y, SPOTIFY_PREFIX_ARROW_COLOR);
             return;
         }
 
-        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_GOOGLE_TEXT, x, y, CHROME_PREFIX_GOOGLE_COLOR);
-        int chromeOffset = client.textRenderer.getWidth(CHROME_PREFIX_GOOGLE_TEXT);
-        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_CHROME_TEXT, x + chromeOffset, y, CHROME_PREFIX_CHROME_COLOR);
+        int drawX = x;
+        client.textRenderer.drawWithShadow(matrices, "G", drawX, y, CHROME_PREFIX_GOOGLE_G_COLOR);
+        drawX += client.textRenderer.getWidth("G");
+        client.textRenderer.drawWithShadow(matrices, "o", drawX, y, CHROME_PREFIX_GOOGLE_O1_COLOR);
+        drawX += client.textRenderer.getWidth("o");
+        client.textRenderer.drawWithShadow(matrices, "o", drawX, y, CHROME_PREFIX_GOOGLE_O2_COLOR);
+        drawX += client.textRenderer.getWidth("o");
+        client.textRenderer.drawWithShadow(matrices, "gle ", drawX, y, CHROME_PREFIX_GOOGLE_GLE_COLOR);
+        drawX += client.textRenderer.getWidth("gle ");
+        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_CHROME_TEXT, drawX, y, CHROME_PREFIX_CHROME_COLOR);
+        drawX += client.textRenderer.getWidth(CHROME_PREFIX_CHROME_TEXT);
+        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_ARROW_TEXT, drawX, y, CHROME_PREFIX_ARROW_COLOR);
     }
 
     private static int getArtistColor(HaSpotify.TrackInfo track) {
