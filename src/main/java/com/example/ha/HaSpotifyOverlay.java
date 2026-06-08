@@ -10,13 +10,13 @@ public final class HaSpotifyOverlay {
     private static final String SPOTIFY_PREFIX_TEXT = "Spotify > ";
     private static final String SPOTIFY_PREFIX_SPOTIFY_TEXT = "Spotify ";
     private static final String SPOTIFY_PREFIX_ARROW_TEXT = "> ";
-    private static final String CHROME_PREFIX_GOOGLE_CHROME_TEXT = "Google Chrome ";
+    private static final String CHROME_PREFIX_SPOTIFY_TEXT = "Spotify  ";
     private static final String CHROME_PREFIX_ARROW_TEXT = "> ";
     private static final String WIDTH_SAMPLE = "Google Chrome > 123456789012345678901234567890";
     private static final int SPOTIFY_PREFIX_SPOTIFY_COLOR = 0x00AA00;
-    private static final int SPOTIFY_PREFIX_ARROW_COLOR = 0x000000;
-    private static final int CHROME_PREFIX_GOOGLE_CHROME_COLOR = 0x00AA00;
-    private static final int CHROME_PREFIX_ARROW_COLOR = 0x000000;
+    private static final int SPOTIFY_PREFIX_ARROW_COLOR = 0xAAAAAA;
+    private static final int CHROME_PREFIX_SPOTIFY_COLOR = 0x00AA00;
+    private static final int CHROME_PREFIX_ARROW_COLOR = 0xAAAAAA;
     private static final int SPOTIFY_ARTIST_COLOR = 0x55FFFF;
     private static final int CHROME_ARTIST_COLOR = 0x55FFFF;
     private static final int SEPARATOR_COLOR = 0xAAAAAA;
@@ -116,8 +116,8 @@ public final class HaSpotifyOverlay {
             return;
         }
 
-        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_GOOGLE_CHROME_TEXT, x, y, CHROME_PREFIX_GOOGLE_CHROME_COLOR);
-        int arrowOffset = client.textRenderer.getWidth(CHROME_PREFIX_GOOGLE_CHROME_TEXT);
+        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_SPOTIFY_TEXT, x, y, CHROME_PREFIX_SPOTIFY_COLOR);
+        int arrowOffset = client.textRenderer.getWidth(CHROME_PREFIX_SPOTIFY_TEXT);
         client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_ARROW_TEXT, x + arrowOffset, y, CHROME_PREFIX_ARROW_COLOR);
     }
 
