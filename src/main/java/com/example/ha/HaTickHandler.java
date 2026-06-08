@@ -80,6 +80,8 @@ public final class HaTickHandler {
         HaExpTracker.tick(client);
         HaElementTracker.tick(client);
         HaSubSkillTimer.tick(client, config);
+        HaRitualBookTimer.tick(client, config);
+        HaSpotify.tick(client, config);
         HaGhostWall.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
@@ -462,7 +464,9 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaElementTrackerScreen
             || client.currentScreen instanceof HaElementTrackerTargetScreen
             || client.currentScreen instanceof HaElementTrackerOverlayScreen
-            || client.currentScreen instanceof HaMobEspScreen;
+            || client.currentScreen instanceof HaMobEspScreen
+            || client.currentScreen instanceof HaSpotifyScreen
+            || client.currentScreen instanceof HaSpotifyOverlayScreen;
     }
 
     private boolean isCameraToggleBlocked(MinecraftClient client) {

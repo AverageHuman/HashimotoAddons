@@ -11,6 +11,7 @@ import com.example.ha.HaSubSkillTimer;
 import com.example.ha.HaDropNotifier;
 import com.example.ha.HaAfkFarming;
 import com.example.ha.HaAlchemyKilnAutomation;
+import com.example.ha.HaRitualBookTimer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
@@ -31,6 +32,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$trackSoulbindMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
         HaSoulbindProtection.onGameMessage(packet.getMessage());
         HaSubSkillTimer.onGameMessage(packet.getMessage());
+        HaRitualBookTimer.onGameMessage(packet.getMessage(), packet.getLocation());
         HaAlchemyKilnAutomation.onGameMessage(packet.getMessage());
         if (packet.getLocation() == MessageType.GAME_INFO) {
             HaAlchemyKilnAutomation.onHudMessage(packet.getMessage());
@@ -65,6 +67,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$clearSoulbindProtection(Text reason, CallbackInfo ci) {
         HaSoulbindProtection.onDisconnected();
         HaDropNotifier.onDisconnected();
+        HaRitualBookTimer.onDisconnected();
         HaAfkFarming.onDisconnected();
         HaAlchemyKilnAutomation.onDisconnected();
     }

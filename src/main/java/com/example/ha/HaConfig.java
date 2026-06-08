@@ -138,6 +138,13 @@ public final class HaConfig {
     public double subSkillTimerCooldownSeconds = 10.0D;
     public int subSkillTimerOverlayX = 8;
     public int subSkillTimerOverlayY = 200;
+    public boolean ritualBookTimerEnabled = false;
+    public boolean ritualBookTimerSlim = false;
+    public int ritualBookTimerOverlayX = 8;
+    public int ritualBookTimerOverlayY = 232;
+    public boolean spotifyEnabled = false;
+    public int spotifyOverlayX = 8;
+    public int spotifyOverlayY = 264;
     public boolean chatFilterEnabled = false;
     public Set<Integer> lockedSlotIds = new HashSet<Integer>();
 
@@ -240,6 +247,10 @@ public final class HaConfig {
         subSkillTimerOverlayX = Math.max(0, subSkillTimerOverlayX);
         subSkillTimerOverlayY = Math.max(0, subSkillTimerOverlayY);
         subSkillTimerCooldownSeconds = clamp(subSkillTimerCooldownSeconds, 0.1D, 3600.0D);
+        ritualBookTimerOverlayX = Math.max(0, ritualBookTimerOverlayX);
+        ritualBookTimerOverlayY = Math.max(0, ritualBookTimerOverlayY);
+        spotifyOverlayX = Math.max(0, spotifyOverlayX);
+        spotifyOverlayY = Math.max(0, spotifyOverlayY);
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
@@ -446,6 +457,13 @@ public final class HaConfig {
         subSkillTimerCooldownSeconds = saved.subSkillTimerCooldownSeconds > 0.0D ? saved.subSkillTimerCooldownSeconds : 10.0D;
         subSkillTimerOverlayX = saved.subSkillTimerOverlayX;
         subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
+        ritualBookTimerEnabled = saved.ritualBookTimerEnabled;
+        ritualBookTimerSlim = saved.ritualBookTimerSlim;
+        ritualBookTimerOverlayX = saved.ritualBookTimerOverlayX;
+        ritualBookTimerOverlayY = saved.ritualBookTimerOverlayY;
+        spotifyEnabled = saved.spotifyEnabled;
+        spotifyOverlayX = saved.spotifyOverlayX;
+        spotifyOverlayY = saved.spotifyOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
         lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
         if (saved.elementTrackerTargets != null) {
@@ -669,6 +687,13 @@ public final class HaConfig {
         root.addProperty("subSkillTimerCooldownSeconds", subSkillTimerCooldownSeconds);
         root.addProperty("subSkillTimerOverlayX", subSkillTimerOverlayX);
         root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
+        root.addProperty("ritualBookTimerEnabled", ritualBookTimerEnabled);
+        root.addProperty("ritualBookTimerSlim", ritualBookTimerSlim);
+        root.addProperty("ritualBookTimerOverlayX", ritualBookTimerOverlayX);
+        root.addProperty("ritualBookTimerOverlayY", ritualBookTimerOverlayY);
+        root.addProperty("spotifyEnabled", spotifyEnabled);
+        root.addProperty("spotifyOverlayX", spotifyOverlayX);
+        root.addProperty("spotifyOverlayY", spotifyOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
@@ -1204,6 +1229,13 @@ public final class HaConfig {
         double subSkillTimerCooldownSeconds = 10.0D;
         int subSkillTimerOverlayX = 8;
         int subSkillTimerOverlayY = 200;
+        boolean ritualBookTimerEnabled = false;
+        boolean ritualBookTimerSlim = false;
+        int ritualBookTimerOverlayX = 8;
+        int ritualBookTimerOverlayY = 232;
+        boolean spotifyEnabled = false;
+        int spotifyOverlayX = 8;
+        int spotifyOverlayY = 264;
         boolean chatFilterEnabled = false;
         Set<Integer> lockedSlotIds = new HashSet<Integer>();
         List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
