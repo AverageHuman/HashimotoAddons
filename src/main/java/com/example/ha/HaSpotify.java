@@ -1,9 +1,5 @@
 package com.example.ha;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,27 +7,20 @@ import java.io.InputStreamReader;
 import java.util.Base64;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 
 public final class HaSpotify {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int POLL_INTERVAL_TICKS = 20;
     private static final long COMMAND_TIMEOUT_MILLIS = 3000L;
     private static final String PROCESS_NAME = "Spotify";
     private static final String CHROME_AUMID_TOKEN = "chrome";
-    private static final Path DEBUG_DIR = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("Spotify debug");
     private static final ExecutorService POLLER = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable runnable) {
@@ -95,7 +84,9 @@ public final class HaSpotify {
 
     private static TrackInfo detectCurrentTrack() {
         TrackInfo spotifyTrack = detectSpotifyTrack();
-        if (spotifyTrack.isPlaying() || !HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+        if (spotifyTrack.isPlaying()
+            || !HaBuildFlags.DANGEROUS_FEATURES_ENABLED
+            || !HaConfig.get().spotifyChromeDetectionEnabled) {
             return spotifyTrack;
         }
 
@@ -297,149 +288,6 @@ public final class HaSpotify {
             "    $message = $message.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
             "    Write-Output ('__HA_CHROME_ERROR__`t' + $message)",
             "}");
-    }
-
-    public static String getDebugSummary() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Current track: ");
-        builder.append(currentTrack == null ? "null" : currentTrack.getFullText());
-        builder.append('\n');
-        builder.append("Variant: ");
-        builder.append(HaBuildFlags.VARIANT);
-        builder.append('\n');
-        builder.append("Spotify debug lines:");
-        appendLines(builder, lastSpotifyDebugLines);
-        builder.append('\n');
-        builder.append("Chrome debug lines:");
-        appendLines(builder, lastChromeDebugLines);
-        return builder.toString();
-    }
-
-    public static String getChatDebugSummary() {
-        int sessionCount = 0;
-        int matchedCount = 0;
-        int errorCount = 0;
-        int spotifyTitleCount = 0;
-        boolean spotifyCommandOk = false;
-        List<String> spotifyLines = lastSpotifyDebugLines;
-        if (spotifyLines != null) {
-            for (String line : spotifyLines) {
-                if ("__HA_QUERY_OK__".equals(line)) {
-                    spotifyCommandOk = true;
-                } else {
-                    spotifyTitleCount++;
-                }
-            }
-        }
-        List<String> lines = lastChromeDebugLines;
-        if (lines != null) {
-            for (String line : lines) {
-                if (line.startsWith("__HA_CHROME_SESSION__")) {
-                    sessionCount++;
-                } else if (line.startsWith("__HA_CHROME__")) {
-                    matchedCount++;
-                } else if (line.startsWith("__HA_CHROME_ERROR__")) {
-                    errorCount++;
-                }
-            }
-        }
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("track=");
-        builder.append(currentTrack == null ? "null" : summarizeTrack(currentTrack));
-        builder.append(" variant=");
-        builder.append(HaBuildFlags.VARIANT);
-        builder.append(" spotifyQuery=");
-        builder.append(spotifyCommandOk ? "ok" : "fail");
-        builder.append(" spotifyTitles=");
-        builder.append(spotifyTitleCount);
-        builder.append(" sessions=");
-        builder.append(sessionCount);
-        builder.append(" matched=");
-        builder.append(matchedCount);
-        builder.append(" errors=");
-        builder.append(errorCount);
-        if (errorCount > 0 && lines != null) {
-            for (String line : lines) {
-                if (line.startsWith("__HA_CHROME_ERROR__")) {
-                    builder.append(" firstError=");
-                    builder.append(sanitizeForChat(line.substring("__HA_CHROME_ERROR__".length())));
-                    break;
-                }
-            }
-        }
-        return builder.toString();
-    }
-
-    public static String saveDebugSummaryToFile() {
-        try {
-            Files.createDirectories(DEBUG_DIR);
-            String fileName = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS").format(new Date()) + ".json";
-            Path outputFile = DEBUG_DIR.resolve(fileName);
-            JsonObject root = new JsonObject();
-            root.addProperty("savedAt", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
-            root.addProperty("variant", HaBuildFlags.VARIANT);
-            root.addProperty("currentTrack", currentTrack == null ? "null" : currentTrack.getFullText());
-            root.addProperty("chatSummary", getChatDebugSummary());
-            root.add("spotifyDebugLines", toJsonArray(lastSpotifyDebugLines));
-            root.add("chromeDebugLines", toJsonArray(lastChromeDebugLines));
-            Files.write(outputFile, GSON.toJson(root).getBytes(StandardCharsets.UTF_8));
-            return outputFile.toString();
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static JsonArray toJsonArray(List<String> lines) {
-        JsonArray array = new JsonArray();
-        if (lines == null) {
-            return array;
-        }
-        for (String line : lines) {
-            array.add(line == null ? "" : line);
-        }
-        return array;
-    }
-
-    private static void appendLines(StringBuilder builder, List<String> lines) {
-        if (lines == null || lines.isEmpty()) {
-            builder.append("\n(none)");
-            return;
-        }
-        for (String line : lines) {
-            builder.append('\n').append(line);
-        }
-    }
-
-    private static String summarizeTrack(TrackInfo track) {
-        if (track == null) {
-            return "null";
-        }
-        if (!track.isPlaying()) {
-            return sanitizeForChat(track.title);
-        }
-        return sanitizeForChat(track.getPrefixText() + track.artist + " - " + track.title);
-    }
-
-    private static String sanitizeForChat(String value) {
-        String normalized = normalizeWindowTitle(value);
-        if (normalized.isEmpty()) {
-            return "(empty)";
-        }
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < normalized.length(); i++) {
-            char ch = normalized.charAt(i);
-            if (ch >= 32 && ch <= 126) {
-                builder.append(ch);
-            } else {
-                builder.append('?');
-            }
-        }
-        String text = builder.toString();
-        if (text.length() > 120) {
-            return text.substring(0, 120) + "...";
-        }
-        return text;
     }
 
     private static String normalizeWindowTitle(String value) {
