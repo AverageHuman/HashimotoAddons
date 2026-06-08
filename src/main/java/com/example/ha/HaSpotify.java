@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,7 +19,7 @@ import net.minecraft.client.MinecraftClient;
 
 public final class HaSpotify {
     private static final int POLL_INTERVAL_TICKS = 20;
-    private static final long COMMAND_TIMEOUT_MILLIS = 1500L;
+    private static final long COMMAND_TIMEOUT_MILLIS = 3000L;
     private static final String PROCESS_NAME = "Spotify";
     private static final String CHROME_AUMID_TOKEN = "chrome";
     private static final ExecutorService POLLER = Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -32,6 +34,7 @@ public final class HaSpotify {
     private static final TrackInfo PAUSED_TRACK = TrackInfo.special("Paused", TrackState.PAUSED);
     private static final TrackInfo NOT_OPEN_TRACK = TrackInfo.special("None(maybe not open)", TrackState.NOT_OPEN);
     private static volatile TrackInfo currentTrack = NOT_OPEN_TRACK;
+    private static volatile List<String> lastChromeDebugLines = new ArrayList<String>();
     private static volatile boolean pollInFlight;
     private static int pollCooldownTicks;
 
@@ -111,6 +114,7 @@ public final class HaSpotify {
 
     private static TrackInfo detectChromeTrack() {
         List<String> lines = runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-Command", buildChromeMediaScript());
+        lastChromeDebugLines = new ArrayList<String>(lines);
         for (String line : lines) {
             TrackInfo info = parseChromeMediaLine(line);
             if (info != null) {
@@ -233,28 +237,60 @@ public final class HaSpotify {
             + "[Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null; "
             + "function haAwait($op, [Type]$resultType) { "
             + "$method = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethodDefinition -and $_.GetParameters().Length -eq 1 } | Select-Object -First 1; "
-            + "if ($null -eq $method) { return $null }; "
+            + "if ($null -eq $method) { Write-Output '__HA_CHROME_ERROR__`tAS_TASK_MISSING'; return $null }; "
             + "$generic = $method.MakeGenericMethod($resultType); "
             + "$task = $generic.Invoke($null, @($op)); "
             + "return $task.GetAwaiter().GetResult(); "
             + "}; "
             + "$manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); "
-            + "if ($null -eq $manager) { exit }; "
+            + "if ($null -eq $manager) { Write-Output '__HA_CHROME_ERROR__`tNO_MANAGER'; exit }; "
             + "foreach ($session in $manager.GetSessions()) { "
             + "$source = $session.SourceAppUserModelId; "
-            + "if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }; "
             + "$playbackInfo = $session.GetPlaybackInfo(); "
-            + "if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }; "
-            + "$props = haAwait ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.GlobalSystemMediaTransportControlsSessionMediaProperties]); "
-            + "if ($null -eq $props) { continue }; "
+            + "$status = if ($null -eq $playbackInfo) { 'Unknown' } else { $playbackInfo.PlaybackStatus.ToString() }; "
+            + "$op = $session.TryGetMediaPropertiesAsync(); "
+            + "$resultType = $op.GetType().GenericTypeArguments[0]; "
+            + "$props = haAwait $op $resultType; "
             + "$artist = [string]$props.Artist; "
             + "$title = [string]$props.Title; "
-            + "if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }; "
             + "$artist = $artist.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
             + "$title = $title.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' '); "
+            + "Write-Output ('__HA_CHROME_SESSION__' + \"`t\" + $source + \"`t\" + $status + \"`t\" + $artist + \"`t\" + $title); "
+            + "if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }; "
+            + "if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }; "
+            + "if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }; "
             + "Write-Output ('__HA_CHROME__' + \"`t\" + $artist + \"`t\" + $title); "
             + "} "
-            + "} catch { }";
+            + "} catch { Write-Output ('__HA_CHROME_ERROR__`t' + $_.Exception.Message.Replace(\"`t\", ' ').Replace(\"`r\", ' ').Replace(\"`n\", ' ')) }";
+    }
+
+    public static String getDebugSummary() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Current track: ");
+        builder.append(currentTrack == null ? "null" : currentTrack.getFullText());
+        builder.append('\n');
+        builder.append("Variant: ");
+        builder.append(HaBuildFlags.VARIANT);
+        builder.append('\n');
+        builder.append("Chrome debug lines:");
+        List<String> lines = lastChromeDebugLines;
+        if (lines == null || lines.isEmpty()) {
+            builder.append("\n(none)");
+        } else {
+            for (String line : lines) {
+                builder.append('\n').append(line);
+            }
+        }
+        return builder.toString();
+    }
+
+    public static boolean copyDebugSummaryToClipboard() {
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(getDebugSummary()), null);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static String normalizeWindowTitle(String value) {

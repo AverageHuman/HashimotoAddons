@@ -73,6 +73,10 @@ public final class HaClientMod implements ClientModInitializer {
                         .executes(context -> markExpDebugLog(StringArgumentType.getString(context, "label")))))
                 .then(ClientCommandManager.literal("copy")
                     .executes(context -> copyExpDebugLog())))
+            .then(ClientCommandManager.literal("spotifydebug")
+                .executes(context -> showSpotifyDebug())
+                .then(ClientCommandManager.literal("copy")
+                    .executes(context -> copySpotifyDebug())))
             .then(ClientCommandManager.literal("tracker")
                 .then(ClientCommandManager.literal("add")
                     .executes(context -> registerHeldTrackerItem(0L))
@@ -129,6 +133,21 @@ public final class HaClientMod implements ClientModInitializer {
         HaExpTracker.clearDebugLog();
         sendMessage("Cleared Exp Tracker debug log and inserted a reset marker.");
         return 1;
+    }
+
+    private int showSpotifyDebug() {
+        String summary = HaSpotify.getDebugSummary().replace('\r', ' ').replace('\n', ' ');
+        sendMessage("Spotify debug: " + summary);
+        return 1;
+    }
+
+    private int copySpotifyDebug() {
+        if (HaSpotify.copyDebugSummaryToClipboard()) {
+            sendMessage("Copied Spotify debug log to clipboard.");
+            return 1;
+        }
+        sendMessage("\u00a7cCould not copy Spotify debug log.");
+        return 0;
     }
 
     private int markExpDebugLog(String label) {
