@@ -140,6 +140,7 @@ public final class HaConfig {
     public int subSkillTimerOverlayY = 200;
     public boolean ritualBookTimerEnabled = false;
     public boolean ritualBookTimerSlim = false;
+    public int ritualBookTimerSoundVolume = 100;
     public int ritualBookTimerOverlayX = 8;
     public int ritualBookTimerOverlayY = 232;
     public boolean spotifyEnabled = false;
@@ -248,6 +249,7 @@ public final class HaConfig {
         subSkillTimerOverlayX = Math.max(0, subSkillTimerOverlayX);
         subSkillTimerOverlayY = Math.max(0, subSkillTimerOverlayY);
         subSkillTimerCooldownSeconds = clamp(subSkillTimerCooldownSeconds, 0.1D, 3600.0D);
+        ritualBookTimerSoundVolume = clamp(ritualBookTimerSoundVolume, 0, 100);
         ritualBookTimerOverlayX = Math.max(0, ritualBookTimerOverlayX);
         ritualBookTimerOverlayY = Math.max(0, ritualBookTimerOverlayY);
         spotifyOverlayX = Math.max(0, spotifyOverlayX);
@@ -460,6 +462,7 @@ public final class HaConfig {
         subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
         ritualBookTimerEnabled = saved.ritualBookTimerEnabled;
         ritualBookTimerSlim = saved.ritualBookTimerSlim;
+        ritualBookTimerSoundVolume = saved.ritualBookTimerSoundVolume;
         ritualBookTimerOverlayX = saved.ritualBookTimerOverlayX;
         ritualBookTimerOverlayY = saved.ritualBookTimerOverlayY;
         spotifyEnabled = saved.spotifyEnabled;
@@ -691,6 +694,7 @@ public final class HaConfig {
         root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
         root.addProperty("ritualBookTimerEnabled", ritualBookTimerEnabled);
         root.addProperty("ritualBookTimerSlim", ritualBookTimerSlim);
+        root.addProperty("ritualBookTimerSoundVolume", ritualBookTimerSoundVolume);
         root.addProperty("ritualBookTimerOverlayX", ritualBookTimerOverlayX);
         root.addProperty("ritualBookTimerOverlayY", ritualBookTimerOverlayY);
         root.addProperty("spotifyEnabled", spotifyEnabled);
@@ -1234,6 +1238,7 @@ public final class HaConfig {
         int subSkillTimerOverlayY = 200;
         boolean ritualBookTimerEnabled = false;
         boolean ritualBookTimerSlim = false;
+        int ritualBookTimerSoundVolume = 100;
         int ritualBookTimerOverlayX = 8;
         int ritualBookTimerOverlayY = 232;
         boolean spotifyEnabled = false;

@@ -120,7 +120,8 @@ public final class HaRitualBookTimer {
 
     public static void playReadySound(MinecraftClient client) {
         if (client != null && client.player != null) {
-            client.player.playSound(HaSounds.RITUAL_TIMER_READY, SoundCategory.MASTER, 1.0F, 1.0F);
+            float volume = HaConfig.get().ritualBookTimerSoundVolume / 100.0F;
+            client.player.playSound(HaSounds.RITUAL_TIMER_READY, SoundCategory.MASTER, volume, 1.0F);
         }
     }
 

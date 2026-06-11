@@ -2,6 +2,7 @@ package com.example.ha;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
@@ -36,11 +37,13 @@ public final class HaRitualBookTimerScreen extends Screen {
             refreshButtons();
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 56, 210, 20, new LiteralText("Test Ready Sound"), button -> {
+        addButton(new SoundVolumeSlider(centerX - 105, top + 56, 210, 20, config));
+
+        addButton(new ButtonWidget(centerX - 105, top + 84, 210, 20, new LiteralText("Test Ready Sound"), button -> {
             HaRitualBookTimer.playReadySound(client);
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 84, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
+        addButton(new ButtonWidget(centerX - 105, top + 112, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
             if (client != null) {
                 client.openScreen(new HaRitualBookTimerOverlayScreen(this));
             }
@@ -71,5 +74,27 @@ public final class HaRitualBookTimerScreen extends Screen {
 
     private static String onOff(boolean value) {
         return value ? "\u00a7aEnabled" : "\u00a7cDisabled";
+    }
+
+    private static final class SoundVolumeSlider extends SliderWidget {
+        private final HaConfig config;
+
+        SoundVolumeSlider(int x, int y, int width, int height, HaConfig config) {
+            super(x, y, width, height, new LiteralText(""), config.ritualBookTimerSoundVolume / 100.0D);
+            this.config = config;
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            setMessage(new LiteralText("Ready Sound Volume: " + config.ritualBookTimerSoundVolume + "%"));
+        }
+
+        @Override
+        protected void applyValue() {
+            config.ritualBookTimerSoundVolume = (int) Math.round(value * 100.0D);
+            config.normalize();
+            config.save();
+        }
     }
 }
