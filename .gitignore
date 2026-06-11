@@ -16,6 +16,8 @@ Thumbs.db
 # Runtime logs and temporary files
 *.log
 *.tmp
+__pycache__/
+*.py[cod]
 
 # Local handoff notes
 session_notes.md

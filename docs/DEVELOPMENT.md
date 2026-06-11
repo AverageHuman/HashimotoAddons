@@ -14,7 +14,18 @@
 .\gradle-9.4.1\bin\gradle.bat build -PhaVariant=safe
 ```
 
-The local Gradle distribution is currently ignored and is not a reproducible repository dependency. Introducing Gradle Wrapper and CI remains tracked technical debt.
+The local Gradle distribution is currently ignored and is not a reproducible repository dependency. Introducing Gradle Wrapper remains tracked technical debt.
+
+## Continuous Integration
+
+GitHub Actions runs for pushes to `main` and `codex/**`, pull requests, and manual dispatches. CI performs:
+
+- repository-owned Codex Skill validation
+- a Full build using Java 17 and Gradle 9.4.1
+- a Safe build using Java 17 and Gradle 9.4.1
+- upload of non-dev Jar artifacts for 14 days
+
+Workflow: `.github/workflows/ci.yml`
 
 ## Completion
 

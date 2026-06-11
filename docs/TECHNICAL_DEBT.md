@@ -21,8 +21,9 @@
 
 - Priority: High
 - Area: Tooling
-- Problem: The repository has no unit-test suite, CI workflow, or static analysis gate.
-- Desired state: Start with pure Java logic tests, then add Safe/Full builds and static checks to CI.
+- Progress: GitHub Actions now validates repository-owned Skills and builds Safe and Full independently.
+- Remaining problem: The repository still has no unit-test suite or static analysis gate.
+- Desired state: Add pure Java logic tests and then introduce static checks without blocking development on legacy findings.
 
 ## TD-004: Non-reproducible build entrypoint
 
