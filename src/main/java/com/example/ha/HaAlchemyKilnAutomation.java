@@ -51,6 +51,7 @@ public final class HaAlchemyKilnAutomation {
     private static boolean materialsMissingReceived;
     private static boolean protectMarkedItemWithOffhand;
     private static boolean markedItemMovedToOffhand;
+    private static boolean restoreOriginalHotbarOnReset = true;
     private static String latestHudMessage = "";
     private static long latestHudMessageTick = -1L;
 
@@ -87,6 +88,7 @@ public final class HaAlchemyKilnAutomation {
         ticketUseAttempts = 0;
         waitingForGoldIncrease = false;
         materialsMissingReceived = false;
+        restoreOriginalHotbarOnReset = true;
         sendClientMessage(client, "\u00a7aAlchemy Kiln Assist started.");
         tick(client, config);
     }
@@ -276,7 +278,7 @@ public final class HaAlchemyKilnAutomation {
 
     private static void tickWaitingKilnGui(MinecraftClient client, HaConfig config) {
         if (timedOut(client, KILN_WAIT_TIMEOUT_TICKS)) {
-            fail(client, "\u00a7cTimed out waiting for the 錬金釜 GUI.");
+            failWithoutRestoring(client, "\u00a7cTimed out waiting for the 錬金釜 GUI.");
             return;
         }
         if (client.currentScreen == null) {
@@ -284,11 +286,11 @@ public final class HaAlchemyKilnAutomation {
         }
         GenericContainerScreenHandler handler = getGenericContainerHandler(client);
         if (handler == null) {
-            fail(client, "\u00a7cUnexpected screen opened after clicking 錬金釜.");
+            failWithoutRestoring(client, "\u00a7cUnexpected screen opened after clicking 錬金釜.");
             return;
         }
         if (!isKilnScreenTitle(client.currentScreen.getTitle().getString())) {
-            fail(client, "\u00a7cDid not reach the 錬金釜 (1/1) GUI.");
+            failWithoutRestoring(client, "\u00a7cDid not reach the 錬金釜 (1/1) GUI.");
             return;
         }
         enterCraftStage(client, config, State.CRAFTING_STAGE_ONE, getClickIntervalTicks(config) * 3);
@@ -297,11 +299,11 @@ public final class HaAlchemyKilnAutomation {
     private static void tickCrafting(MinecraftClient client, HaConfig config, String expectedPartialName, boolean stageOne) {
         GenericContainerScreenHandler handler = getGenericContainerHandler(client);
         if (handler == null) {
-            fail(client, "\u00a7cAlchemy Kiln GUI was closed.");
+            failWithoutRestoring(client, "\u00a7cAlchemy Kiln GUI was closed.");
             return;
         }
         if (!isKilnScreenTitle(client.currentScreen.getTitle().getString())) {
-            fail(client, "\u00a7cUnexpected GUI while crafting.");
+            failWithoutRestoring(client, "\u00a7cUnexpected GUI while crafting.");
             return;
         }
         if (materialsMissingReceived) {
@@ -321,7 +323,7 @@ public final class HaAlchemyKilnAutomation {
                 waitingForGoldIncrease = false;
                 lastGoldCount = currentGoldCount;
             } else if (now - stateStartTick > CRAFT_RESULT_TIMEOUT_TICKS) {
-                fail(client, "\u00a7cTimed out waiting for " + GOLD_NAME + " to increase.");
+                failWithoutRestoring(client, "\u00a7cTimed out waiting for " + GOLD_NAME + " to increase.");
             }
             return;
         }
@@ -334,7 +336,7 @@ public final class HaAlchemyKilnAutomation {
         }
         int targetSlotIndex = findContainerSlotContaining(handler, expectedPartialName);
         if (targetSlotIndex < 0) {
-            fail(client, "\u00a7cCould not find a crafting option containing " + expectedPartialName + ".");
+            failWithoutRestoring(client, "\u00a7cCould not find a crafting option containing " + expectedPartialName + ".");
             return;
         }
         if (!clickContainerSlotByIndex(client, targetSlotIndex, expectedPartialName)) {
@@ -510,11 +512,16 @@ public final class HaAlchemyKilnAutomation {
         stop(client, reason);
     }
 
+    private static void failWithoutRestoring(MinecraftClient client, String reason) {
+        restoreOriginalHotbarOnReset = false;
+        fail(client, reason);
+    }
+
     private static void reset(MinecraftClient client) {
-        if (client != null && client.player != null && markedItemMovedToOffhand && originalHotbarSlot >= 0 && originalHotbarSlot <= 8) {
+        if (restoreOriginalHotbarOnReset && client != null && client.player != null && markedItemMovedToOffhand && originalHotbarSlot >= 0 && originalHotbarSlot <= 8) {
             selectHotbarSlot(client, originalHotbarSlot);
             swapWithOffhand(client);
-        } else if (client != null && client.player != null && originalHotbarSlot >= 0 && originalHotbarSlot <= 8) {
+        } else if (restoreOriginalHotbarOnReset && client != null && client.player != null && originalHotbarSlot >= 0 && originalHotbarSlot <= 8) {
             selectHotbarSlot(client, originalHotbarSlot);
         }
         state = State.IDLE;
@@ -531,6 +538,7 @@ public final class HaAlchemyKilnAutomation {
         materialsMissingReceived = false;
         protectMarkedItemWithOffhand = false;
         markedItemMovedToOffhand = false;
+        restoreOriginalHotbarOnReset = true;
     }
 
     private static int getClickIntervalTicks(HaConfig config) {
