@@ -20,3 +20,9 @@ Thumbs.db
 # Local handoff notes
 session_notes.md
 session_notes_*.md
+session_handoff_*.md
+handoff_rules.md
+handoff*.md
+
+# Volatile Codex session state
+.codex/CURRENT_STATE.md

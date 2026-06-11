@@ -1,0 +1,4 @@
+interface:
+  display_name: "HashimotoAddons Development"
+  short_description: "Develop and maintain HashimotoAddons consistently"
+  default_prompt: "Use $hashimotoaddons-development to plan, implement, verify, and hand off this HashimotoAddons change."
