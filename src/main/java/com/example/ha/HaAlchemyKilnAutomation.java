@@ -448,6 +448,12 @@ public final class HaAlchemyKilnAutomation {
                 return slot;
             }
         }
+        for (int slot = 0; slot < 9; slot++) {
+            ItemStack stack = player.inventory.getStack(slot);
+            if (!stack.isEmpty() && SUPER_KILN_TICKET_NAME.equals(normalize(stack.getName().getString()))) {
+                return slot;
+            }
+        }
         return -1;
     }
 
@@ -474,7 +480,8 @@ public final class HaAlchemyKilnAutomation {
         if (mainHandStack == null || mainHandStack.isEmpty() || expectedStack == null || expectedStack.isEmpty()) {
             return false;
         }
-        return TICKET_NAME.equals(normalize(mainHandStack.getName().getString()))
+        String normalizedName = normalize(mainHandStack.getName().getString());
+        return (TICKET_NAME.equals(normalizedName) || SUPER_KILN_TICKET_NAME.equals(normalizedName))
             && mainHandStack == expectedStack;
     }
 
