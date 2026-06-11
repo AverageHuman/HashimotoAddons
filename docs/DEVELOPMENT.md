@@ -21,8 +21,8 @@ The local Gradle distribution is currently ignored and is not a reproducible rep
 GitHub Actions runs for pushes to `main` and `codex/**`, pull requests, and manual dispatches. CI performs:
 
 - repository-owned Codex Skill validation
-- a Full build using Java 17 and Gradle 9.4.1
-- a Safe build using Java 17 and Gradle 9.4.1
+- a Full build using Java 21 and Gradle 9.4.1
+- a Safe build using Java 21 and Gradle 9.4.1
 - upload of non-dev Jar artifacts for 14 days
 
 Workflow: `.github/workflows/ci.yml`
