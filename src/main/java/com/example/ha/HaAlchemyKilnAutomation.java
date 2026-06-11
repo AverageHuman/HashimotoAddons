@@ -22,6 +22,8 @@ public final class HaAlchemyKilnAutomation {
     private static final String KILN_SCREEN_TITLE = "錬金釜 (1/1)";
     private static final String GOLD_NAME = "とこしえの金塊";
     private static final String MATERIALS_MISSING_MESSAGE = "このアイテムの製作に必要な素材が揃っていません。";
+    private static final String SUPER_KILN_TICKET_NAME = "超高性能錬金釜チケット";
+    private static final String SUPER_KILN_SCREEN_TITLE = "超高性能錬金釜";
     private static final int SHORTCUT_WAIT_TIMEOUT_TICKS = 60;
     private static final int KILN_WAIT_TIMEOUT_TICKS = 60;
     private static final int CRAFT_RESULT_TIMEOUT_TICKS = 200;
@@ -249,7 +251,12 @@ public final class HaAlchemyKilnAutomation {
             fail(client, "\u00a7cUnexpected screen opened after using the shortcut ticket.");
             return;
         }
-        kilnEntrySlotIndex = findContainerSlotByName(handler, KILN_ENTRY_NAME);
+        int superKilnTicketSlotIndex = findContainerSlotByNameAnywhere(handler, SUPER_KILN_TICKET_NAME);
+        if (superKilnTicketSlotIndex >= 0) {
+            kilnEntrySlotIndex = superKilnTicketSlotIndex;
+        } else {
+            kilnEntrySlotIndex = findContainerSlotByName(handler, KILN_ENTRY_NAME);
+        }
         if (kilnEntrySlotIndex < 0) {
             fail(client, "\u00a7cShortcut GUI did not contain the expected 錬金釜 item.");
             return;
@@ -280,7 +287,7 @@ public final class HaAlchemyKilnAutomation {
             fail(client, "\u00a7cUnexpected screen opened after clicking 錬金釜.");
             return;
         }
-        if (!KILN_SCREEN_TITLE.equals(normalize(client.currentScreen.getTitle().getString()))) {
+        if (!isKilnScreenTitle(client.currentScreen.getTitle().getString())) {
             fail(client, "\u00a7cDid not reach the 錬金釜 (1/1) GUI.");
             return;
         }
@@ -293,7 +300,7 @@ public final class HaAlchemyKilnAutomation {
             fail(client, "\u00a7cAlchemy Kiln GUI was closed.");
             return;
         }
-        if (!KILN_SCREEN_TITLE.equals(normalize(client.currentScreen.getTitle().getString()))) {
+        if (!isKilnScreenTitle(client.currentScreen.getTitle().getString())) {
             fail(client, "\u00a7cUnexpected GUI while crafting.");
             return;
         }
@@ -401,6 +408,24 @@ public final class HaAlchemyKilnAutomation {
             }
         }
         return -1;
+    }
+
+    private static int findContainerSlotByNameAnywhere(GenericContainerScreenHandler handler, String expectedName) {
+        if (handler == null || expectedName == null || expectedName.isEmpty()) {
+            return -1;
+        }
+        for (int slotIndex = 0; slotIndex < handler.slots.size(); slotIndex++) {
+            ItemStack stack = handler.slots.get(slotIndex).getStack();
+            if (!stack.isEmpty() && expectedName.equals(normalize(stack.getName().getString()))) {
+                return slotIndex;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isKilnScreenTitle(String title) {
+        String normalized = normalize(title);
+        return normalized.contains(KILN_SCREEN_TITLE) || normalized.contains(SUPER_KILN_SCREEN_TITLE);
     }
 
     private static GenericContainerScreenHandler getGenericContainerHandler(MinecraftClient client) {
