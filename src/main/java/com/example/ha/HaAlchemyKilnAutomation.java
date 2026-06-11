@@ -22,7 +22,7 @@ public final class HaAlchemyKilnAutomation {
     private static final String KILN_SCREEN_TITLE = "錬金釜 (1/1)";
     private static final String GOLD_NAME = "とこしえの金塊";
     private static final String MATERIALS_MISSING_MESSAGE = "このアイテムの製作に必要な素材が揃っていません。";
-    private static final String SUPER_KILN_TICKET_NAME = "超高性能錬金釜チケット";
+    private static final String SUPER_KILN_TICKET_NAME = "超高性能錬金釜アクセスチケット";
     private static final String SUPER_KILN_SCREEN_TITLE = "超高性能錬金釜";
     private static final int SHORTCUT_WAIT_TIMEOUT_TICKS = 60;
     private static final int KILN_WAIT_TIMEOUT_TICKS = 60;
