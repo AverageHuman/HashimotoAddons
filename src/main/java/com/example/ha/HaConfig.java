@@ -512,9 +512,6 @@ public final class HaConfig {
             macroToggleScanCode = saved.macroToggleScanCode;
             macroToggleKeyType = saved.macroToggleKeyType;
             alchemyKilnAutomationEnabled = saved.alchemyKilnAutomationEnabled;
-            alchemyKilnAutomationKeyCode = saved.alchemyKilnAutomationKeyCode;
-            alchemyKilnAutomationScanCode = saved.alchemyKilnAutomationScanCode;
-            alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
             alchemyKilnAutomationClickIntervalTicks = saved.alchemyKilnAutomationClickIntervalTicks > 0 ? saved.alchemyKilnAutomationClickIntervalTicks : 4;
             macroStatusHudEnabled = saved.macroStatusHudEnabled;
             macroStatusHudX = saved.macroStatusHudX;
@@ -539,6 +536,9 @@ public final class HaConfig {
         gearViewKeyCode = saved.gearViewKeyCode;
         gearViewKeyScanCode = saved.gearViewKeyScanCode;
         gearViewKeyType = saved.gearViewKeyType;
+        alchemyKilnAutomationKeyCode = saved.alchemyKilnAutomationKeyCode;
+        alchemyKilnAutomationScanCode = saved.alchemyKilnAutomationScanCode;
+        alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
         mobEspEnabled = saved.mobEspEnabled;
             mobEspTargetName = saved.mobEspTargetName;
             afkFarmingEnabled = saved.afkFarmingEnabled;
@@ -720,9 +720,6 @@ public final class HaConfig {
             root.addProperty("macroToggleScanCode", macroToggleScanCode);
             root.addProperty("macroToggleKeyType", macroToggleKeyType);
             root.addProperty("alchemyKilnAutomationEnabled", alchemyKilnAutomationEnabled);
-            root.addProperty("alchemyKilnAutomationKeyCode", alchemyKilnAutomationKeyCode);
-            root.addProperty("alchemyKilnAutomationScanCode", alchemyKilnAutomationScanCode);
-            root.addProperty("alchemyKilnAutomationKeyType", alchemyKilnAutomationKeyType);
             root.addProperty("alchemyKilnAutomationClickIntervalTicks", alchemyKilnAutomationClickIntervalTicks);
             root.addProperty("macroStatusHudEnabled", macroStatusHudEnabled);
             root.addProperty("macroStatusHudX", macroStatusHudX);
@@ -744,6 +741,9 @@ public final class HaConfig {
         root.addProperty("gearViewKeyCode", gearViewKeyCode);
         root.addProperty("gearViewKeyScanCode", gearViewKeyScanCode);
         root.addProperty("gearViewKeyType", gearViewKeyType);
+        root.addProperty("alchemyKilnAutomationKeyCode", alchemyKilnAutomationKeyCode);
+        root.addProperty("alchemyKilnAutomationScanCode", alchemyKilnAutomationScanCode);
+        root.addProperty("alchemyKilnAutomationKeyType", alchemyKilnAutomationKeyType);
         root.addProperty("mobEspEnabled", mobEspEnabled);
             root.addProperty("mobEspTargetName", mobEspTargetName);
             root.addProperty("afkFarmingEnabled", afkFarmingEnabled);

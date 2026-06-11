@@ -178,6 +178,10 @@ public final class HaClientMod implements ClientModInitializer {
         }
         getOrCreateAlchemyKilnAutomationKeyBinding().setBoundKey(key);
         KeyBinding.updateKeysByCode();
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        if (client != null && client.options != null) {
+            client.options.write();
+        }
     }
 
     public static void updateCameraToggleBinding(InputUtil.Key key) {

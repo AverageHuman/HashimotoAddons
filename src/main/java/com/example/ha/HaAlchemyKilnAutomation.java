@@ -24,6 +24,8 @@ public final class HaAlchemyKilnAutomation {
     private static final String MATERIALS_MISSING_MESSAGE = "\u3053\u306e\u30a2\u30a4\u30c6\u30e0\u306e\u88fd\u4f5c\u306b\u5fc5\u8981\u306a\u7d20\u6750\u304c\u63c3\u3063\u3066\u3044\u307e\u305b\u3093\u3002";
     private static final String OFFHAND_PROTECT_MARKER = "\u2605[ 2 ]";
     private static final int PREPARE_DELAY_TICKS = 10;
+    private static final int TICKET_USE_SETTLE_TICKS = 2;
+    private static final int TICKET_USE_RETRY_TICKS = 4;
     private static final int GUI_WAIT_TIMEOUT_TICKS = 60;
     private static final int MIN_CLICK_INTERVAL_TICKS = 4;
     private static final int HUD_MARKER_RECENT_TICKS = 80;
@@ -33,6 +35,7 @@ public final class HaAlchemyKilnAutomation {
     private static int ticketHotbarSlot = -1;
     private static long stateStartTick;
     private static long lastCraftClickTick = -1L;
+    private static long lastTicketUseTick = -1L;
     private static boolean offhandSwapPerformed;
     private static boolean materialsMissingReceived;
     private static String latestHudMessage = "";
@@ -64,6 +67,7 @@ public final class HaAlchemyKilnAutomation {
         offhandSwapPerformed = false;
         materialsMissingReceived = false;
         lastCraftClickTick = -1L;
+        lastTicketUseTick = -1L;
 
         if (recentHudMessageHasOffhandProtectMarker(client)) {
             if (!swapWithOffhand(client)) {
@@ -163,7 +167,10 @@ public final class HaAlchemyKilnAutomation {
             fail(client, "\u00a7cSuper Alchemy Kiln access ticket was no longer in the selected hotbar slot.");
             return;
         }
-        ((MinecraftClientAccessor) client).ha$doItemUse();
+        if (client.world.getTime() - stateStartTick < TICKET_USE_SETTLE_TICKS) {
+            return;
+        }
+        useTicket(client);
         advanceState(client, State.WAITING_FOR_KILN_GUI);
     }
 
@@ -171,6 +178,14 @@ public final class HaAlchemyKilnAutomation {
         if (client.currentScreen == null) {
             if (timedOut(client, GUI_WAIT_TIMEOUT_TICKS)) {
                 fail(client, "\u00a7cTimed out waiting for the Super Alchemy Kiln GUI.");
+                return;
+            }
+            if (!isTicketInMainHand(client.player)) {
+                fail(client, "\u00a7cSuper Alchemy Kiln access ticket was no longer in the selected hotbar slot.");
+                return;
+            }
+            if (client.world.getTime() - lastTicketUseTick >= TICKET_USE_RETRY_TICKS) {
+                useTicket(client);
             }
             return;
         }
@@ -259,6 +274,11 @@ public final class HaAlchemyKilnAutomation {
             && TICKET_NAME.equals(normalize(player.getMainHandStack().getName().getString()));
     }
 
+    private static void useTicket(MinecraftClient client) {
+        ((MinecraftClientAccessor) client).ha$doItemUse();
+        lastTicketUseTick = client.world.getTime();
+    }
+
     private static int findContainerSlotByExactName(GenericContainerScreenHandler handler, String expectedName) {
         int containerSlotCount = Math.min(handler.getRows() * 9, handler.slots.size());
         for (int slotIndex = 0; slotIndex < containerSlotCount; slotIndex++) {
@@ -321,6 +341,7 @@ public final class HaAlchemyKilnAutomation {
         ticketHotbarSlot = -1;
         stateStartTick = 0L;
         lastCraftClickTick = -1L;
+        lastTicketUseTick = -1L;
         offhandSwapPerformed = false;
         materialsMissingReceived = false;
     }
