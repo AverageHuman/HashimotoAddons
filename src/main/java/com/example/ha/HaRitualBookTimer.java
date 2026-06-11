@@ -7,7 +7,6 @@ import java.util.List;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -116,8 +115,12 @@ public final class HaRitualBookTimer {
         }
         String label = getDisplayLabel(noun);
         client.inGameHud.setTitles(new LiteralText(label), new LiteralText("\u00a7e\u6642\u9593\u306b\u306a\u308a\u307e\u3057\u305f"), 5, 30, 10);
-        if (client.player != null) {
-            client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 1.0F, 1.0F);
+        playReadySound(client);
+    }
+
+    public static void playReadySound(MinecraftClient client) {
+        if (client != null && client.player != null) {
+            client.player.playSound(HaSounds.RITUAL_TIMER_READY, SoundCategory.MASTER, 1.0F, 1.0F);
         }
     }
 

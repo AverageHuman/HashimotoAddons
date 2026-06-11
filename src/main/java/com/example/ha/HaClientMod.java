@@ -26,6 +26,7 @@ public final class HaClientMod implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        HaSounds.register();
         HaConfig.get().load();
         KeyBinding macroBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateMacroToggleKeyBinding() : null;
         KeyBinding alchemyBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateAlchemyKilnAutomationKeyBinding() : null;

@@ -36,7 +36,11 @@ public final class HaRitualBookTimerScreen extends Screen {
             refreshButtons();
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 56, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
+        addButton(new ButtonWidget(centerX - 105, top + 56, 210, 20, new LiteralText("Test Ready Sound"), button -> {
+            HaRitualBookTimer.playReadySound(client);
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, top + 84, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
             if (client != null) {
                 client.openScreen(new HaRitualBookTimerOverlayScreen(this));
             }
