@@ -1,5 +1,7 @@
 package com.example.ha;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -15,6 +17,7 @@ import net.minecraft.util.Formatting;
 public final class HaRitualBookTimer {
     private static final String PURCHASE_PREFIX = "\u30a4\u30f3\u30bf\u30fc\u30b3\u30a4\u30f3\u30671\u500b\u306e";
     private static final String PURCHASE_SUFFIX = "\u306e\u5100\u5f0f\u66f8\u7269\u3092\u8cfc\u5165\u3057\u307e\u3057\u305f\u3002";
+    private static final String RITUAL_SOUND_PATH = "C:\\Users\\sasaki\\Downloads\\orb.mp3";
     private static final long TIMER_DURATION_MILLIS = 10L * 60L * 1000L + 10_000L;
     private static final int MAX_VISIBLE_TIMERS = 3;
     private static final long DUPLICATE_MESSAGE_WINDOW_MILLIS = 1500L;
@@ -59,6 +62,7 @@ public final class HaRitualBookTimer {
         lastProcessedMessage = text;
         lastProcessedAtMillis = now;
         ACTIVE_TIMERS.add(0, new RitualTimerEntry(noun, now + TIMER_DURATION_MILLIS));
+        notifyTimerStarted(MinecraftClient.getInstance());
     }
 
     public static void tick(MinecraftClient client, HaConfig config) {
@@ -118,6 +122,44 @@ public final class HaRitualBookTimer {
         client.inGameHud.setTitles(new LiteralText(label), new LiteralText("\u00a7e\u6642\u9593\u306b\u306a\u308a\u307e\u3057\u305f"), 5, 30, 10);
         if (client.player != null) {
             client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 1.0F, 1.0F);
+        }
+    }
+
+    private static void notifyTimerStarted(MinecraftClient client) {
+        if (client == null || client.player == null) {
+            return;
+        }
+        if (!playExternalRitualSound()) {
+            client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 1.0F, 1.0F);
+        }
+    }
+
+    private static boolean playExternalRitualSound() {
+        File audioFile = new File(RITUAL_SOUND_PATH);
+        if (!audioFile.isFile()) {
+            return false;
+        }
+
+        String escapedPath = audioFile.getAbsolutePath().replace("'", "''");
+        String script = "$player = New-Object System.Windows.Media.MediaPlayer; "
+            + "$player.Open([Uri]'" + escapedPath + "'); "
+            + "$player.Volume = 1.0; "
+            + "$player.Play(); "
+            + "Start-Sleep -Milliseconds 4000; "
+            + "$player.Close()";
+        try {
+            new ProcessBuilder(
+                "powershell.exe",
+                "-NoProfile",
+                "-Sta",
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                "Add-Type -AssemblyName PresentationCore; " + script
+            ).start();
+            return true;
+        } catch (IOException ignored) {
+            return false;
         }
     }
 
