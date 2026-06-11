@@ -143,6 +143,7 @@ public final class HaConfig {
     public int ritualBookTimerOverlayX = 8;
     public int ritualBookTimerOverlayY = 232;
     public boolean spotifyEnabled = false;
+    public boolean spotifyChromeDetectionEnabled = false;
     public int spotifyOverlayX = 8;
     public int spotifyOverlayY = 264;
     public boolean chatFilterEnabled = false;
@@ -462,6 +463,7 @@ public final class HaConfig {
         ritualBookTimerOverlayX = saved.ritualBookTimerOverlayX;
         ritualBookTimerOverlayY = saved.ritualBookTimerOverlayY;
         spotifyEnabled = saved.spotifyEnabled;
+        spotifyChromeDetectionEnabled = saved.spotifyChromeDetectionEnabled;
         spotifyOverlayX = saved.spotifyOverlayX;
         spotifyOverlayY = saved.spotifyOverlayY;
         chatFilterEnabled = saved.chatFilterEnabled;
@@ -692,6 +694,7 @@ public final class HaConfig {
         root.addProperty("ritualBookTimerOverlayX", ritualBookTimerOverlayX);
         root.addProperty("ritualBookTimerOverlayY", ritualBookTimerOverlayY);
         root.addProperty("spotifyEnabled", spotifyEnabled);
+        root.addProperty("spotifyChromeDetectionEnabled", spotifyChromeDetectionEnabled);
         root.addProperty("spotifyOverlayX", spotifyOverlayX);
         root.addProperty("spotifyOverlayY", spotifyOverlayY);
         root.addProperty("chatFilterEnabled", chatFilterEnabled);
@@ -1234,6 +1237,7 @@ public final class HaConfig {
         int ritualBookTimerOverlayX = 8;
         int ritualBookTimerOverlayY = 232;
         boolean spotifyEnabled = false;
+        boolean spotifyChromeDetectionEnabled = false;
         int spotifyOverlayX = 8;
         int spotifyOverlayY = 264;
         boolean chatFilterEnabled = false;

@@ -29,7 +29,13 @@ public final class HaSpotifyScreen extends Screen {
             button.setMessage(new LiteralText("Spotify: " + onOff(config.spotifyEnabled)));
         }));
 
-        addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
+        addButton(new ButtonWidget(centerX - 105, top + 28, 210, 20, new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)), button -> {
+            config.spotifyChromeDetectionEnabled = !config.spotifyChromeDetectionEnabled;
+            config.save();
+            button.setMessage(new LiteralText("Chrome Detection: " + onOff(config.spotifyChromeDetectionEnabled)));
+        }));
+
+        addButton(new ButtonWidget(centerX - 105, top + 56, 210, 20, new LiteralText("Adjust Overlay Position"), button -> {
             if (client != null) {
                 client.openScreen(new HaSpotifyOverlayScreen(this));
             }
@@ -42,7 +48,7 @@ public final class HaSpotifyScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 16, 0xFFFFFF);
-        drawCenteredText(matrices, this.textRenderer, new LiteralText("Shows the current Spotify desktop track in a slim HUD."), this.width / 2, 32, 0xA0A0A0);
+        drawCenteredText(matrices, this.textRenderer, new LiteralText(getDescriptionText()), this.width / 2, 32, 0xA0A0A0);
         super.render(matrices, mouseX, mouseY, delta);
     }
 
@@ -57,5 +63,9 @@ public final class HaSpotifyScreen extends Screen {
 
     private static String onOff(boolean value) {
         return value ? "\u00a7aEnabled" : "\u00a7cDisabled";
+    }
+
+    private static String getDescriptionText() {
+        return "Shows Spotify first, with optional Chrome media fallback.";
     }
 }

@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Base64;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,8 +18,9 @@ import net.minecraft.client.MinecraftClient;
 
 public final class HaSpotify {
     private static final int POLL_INTERVAL_TICKS = 20;
-    private static final long COMMAND_TIMEOUT_MILLIS = 1500L;
+    private static final long COMMAND_TIMEOUT_MILLIS = 3000L;
     private static final String PROCESS_NAME = "Spotify";
+    private static final String CHROME_AUMID_TOKEN = "chrome";
     private static final ExecutorService POLLER = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable runnable) {
@@ -31,6 +33,8 @@ public final class HaSpotify {
     private static final TrackInfo PAUSED_TRACK = TrackInfo.special("Paused", TrackState.PAUSED);
     private static final TrackInfo NOT_OPEN_TRACK = TrackInfo.special("None(maybe not open)", TrackState.NOT_OPEN);
     private static volatile TrackInfo currentTrack = NOT_OPEN_TRACK;
+    private static volatile List<String> lastSpotifyDebugLines = new ArrayList<String>();
+    private static volatile List<String> lastChromeDebugLines = new ArrayList<String>();
     private static volatile boolean pollInFlight;
     private static int pollCooldownTicks;
 
@@ -79,10 +83,25 @@ public final class HaSpotify {
     }
 
     private static TrackInfo detectCurrentTrack() {
+        TrackInfo spotifyTrack = detectSpotifyTrack();
+        if (spotifyTrack.isPlaying()
+            || !HaConfig.get().spotifyChromeDetectionEnabled) {
+            return spotifyTrack;
+        }
+
+        TrackInfo chromeTrack = detectChromeTrack();
+        if (chromeTrack != null) {
+            return chromeTrack;
+        }
+        return spotifyTrack;
+    }
+
+    private static TrackInfo detectSpotifyTrack() {
         WindowQueryResult result = queryWindowTitlesWithPowerShell();
-        if (!result.hasProcess) {
+        if (!result.commandSucceeded) {
             result = queryWindowTitlesWithTaskList();
         }
+        lastSpotifyDebugLines = new ArrayList<String>(result.debugLines);
         if (!result.hasProcess) {
             return NOT_OPEN_TRACK;
         }
@@ -95,21 +114,36 @@ public final class HaSpotify {
         return PAUSED_TRACK;
     }
 
+    private static TrackInfo detectChromeTrack() {
+        List<String> lines = runPowerShellScript(buildChromeMediaScript());
+        lastChromeDebugLines = new ArrayList<String>(lines);
+        for (String line : lines) {
+            TrackInfo info = parseChromeMediaLine(line);
+            if (info != null) {
+                return info;
+            }
+        }
+        return null;
+    }
+
     private static WindowQueryResult queryWindowTitlesWithPowerShell() {
         String script = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+            + "Write-Output '__HA_QUERY_OK__'; "
             + "$processes = Get-Process " + PROCESS_NAME + " -ErrorAction SilentlyContinue; "
             + "if (-not $processes) { Write-Output '__HA_NO_PROCESS__'; exit }; "
             + "Write-Output '__HA_PROCESS_FOUND__'; "
             + "$processes | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -ne 'N/A' } "
             + "| Select-Object -ExpandProperty MainWindowTitle";
         List<String> lines = runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-Command", script);
-        return WindowQueryResult.fromCommandLines(lines, "__HA_PROCESS_FOUND__", "__HA_NO_PROCESS__");
+        return WindowQueryResult.fromCommandLines(lines, "__HA_PROCESS_FOUND__", "__HA_NO_PROCESS__", "powershell");
     }
 
     private static WindowQueryResult queryWindowTitlesWithTaskList() {
         List<String> lines = runCommand(Charset.defaultCharset(), "tasklist", "/v", "/fo", "csv", "/fi", "imagename eq spotify.exe");
         List<String> titles = new ArrayList<String>();
         boolean hasProcess = false;
+        List<String> debugLines = new ArrayList<String>();
+        debugLines.add("__HA_QUERY_OK__");
         for (String line : lines) {
             List<String> fields = parseCsvLine(line);
             if (fields.size() < 9) {
@@ -120,11 +154,12 @@ public final class HaSpotify {
             }
             hasProcess = true;
             String title = fields.get(fields.size() - 1).trim();
+            debugLines.add("TASKLIST\t" + title);
             if (!title.isEmpty() && !"N/A".equalsIgnoreCase(title)) {
                 titles.add(title);
             }
         }
-        return new WindowQueryResult(hasProcess, titles);
+        return new WindowQueryResult(hasProcess, true, titles, debugLines, "tasklist");
     }
 
     private static List<String> runCommand(Charset charset, String... command) {
@@ -147,6 +182,11 @@ public final class HaSpotify {
                 process.destroy();
             }
         }
+    }
+
+    private static List<String> runPowerShellScript(String script) {
+        String encoded = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+        return runCommand(StandardCharsets.UTF_8, "powershell.exe", "-NoProfile", "-EncodedCommand", encoded);
     }
 
     private static List<String> readLines(InputStream inputStream, Charset charset) throws IOException {
@@ -179,6 +219,74 @@ public final class HaSpotify {
             return null;
         }
         return new TrackInfo(artist, songTitle);
+    }
+
+    private static TrackInfo parseChromeMediaLine(String line) {
+        if (line == null || !line.startsWith("__HA_CHROME__\t")) {
+            return null;
+        }
+
+        String[] fields = line.split("\t", 3);
+        if (fields.length < 3) {
+            return null;
+        }
+
+        String artist = normalizeWindowTitle(fields[1]);
+        String title = normalizeWindowTitle(fields[2]);
+        if (artist.isEmpty() || title.isEmpty()) {
+            return null;
+        }
+        return new TrackInfo(artist, title, TrackState.PLAYING, TrackSource.CHROME);
+    }
+
+    private static String buildChromeMediaScript() {
+        return String.join("\n",
+            "$ErrorActionPreference = 'SilentlyContinue'",
+            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
+            "try {",
+            "    Add-Type -AssemblyName System.Runtime.WindowsRuntime",
+            "    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null",
+            "    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null",
+            "    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType=WindowsRuntime] | Out-Null",
+            "    $asTaskMethods = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethodDefinition -and $_.GetParameters().Length -eq 1 }",
+            "    $asTaskMethod = $asTaskMethods | Select-Object -First 1",
+            "    if ($null -eq $asTaskMethod) { Write-Output '__HA_CHROME_ERROR__`tAS_TASK_MISSING'; exit }",
+            "    $managerTaskMethod = $asTaskMethod.MakeGenericMethod([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])",
+            "    $mediaPropsTaskMethod = $asTaskMethod.MakeGenericMethod([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])",
+            "    function haAwait($op, $taskMethod) {",
+            "        $task = $taskMethod.Invoke($null, @($op))",
+            "        if ($null -eq $task) { return $null }",
+            "        return $task.GetAwaiter().GetResult()",
+            "    }",
+            "    $manager = haAwait ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) $managerTaskMethod",
+            "    if ($null -eq $manager) { Write-Output '__HA_CHROME_ERROR__`tNO_MANAGER'; exit }",
+            "    $sessions = New-Object System.Collections.ArrayList",
+            "    $currentSession = $manager.GetCurrentSession()",
+            "    if ($null -ne $currentSession) { [void]$sessions.Add($currentSession) }",
+            "    foreach ($sessionItem in $manager.GetSessions()) {",
+            "        if ($sessions -notcontains $sessionItem) { [void]$sessions.Add($sessionItem) }",
+            "    }",
+            "    foreach ($session in $sessions) {",
+            "        $source = $session.SourceAppUserModelId",
+            "        $playbackInfo = $session.GetPlaybackInfo()",
+            "        $status = if ($null -eq $playbackInfo) { 'Unknown' } else { $playbackInfo.PlaybackStatus.ToString() }",
+            "        $props = haAwait ($session.TryGetMediaPropertiesAsync()) $mediaPropsTaskMethod",
+            "        $artist = [string]$props.Artist",
+            "        $title = [string]$props.Title",
+            "        $artist = $artist.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "        $title = $title.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "        Write-Output ('__HA_CHROME_SESSION__' + \"`t\" + $source + \"`t\" + $status + \"`t\" + $artist + \"`t\" + $title)",
+            "        if ([string]::IsNullOrWhiteSpace($source) -or $source.ToLowerInvariant().IndexOf('" + CHROME_AUMID_TOKEN + "') -lt 0) { continue }",
+            "        if ($null -eq $playbackInfo -or $playbackInfo.PlaybackStatus -ne [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing) { continue }",
+            "        if ([string]::IsNullOrWhiteSpace($artist) -or [string]::IsNullOrWhiteSpace($title)) { continue }",
+            "        Write-Output ('__HA_CHROME__' + \"`t\" + $artist + \"`t\" + $title)",
+            "    }",
+            "} catch {",
+            "    $message = $_.Exception.Message",
+            "    if ($null -eq $message) { $message = 'UNKNOWN_ERROR' }",
+            "    $message = $message.Replace('`t', ' ').Replace('`r', ' ').Replace('`n', ' ')",
+            "    Write-Output ('__HA_CHROME_ERROR__`t' + $message)",
+            "}");
     }
 
     private static String normalizeWindowTitle(String value) {
@@ -247,20 +355,25 @@ public final class HaSpotify {
         final String artist;
         final String title;
         final TrackState state;
+        final TrackSource source;
 
         TrackInfo(String artist, String title) {
-            this(artist, title, TrackState.PLAYING);
+            this(artist, title, TrackState.PLAYING, TrackSource.SPOTIFY);
         }
 
-        private TrackInfo(String artist, String title, TrackState state) {
+        private TrackInfo(String artist, String title, TrackState state, TrackSource source) {
             this.artist = sanitize(artist);
             this.title = sanitize(title);
             this.state = state == null ? TrackState.PLAYING : state;
+            this.source = source == null ? TrackSource.SPOTIFY : source;
         }
 
         String getArtistSegment() {
             if (state != TrackState.PLAYING) {
                 return "";
+            }
+            if (source == TrackSource.CHROME) {
+                return artist + " ";
             }
             return "[" + artist + "] ";
         }
@@ -280,15 +393,23 @@ public final class HaSpotify {
         }
 
         String getFullText() {
-            return "Spotify > " + getTrackInfoText();
+            return getPrefixText() + getTrackInfoText();
         }
 
         boolean isStatusText() {
             return state != TrackState.PLAYING;
         }
 
+        boolean isPlaying() {
+            return state == TrackState.PLAYING;
+        }
+
+        String getPrefixText() {
+            return source == TrackSource.CHROME ? "Google Chrome > " : "Spotify > ";
+        }
+
         static TrackInfo special(String text, TrackState state) {
-            return new TrackInfo("", text, state);
+            return new TrackInfo("", text, state, TrackSource.SPOTIFY);
         }
 
         private static String sanitize(String value) {
@@ -303,28 +424,47 @@ public final class HaSpotify {
         NOT_OPEN
     }
 
+    enum TrackSource {
+        SPOTIFY,
+        CHROME
+    }
+
     private static final class WindowQueryResult {
         final boolean hasProcess;
+        final boolean commandSucceeded;
         final List<String> titles;
+        final List<String> debugLines;
+        final String source;
 
-        WindowQueryResult(boolean hasProcess, List<String> titles) {
+        WindowQueryResult(boolean hasProcess, boolean commandSucceeded, List<String> titles, List<String> debugLines, String source) {
             this.hasProcess = hasProcess;
+            this.commandSucceeded = commandSucceeded;
             this.titles = titles == null ? new ArrayList<String>() : titles;
+            this.debugLines = debugLines == null ? new ArrayList<String>() : debugLines;
+            this.source = source == null ? "" : source;
         }
 
-        static WindowQueryResult fromCommandLines(List<String> lines, String foundMarker, String notFoundMarker) {
+        static WindowQueryResult fromCommandLines(List<String> lines, String foundMarker, String notFoundMarker, String source) {
             boolean hasProcess = false;
+            boolean commandSucceeded = false;
             List<String> titles = new ArrayList<String>();
+            List<String> debugLines = new ArrayList<String>();
             for (String line : lines) {
-                if (foundMarker.equals(line)) {
+                if ("__HA_QUERY_OK__".equals(line)) {
+                    commandSucceeded = true;
+                    debugLines.add(line);
+                } else if (foundMarker.equals(line)) {
                     hasProcess = true;
+                    debugLines.add(line);
                 } else if (notFoundMarker.equals(line)) {
                     hasProcess = false;
+                    debugLines.add(line);
                 } else if (!line.isEmpty()) {
                     titles.add(line);
+                    debugLines.add(line);
                 }
             }
-            return new WindowQueryResult(hasProcess, titles);
+            return new WindowQueryResult(hasProcess, commandSucceeded, titles, debugLines, source);
         }
     }
 }
