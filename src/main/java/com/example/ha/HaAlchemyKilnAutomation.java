@@ -23,7 +23,7 @@ public final class HaAlchemyKilnAutomation {
     private static final String STAGE_TWO_TARGET = "\u88fd\u4f5c \u3068\u3053\u3057\u3048\u306e\u91d1\u584a";
     private static final String MATERIALS_MISSING_MESSAGE = "\u3053\u306e\u30a2\u30a4\u30c6\u30e0\u306e\u88fd\u4f5c\u306b\u5fc5\u8981\u306a\u7d20\u6750\u304c\u63c3\u3063\u3066\u3044\u307e\u305b\u3093\u3002";
     private static final String OFFHAND_PROTECT_MARKER = "\u2605[ 2 ]";
-    private static final int PREPARE_DELAY_TICKS = 10;
+    private static final int ITEM_SWAP_DELAY_TICKS = 10;
     private static final int TICKET_USE_SETTLE_TICKS = 2;
     private static final int TICKET_USE_RETRY_TICKS = 4;
     private static final int GUI_WAIT_TIMEOUT_TICKS = 60;
@@ -37,6 +37,7 @@ public final class HaAlchemyKilnAutomation {
     private static long lastCraftClickTick = -1L;
     private static long lastTicketUseTick = -1L;
     private static boolean offhandSwapPerformed;
+    private static boolean offhandSwapRequired;
     private static boolean materialsMissingReceived;
     private static String latestHudMessage = "";
     private static long latestHudMessageTick = -1L;
@@ -65,19 +66,12 @@ public final class HaAlchemyKilnAutomation {
         originalHotbarSlot = client.player.inventory.selectedSlot;
         ticketHotbarSlot = -1;
         offhandSwapPerformed = false;
+        offhandSwapRequired = recentHudMessageHasOffhandProtectMarker(client);
         materialsMissingReceived = false;
         lastCraftClickTick = -1L;
         lastTicketUseTick = -1L;
 
-        if (recentHudMessageHasOffhandProtectMarker(client)) {
-            if (!swapWithOffhand(client)) {
-                fail(client, "\u00a7cCould not move the marked item to offhand.");
-                return;
-            }
-            offhandSwapPerformed = true;
-        }
-
-        advanceState(client, State.WAITING_BEFORE_TICKET);
+        advanceState(client, offhandSwapRequired ? State.WAITING_BEFORE_OFFHAND_SWAP : State.WAITING_BEFORE_TICKET);
         sendClientMessage(client, "\u00a7aAlchemy Kiln Assist started.");
     }
 
@@ -124,6 +118,9 @@ public final class HaAlchemyKilnAutomation {
         }
 
         switch (state) {
+            case WAITING_BEFORE_OFFHAND_SWAP:
+                tickWaitingBeforeOffhandSwap(client);
+                break;
             case WAITING_BEFORE_TICKET:
                 tickWaitingBeforeTicket(client);
                 break;
@@ -142,14 +139,32 @@ public final class HaAlchemyKilnAutomation {
             case FINISHING:
                 finish(client);
                 break;
+            case WAITING_BEFORE_RESTORE_SLOT:
+                tickWaitingBeforeRestoreSlot(client);
+                break;
+            case WAITING_BEFORE_RESTORE_OFFHAND:
+                tickWaitingBeforeRestoreOffhand(client);
+                break;
             case IDLE:
             default:
                 break;
         }
     }
 
+    private static void tickWaitingBeforeOffhandSwap(MinecraftClient client) {
+        if (client.world.getTime() - stateStartTick < ITEM_SWAP_DELAY_TICKS) {
+            return;
+        }
+        if (!swapWithOffhand(client)) {
+            fail(client, "\u00a7cCould not move the marked item to offhand.");
+            return;
+        }
+        offhandSwapPerformed = true;
+        advanceState(client, State.WAITING_BEFORE_TICKET);
+    }
+
     private static void tickWaitingBeforeTicket(MinecraftClient client) {
-        if (client.world.getTime() - stateStartTick < PREPARE_DELAY_TICKS) {
+        if (client.world.getTime() - stateStartTick < ITEM_SWAP_DELAY_TICKS) {
             return;
         }
 
@@ -230,7 +245,9 @@ public final class HaAlchemyKilnAutomation {
 
         long now = client.world.getTime();
         int clickInterval = Math.max(MIN_CLICK_INTERVAL_TICKS, config.alchemyKilnAutomationClickIntervalTicks);
-        if (lastCraftClickTick >= 0L && now - lastCraftClickTick < clickInterval) {
+        int requiredDelay = lastCraftClickTick < 0L ? clickInterval * 2 : clickInterval;
+        long delayStartTick = lastCraftClickTick < 0L ? stateStartTick : lastCraftClickTick;
+        if (now - delayStartTick < requiredDelay) {
             return;
         }
 
@@ -249,8 +266,28 @@ public final class HaAlchemyKilnAutomation {
             client.player.closeHandledScreen();
         }
         if (offhandSwapPerformed && originalHotbarSlot >= 0 && originalHotbarSlot <= 8) {
-            selectHotbarSlot(client, originalHotbarSlot);
-            swapWithOffhand(client);
+            advanceState(client, State.WAITING_BEFORE_RESTORE_SLOT);
+            return;
+        }
+        sendClientMessage(client, "\u00a7aAlchemy Kiln Assist finished.");
+        clearState();
+    }
+
+    private static void tickWaitingBeforeRestoreSlot(MinecraftClient client) {
+        if (client.world.getTime() - stateStartTick < ITEM_SWAP_DELAY_TICKS) {
+            return;
+        }
+        selectHotbarSlot(client, originalHotbarSlot);
+        advanceState(client, State.WAITING_BEFORE_RESTORE_OFFHAND);
+    }
+
+    private static void tickWaitingBeforeRestoreOffhand(MinecraftClient client) {
+        if (client.world.getTime() - stateStartTick < ITEM_SWAP_DELAY_TICKS) {
+            return;
+        }
+        if (!swapWithOffhand(client)) {
+            fail(client, "\u00a7cCould not restore the item from offhand.");
+            return;
         }
         sendClientMessage(client, "\u00a7aAlchemy Kiln Assist finished.");
         clearState();
@@ -343,6 +380,7 @@ public final class HaAlchemyKilnAutomation {
         lastCraftClickTick = -1L;
         lastTicketUseTick = -1L;
         offhandSwapPerformed = false;
+        offhandSwapRequired = false;
         materialsMissingReceived = false;
     }
 
@@ -362,11 +400,14 @@ public final class HaAlchemyKilnAutomation {
 
     private enum State {
         IDLE,
+        WAITING_BEFORE_OFFHAND_SWAP,
         WAITING_BEFORE_TICKET,
         USING_TICKET,
         WAITING_FOR_KILN_GUI,
         CRAFTING_STAGE_ONE,
         CRAFTING_STAGE_TWO,
-        FINISHING
+        FINISHING,
+        WAITING_BEFORE_RESTORE_SLOT,
+        WAITING_BEFORE_RESTORE_OFFHAND
     }
 }
