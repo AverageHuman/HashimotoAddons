@@ -372,9 +372,6 @@ public final class HaSpotify {
             if (state != TrackState.PLAYING) {
                 return "";
             }
-            if (source == TrackSource.CHROME) {
-                return artist + " ";
-            }
             return "[" + artist + "] ";
         }
 
@@ -405,7 +402,7 @@ public final class HaSpotify {
         }
 
         String getPrefixText() {
-            return source == TrackSource.CHROME ? "Google Chrome > " : "Spotify > ";
+            return source == TrackSource.CHROME ? "Chrome > " : "Spotify > ";
         }
 
         static TrackInfo special(String text, TrackState state) {

@@ -7,16 +7,12 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Util;
 
 public final class HaSpotifyOverlay {
-    private static final String SPOTIFY_PREFIX_TEXT = "Spotify > ";
-    private static final String SPOTIFY_PREFIX_SPOTIFY_TEXT = "Spotify ";
-    private static final String SPOTIFY_PREFIX_ARROW_TEXT = "> ";
-    private static final String CHROME_PREFIX_SPOTIFY_TEXT = "Spotify  ";
-    private static final String CHROME_PREFIX_ARROW_TEXT = "> ";
+    private static final String SPOTIFY_PREFIX_LABEL_TEXT = "Spotify ";
+    private static final String CHROME_PREFIX_LABEL_TEXT = "Chrome ";
+    private static final String PREFIX_ARROW_TEXT = "> ";
     private static final String WIDTH_SAMPLE = "Google Chrome > 123456789012345678901234567890";
     private static final int SPOTIFY_PREFIX_SPOTIFY_COLOR = 0x00AA00;
     private static final int SPOTIFY_PREFIX_ARROW_COLOR = 0xAAAAAA;
-    private static final int CHROME_PREFIX_SPOTIFY_COLOR = 0x00AA00;
-    private static final int CHROME_PREFIX_ARROW_COLOR = 0xAAAAAA;
     private static final int SPOTIFY_ARTIST_COLOR = 0x55FFFF;
     private static final int CHROME_ARTIST_COLOR = 0x55FFFF;
     private static final int SEPARATOR_COLOR = 0xAAAAAA;
@@ -109,16 +105,10 @@ public final class HaSpotifyOverlay {
     }
 
     private static void drawPrefix(MatrixStack matrices, MinecraftClient client, int x, int y, HaSpotify.TrackInfo track) {
-        if (track.source != HaSpotify.TrackSource.CHROME) {
-            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_SPOTIFY_TEXT, x, y, SPOTIFY_PREFIX_SPOTIFY_COLOR);
-            int arrowOffset = client.textRenderer.getWidth(SPOTIFY_PREFIX_SPOTIFY_TEXT);
-            client.textRenderer.drawWithShadow(matrices, SPOTIFY_PREFIX_ARROW_TEXT, x + arrowOffset, y, SPOTIFY_PREFIX_ARROW_COLOR);
-            return;
-        }
-
-        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_SPOTIFY_TEXT, x, y, CHROME_PREFIX_SPOTIFY_COLOR);
-        int arrowOffset = client.textRenderer.getWidth(CHROME_PREFIX_SPOTIFY_TEXT);
-        client.textRenderer.drawWithShadow(matrices, CHROME_PREFIX_ARROW_TEXT, x + arrowOffset, y, CHROME_PREFIX_ARROW_COLOR);
+        String labelText = track.source == HaSpotify.TrackSource.CHROME ? CHROME_PREFIX_LABEL_TEXT : SPOTIFY_PREFIX_LABEL_TEXT;
+        client.textRenderer.drawWithShadow(matrices, labelText, x, y, SPOTIFY_PREFIX_SPOTIFY_COLOR);
+        int arrowOffset = client.textRenderer.getWidth(labelText);
+        client.textRenderer.drawWithShadow(matrices, PREFIX_ARROW_TEXT, x + arrowOffset, y, SPOTIFY_PREFIX_ARROW_COLOR);
     }
 
     private static int getArtistColor(HaSpotify.TrackInfo track) {
