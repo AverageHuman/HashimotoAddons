@@ -3,24 +3,15 @@ package com.example.ha;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 public final class HaConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons");
-    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.json");
     private static final HaConfig INSTANCE = new HaConfig();
 
     public final List<SwapEntry> swapEntries = new ArrayList<SwapEntry>();
@@ -158,6 +149,15 @@ public final class HaConfig {
     }
 
     public void normalize() {
+        normalizeEntryCollections();
+        normalizeCoreSettings();
+        normalizeTrackerSettings();
+        normalizeOverlaySettings();
+        normalizeDangerousSettings();
+        normalizeSharedCollections();
+    }
+
+    private void normalizeEntryCollections() {
         for (SwapEntry entry : swapEntries) {
             entry.normalize();
         }
@@ -181,6 +181,9 @@ public final class HaConfig {
                 dropNotifierEntries.remove(i);
             }
         }
+    }
+
+    private void normalizeCoreSettings() {
         normalizeGhostBlockSettings();
 
         autoHealHotbarSlot = clamp(autoHealHotbarSlot, 0, 8);
@@ -226,6 +229,9 @@ public final class HaConfig {
         } else {
             chestSearchQuery = chestSearchQuery.trim();
         }
+    }
+
+    private void normalizeTrackerSettings() {
         dropTrackerMode = HaDropTracker.normalizeMode(dropTrackerMode);
         dropTrackerElapsedSeconds = Math.max(0L, dropTrackerElapsedSeconds);
         dropTrackerOverlayX = Math.max(0, dropTrackerOverlayX);
@@ -243,6 +249,9 @@ public final class HaConfig {
         elementTrackerOverlayX = Math.max(0, elementTrackerOverlayX);
         elementTrackerOverlayY = Math.max(0, elementTrackerOverlayY);
         normalizeElementTrackerSettings();
+    }
+
+    private void normalizeOverlaySettings() {
         mobHpDisplayPosition = HaMobHpDisplayOverlay.normalizePosition(mobHpDisplayPosition);
         mobHpDisplayOverlayX = Math.max(0, mobHpDisplayOverlayX);
         mobHpDisplayOverlayY = Math.max(0, mobHpDisplayOverlayY);
@@ -254,9 +263,28 @@ public final class HaConfig {
         ritualBookTimerOverlayY = Math.max(0, ritualBookTimerOverlayY);
         spotifyOverlayX = Math.max(0, spotifyOverlayX);
         spotifyOverlayY = Math.max(0, spotifyOverlayY);
+    }
+
+    private void normalizeDangerousSettings() {
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
+    }
+
+    private void normalizeSharedCollections() {
+        // Keep shared collection cleanup separate from field clamping.
+    }
+
+    public void load() {
+        HaConfigPersistence.load(this);
+    }
+
+    public void save() {
+        HaConfigPersistence.save(this);
+    }
+
+    void normalizeBeforeLoad() {
+        normalize();
     }
 
     public SwapEntry addSwapEntry() {
@@ -369,505 +397,7 @@ public final class HaConfig {
         return getBoundKey(gearViewKeyType, gearViewKeyCode, gearViewKeyScanCode);
     }
 
-    public void load() {
-        if (!Files.exists(CONFIG_FILE)) {
-            normalize();
-            return;
-        }
-
-        try (Reader reader = Files.newBufferedReader(CONFIG_FILE, StandardCharsets.UTF_8)) {
-            SavedConfig saved = GSON.fromJson(reader, SavedConfig.class);
-            apply(saved);
-        } catch (IOException ignored) {
-        }
-
-        normalize();
-    }
-
-    public void save() {
-        normalize();
-
-        try {
-            Files.createDirectories(CONFIG_DIR);
-            try (Writer writer = Files.newBufferedWriter(CONFIG_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(toJson(), writer);
-            }
-        } catch (IOException ignored) {
-        }
-    }
-
-    private void apply(SavedConfig saved) {
-        swapEntries.clear();
-        hpAlertEntries.clear();
-        manaAlertEntries.clear();
-        chatFilterEntries.clear();
-        dropNotifierEntries.clear();
-        elementTrackerTargets.clear();
-        elementTrackerObservedCounts.clear();
-        if (saved == null) {
-            return;
-        }
-
-        cameraToggleKeyCode = saved.cameraToggleKeyCode;
-        cameraToggleScanCode = saved.cameraToggleScanCode;
-        cameraToggleKeyType = saved.cameraToggleKeyType;
-        itemLockEnabled = saved.itemLockEnabled;
-        soulbindProtectionEnabled = saved.soulbindProtectionEnabled;
-        chestSearchEnabled = saved.chestSearchEnabled;
-        chestSearchQuery = saved.chestSearchQuery;
-        chestSearchKeyCode = saved.chestSearchKeyCode;
-        chestSearchScanCode = saved.chestSearchScanCode;
-        chestSearchKeyType = saved.chestSearchKeyType;
-        evolutionForgeHelperEnabled = saved.evolutionForgeHelperEnabled;
-        dropTrackerEnabled = saved.dropTrackerEnabled;
-        dropTrackerMode = saved.dropTrackerMode;
-        dropTrackerElapsedSeconds = saved.dropTrackerElapsedSeconds;
-        dropTrackerShowTimer = saved.dropTrackerShowTimer;
-        dropTrackerShowHourlyProfit = saved.dropTrackerShowHourlyProfit;
-        dropTrackerCompactNumbers = saved.dropTrackerCompactNumbers;
-        dropTrackerContinueAfterStart = saved.dropTrackerContinueAfterStart;
-        dropTrackerOverlayX = saved.dropTrackerOverlayX;
-        dropTrackerOverlayY = saved.dropTrackerOverlayY;
-        dropNotifierEnabled = saved.dropNotifierEnabled;
-        dropNotifierContinueAfterStart = saved.dropNotifierContinueAfterStart;
-        expTrackerEnabled = saved.expTrackerEnabled;
-        expTrackerTotalTenths = saved.expTrackerTotalTenths > 0L
-            ? saved.expTrackerTotalTenths
-            : safeMultiplyByTen(saved.expTrackerTotal);
-        expTrackerTotal = expTrackerTotalTenths / 10L;
-        expTrackerElapsedSeconds = saved.expTrackerElapsedSeconds;
-        expTrackerShowTimer = saved.expTrackerShowTimer;
-        expTrackerShowHourlyRate = saved.expTrackerShowHourlyRate;
-        expTrackerCompactNumbers = saved.expTrackerCompactNumbers;
-        expTrackerContinueAfterStart = saved.expTrackerContinueAfterStart;
-        expTrackerOverlayX = saved.expTrackerOverlayX;
-        expTrackerOverlayY = saved.expTrackerOverlayY;
-        elementTrackerEnabled = saved.elementTrackerEnabled;
-        elementTrackerElapsedSeconds = saved.elementTrackerElapsedSeconds;
-        elementTrackerShowTimer = saved.elementTrackerShowTimer;
-        elementTrackerContinueAfterStart = saved.elementTrackerContinueAfterStart;
-        elementTrackerOverlayX = saved.elementTrackerOverlayX;
-        elementTrackerOverlayY = saved.elementTrackerOverlayY;
-        mobHpDisplayEnabled = saved.mobHpDisplayEnabled;
-        mobHpDisplayPosition = saved.mobHpDisplayPosition;
-        mobHpDisplaySlim = saved.mobHpDisplaySlim;
-        mobHpDisplayShowPercentage = saved.mobHpDisplayShowPercentage;
-        mobHpDisplayCompactNumbers = saved.mobHpDisplayCompactNumbers;
-        mobHpDisplayOverlayX = saved.mobHpDisplayOverlayX;
-        mobHpDisplayOverlayY = saved.mobHpDisplayOverlayY;
-        subSkillTimerEnabled = saved.subSkillTimerEnabled;
-        subSkillTimerSlim = saved.subSkillTimerSlim;
-        subSkillTimerCooldownSeconds = saved.subSkillTimerCooldownSeconds > 0.0D ? saved.subSkillTimerCooldownSeconds : 10.0D;
-        subSkillTimerOverlayX = saved.subSkillTimerOverlayX;
-        subSkillTimerOverlayY = saved.subSkillTimerOverlayY;
-        ritualBookTimerEnabled = saved.ritualBookTimerEnabled;
-        ritualBookTimerSlim = saved.ritualBookTimerSlim;
-        ritualBookTimerSoundVolume = saved.ritualBookTimerSoundVolume;
-        ritualBookTimerOverlayX = saved.ritualBookTimerOverlayX;
-        ritualBookTimerOverlayY = saved.ritualBookTimerOverlayY;
-        spotifyEnabled = saved.spotifyEnabled;
-        spotifyChromeDetectionEnabled = saved.spotifyChromeDetectionEnabled;
-        spotifyOverlayX = saved.spotifyOverlayX;
-        spotifyOverlayY = saved.spotifyOverlayY;
-        chatFilterEnabled = saved.chatFilterEnabled;
-        lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
-        if (saved.elementTrackerTargets != null) {
-            for (SavedElementTrackerTargetEntry savedEntry : saved.elementTrackerTargets) {
-                ElementTrackerTargetEntry entry = new ElementTrackerTargetEntry();
-                if (savedEntry != null) {
-                    entry.elementKey = savedEntry.elementKey;
-                    entry.enabled = savedEntry.enabled;
-                    entry.targetRank = savedEntry.targetRank;
-                }
-                entry.normalize();
-                elementTrackerTargets.add(entry);
-            }
-        }
-        if (saved.elementTrackerObservedCounts != null) {
-            for (SavedElementTrackerObservedCountEntry savedEntry : saved.elementTrackerObservedCounts) {
-                ElementTrackerObservedCountEntry entry = new ElementTrackerObservedCountEntry();
-                if (savedEntry != null) {
-                    entry.elementKey = savedEntry.elementKey;
-                    entry.commonCount = savedEntry.commonCount;
-                    entry.rareCount = savedEntry.rareCount;
-                    entry.superiorCount = savedEntry.superiorCount;
-                    entry.epicCount = savedEntry.epicCount;
-                    entry.legendaryCount = savedEntry.legendaryCount;
-                    entry.transcendentCount = savedEntry.transcendentCount;
-                    entry.untouchableCount = savedEntry.untouchableCount;
-                    entry.uniqueCount = savedEntry.uniqueCount;
-                }
-                entry.normalize();
-                elementTrackerObservedCounts.add(entry);
-            }
-        }
-
-        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
-            autoHealEnabled = saved.autoHealEnabled;
-            autoHealHotbarSlot = saved.autoHealHotbarSlot;
-            autoHealCooldownSeconds = saved.autoHealCooldownSeconds > 0.0D ? saved.autoHealCooldownSeconds : 1.0D;
-            autoHealHealthRatioThreshold = saved.autoHealHealthRatioThreshold > 0.0F ? saved.autoHealHealthRatioThreshold : 0.75F;
-            macroEnabled = saved.macroEnabled;
-            macroToggleKeyCode = saved.macroToggleKeyCode;
-            macroToggleScanCode = saved.macroToggleScanCode;
-            macroToggleKeyType = saved.macroToggleKeyType;
-            alchemyKilnAutomationEnabled = saved.alchemyKilnAutomationEnabled;
-            alchemyKilnAutomationClickIntervalTicks = saved.alchemyKilnAutomationClickIntervalTicks > 0 ? saved.alchemyKilnAutomationClickIntervalTicks : 4;
-            macroStatusHudEnabled = saved.macroStatusHudEnabled;
-            macroStatusHudX = saved.macroStatusHudX;
-            macroStatusHudY = saved.macroStatusHudY;
-            extrasEnabled = saved.extrasEnabled;
-            ghostWallEditMode = saved.ghostWallEditMode;
-            extrasHudEnabled = saved.extrasHudEnabled;
-            extrasHudX = saved.extrasHudX;
-            extrasHudY = saved.extrasHudY;
-            selectedGhostBlockId = saved.selectedGhostBlockId;
-            favoriteGhostBlockIds.clear();
-            if (saved.favoriteGhostBlockIds != null) {
-                favoriteGhostBlockIds.addAll(saved.favoriteGhostBlockIds);
-            }
-            defaultWeaponHotbarSlot = saved.defaultWeaponHotbarSlot;
-        chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
-        chunkChestOverlayX = saved.chunkChestOverlayX;
-        chunkChestOverlayY = saved.chunkChestOverlayY;
-        damageTruncationEnabled = saved.damageTruncationEnabled;
-        elementRarityEnabled = saved.elementRarityEnabled;
-        gearViewEnabled = saved.gearViewEnabled;
-        gearViewKeyCode = saved.gearViewKeyCode;
-        gearViewKeyScanCode = saved.gearViewKeyScanCode;
-        gearViewKeyType = saved.gearViewKeyType;
-        alchemyKilnAutomationKeyCode = saved.alchemyKilnAutomationKeyCode;
-        alchemyKilnAutomationScanCode = saved.alchemyKilnAutomationScanCode;
-        alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
-        mobEspEnabled = saved.mobEspEnabled;
-            mobEspTargetName = saved.mobEspTargetName;
-            afkFarmingEnabled = saved.afkFarmingEnabled;
-            afkFarmingActive = saved.afkFarmingActive;
-            afkFarmingWebhookUrl = saved.afkFarmingWebhookUrl;
-            afkFarmingReportIntervalMinutes = saved.afkFarmingReportIntervalMinutes > 0.0D ? saved.afkFarmingReportIntervalMinutes : 5.0D;
-            afkFarmingPlayerAlertsEnabled = saved.afkFarmingPlayerAlertsEnabled;
-            afkFarmingKeyAdminAlertsEnabled = saved.afkFarmingKeyAdminAlertsEnabled;
-            afkFarmingKeyAdminName = saved.afkFarmingKeyAdminName;
-            afkFarmingMobMacroEnabled = saved.afkFarmingMobMacroEnabled;
-            afkFarmingMobCircleVisible = saved.afkFarmingMobCircleVisible;
-            afkFarmingMobDebugHudEnabled = saved.afkFarmingMobDebugHudEnabled;
-            afkFarmingMobMacroIndex = saved.afkFarmingMobMacroIndex;
-            afkFarmingMobMinCount = saved.afkFarmingMobMinCount > 0 ? saved.afkFarmingMobMinCount : 3;
-            afkFarmingMobMaxCount = saved.afkFarmingMobMaxCount > 0 ? saved.afkFarmingMobMaxCount : 5;
-            afkFarmingMobMacroCooldownSeconds = saved.afkFarmingMobMacroCooldownSeconds > 0.0D ? saved.afkFarmingMobMacroCooldownSeconds : 5.0D;
-            afkFarmingAutoMoveEnabled = saved.afkFarmingAutoMoveEnabled;
-            if (saved.afkFarmingAutoMoveIntervalSeconds > 0.0D) {
-                afkFarmingAutoMoveIntervalSeconds = saved.afkFarmingAutoMoveIntervalSeconds;
-            } else if (saved.afkFarmingAutoMoveIntervalMinutes > 0.0D) {
-                afkFarmingAutoMoveIntervalSeconds = saved.afkFarmingAutoMoveIntervalMinutes * 60.0D;
-            } else {
-                afkFarmingAutoMoveIntervalSeconds = 300.0D;
-            }
-            afkFarmingAutoMoveIntervalMinutes = afkFarmingAutoMoveIntervalSeconds / 60.0D;
-            afkFarmingAutoMoveJitterSeconds = saved.afkFarmingAutoMoveJitterSeconds >= 0.0D ? saved.afkFarmingAutoMoveJitterSeconds : 10.0D;
-
-            if (saved.swapEntries != null) {
-                for (SavedSwapEntry savedEntry : saved.swapEntries) {
-                    SwapEntry entry = new SwapEntry();
-                    if (savedEntry != null) {
-                        entry.name = savedEntry.name;
-                        entry.hotbarSlot = savedEntry.hotbarSlot;
-                        entry.intervalSeconds = savedEntry.intervalSeconds;
-                        entry.holdTicks = savedEntry.holdTicks;
-                    }
-                    entry.normalize();
-                    swapEntries.add(entry);
-                }
-            }
-        } else {
-            resetDangerousState();
-        }
-
-        if (saved.hpAlertEntries != null) {
-            for (SavedHpAlertEntry savedEntry : saved.hpAlertEntries) {
-                HpAlertEntry entry = new HpAlertEntry();
-                if (savedEntry != null) {
-                    entry.enabled = savedEntry.enabled;
-                    entry.healthPercentage = savedEntry.healthPercentage;
-                    entry.colorIndex = savedEntry.colorIndex;
-                    entry.titleText = savedEntry.titleText;
-                }
-                entry.normalize();
-                hpAlertEntries.add(entry);
-            }
-        }
-
-        if (saved.manaAlertEntries != null) {
-            for (SavedManaAlertEntry savedEntry : saved.manaAlertEntries) {
-                ManaAlertEntry entry = new ManaAlertEntry();
-                if (savedEntry != null) {
-                    entry.enabled = savedEntry.enabled;
-                    entry.manaPercentage = savedEntry.manaPercentage;
-                    entry.colorIndex = savedEntry.colorIndex;
-                    entry.titleText = savedEntry.titleText;
-                }
-                entry.normalize();
-                manaAlertEntries.add(entry);
-            }
-        }
-
-        if (saved.chatFilterEntries != null) {
-            for (SavedChatFilterEntry savedEntry : saved.chatFilterEntries) {
-                ChatFilterEntry entry = new ChatFilterEntry();
-                if (savedEntry != null) {
-                    entry.enabled = savedEntry.enabled;
-                    entry.matchText = savedEntry.matchText;
-                }
-                entry.normalize();
-                if (!entry.matchText.isEmpty()) {
-                    chatFilterEntries.add(entry);
-                }
-            }
-        }
-
-        if (saved.dropNotifierEntries != null) {
-            for (SavedDropNotifierEntry savedEntry : saved.dropNotifierEntries) {
-                DropNotifierEntry entry = new DropNotifierEntry();
-                if (savedEntry != null) {
-                    entry.enabled = savedEntry.enabled;
-                    entry.matchText = savedEntry.matchText;
-                }
-                entry.normalize();
-                if (!entry.matchText.isEmpty()) {
-                    dropNotifierEntries.add(entry);
-                }
-            }
-        }
-    }
-
-    private JsonObject toJson() {
-        JsonObject root = new JsonObject();
-        root.addProperty("cameraToggleKeyCode", cameraToggleKeyCode);
-        root.addProperty("cameraToggleScanCode", cameraToggleScanCode);
-        root.addProperty("cameraToggleKeyType", cameraToggleKeyType);
-        root.addProperty("itemLockEnabled", itemLockEnabled);
-        root.addProperty("soulbindProtectionEnabled", soulbindProtectionEnabled);
-        root.addProperty("chestSearchEnabled", chestSearchEnabled);
-        root.addProperty("chestSearchQuery", chestSearchQuery);
-        root.addProperty("chestSearchKeyCode", chestSearchKeyCode);
-        root.addProperty("chestSearchScanCode", chestSearchScanCode);
-        root.addProperty("chestSearchKeyType", chestSearchKeyType);
-        root.addProperty("evolutionForgeHelperEnabled", evolutionForgeHelperEnabled);
-        root.addProperty("dropTrackerEnabled", dropTrackerEnabled);
-        root.addProperty("dropTrackerMode", dropTrackerMode);
-        root.addProperty("dropTrackerElapsedSeconds", dropTrackerElapsedSeconds);
-        root.addProperty("dropTrackerShowTimer", dropTrackerShowTimer);
-        root.addProperty("dropTrackerShowHourlyProfit", dropTrackerShowHourlyProfit);
-        root.addProperty("dropTrackerCompactNumbers", dropTrackerCompactNumbers);
-        root.addProperty("dropTrackerContinueAfterStart", dropTrackerContinueAfterStart);
-        root.addProperty("dropTrackerOverlayX", dropTrackerOverlayX);
-        root.addProperty("dropTrackerOverlayY", dropTrackerOverlayY);
-        root.addProperty("dropNotifierEnabled", dropNotifierEnabled);
-        root.addProperty("dropNotifierContinueAfterStart", dropNotifierContinueAfterStart);
-        root.addProperty("expTrackerEnabled", expTrackerEnabled);
-        root.addProperty("expTrackerTotalTenths", expTrackerTotalTenths);
-        root.addProperty("expTrackerTotal", expTrackerTotalTenths / 10L);
-        root.addProperty("expTrackerElapsedSeconds", expTrackerElapsedSeconds);
-        root.addProperty("expTrackerShowTimer", expTrackerShowTimer);
-        root.addProperty("expTrackerShowHourlyRate", expTrackerShowHourlyRate);
-        root.addProperty("expTrackerCompactNumbers", expTrackerCompactNumbers);
-        root.addProperty("expTrackerContinueAfterStart", expTrackerContinueAfterStart);
-        root.addProperty("expTrackerOverlayX", expTrackerOverlayX);
-        root.addProperty("expTrackerOverlayY", expTrackerOverlayY);
-        root.addProperty("elementTrackerEnabled", elementTrackerEnabled);
-        root.addProperty("elementTrackerElapsedSeconds", elementTrackerElapsedSeconds);
-        root.addProperty("elementTrackerShowTimer", elementTrackerShowTimer);
-        root.addProperty("elementTrackerContinueAfterStart", elementTrackerContinueAfterStart);
-        root.addProperty("elementTrackerOverlayX", elementTrackerOverlayX);
-        root.addProperty("elementTrackerOverlayY", elementTrackerOverlayY);
-        root.addProperty("mobHpDisplayEnabled", mobHpDisplayEnabled);
-        root.addProperty("mobHpDisplayPosition", mobHpDisplayPosition);
-        root.addProperty("mobHpDisplaySlim", mobHpDisplaySlim);
-        root.addProperty("mobHpDisplayShowPercentage", mobHpDisplayShowPercentage);
-        root.addProperty("mobHpDisplayCompactNumbers", mobHpDisplayCompactNumbers);
-        root.addProperty("mobHpDisplayOverlayX", mobHpDisplayOverlayX);
-        root.addProperty("mobHpDisplayOverlayY", mobHpDisplayOverlayY);
-        root.addProperty("subSkillTimerEnabled", subSkillTimerEnabled);
-        root.addProperty("subSkillTimerSlim", subSkillTimerSlim);
-        root.addProperty("subSkillTimerCooldownSeconds", subSkillTimerCooldownSeconds);
-        root.addProperty("subSkillTimerOverlayX", subSkillTimerOverlayX);
-        root.addProperty("subSkillTimerOverlayY", subSkillTimerOverlayY);
-        root.addProperty("ritualBookTimerEnabled", ritualBookTimerEnabled);
-        root.addProperty("ritualBookTimerSlim", ritualBookTimerSlim);
-        root.addProperty("ritualBookTimerSoundVolume", ritualBookTimerSoundVolume);
-        root.addProperty("ritualBookTimerOverlayX", ritualBookTimerOverlayX);
-        root.addProperty("ritualBookTimerOverlayY", ritualBookTimerOverlayY);
-        root.addProperty("spotifyEnabled", spotifyEnabled);
-        root.addProperty("spotifyChromeDetectionEnabled", spotifyChromeDetectionEnabled);
-        root.addProperty("spotifyOverlayX", spotifyOverlayX);
-        root.addProperty("spotifyOverlayY", spotifyOverlayY);
-        root.addProperty("chatFilterEnabled", chatFilterEnabled);
-        root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(lockedSlotIds)));
-        root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries()));
-        root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries()));
-        root.add("chatFilterEntries", GSON.toJsonTree(toSavedChatFilterEntries()));
-        root.add("dropNotifierEntries", GSON.toJsonTree(toSavedDropNotifierEntries()));
-        root.add("elementTrackerTargets", GSON.toJsonTree(toSavedElementTrackerTargets()));
-        root.add("elementTrackerObservedCounts", GSON.toJsonTree(toSavedElementTrackerObservedCounts()));
-
-        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
-            root.addProperty("autoHealEnabled", autoHealEnabled);
-            root.addProperty("autoHealHotbarSlot", autoHealHotbarSlot);
-            root.addProperty("autoHealCooldownSeconds", autoHealCooldownSeconds);
-            root.addProperty("autoHealHealthRatioThreshold", autoHealHealthRatioThreshold);
-            root.addProperty("macroEnabled", macroEnabled);
-            root.addProperty("macroToggleKeyCode", macroToggleKeyCode);
-            root.addProperty("macroToggleScanCode", macroToggleScanCode);
-            root.addProperty("macroToggleKeyType", macroToggleKeyType);
-            root.addProperty("alchemyKilnAutomationEnabled", alchemyKilnAutomationEnabled);
-            root.addProperty("alchemyKilnAutomationClickIntervalTicks", alchemyKilnAutomationClickIntervalTicks);
-            root.addProperty("macroStatusHudEnabled", macroStatusHudEnabled);
-            root.addProperty("macroStatusHudX", macroStatusHudX);
-            root.addProperty("macroStatusHudY", macroStatusHudY);
-            root.addProperty("extrasEnabled", extrasEnabled);
-            root.addProperty("ghostWallEditMode", ghostWallEditMode);
-            root.addProperty("extrasHudEnabled", extrasHudEnabled);
-            root.addProperty("extrasHudX", extrasHudX);
-            root.addProperty("extrasHudY", extrasHudY);
-            root.addProperty("selectedGhostBlockId", selectedGhostBlockId);
-            root.add("favoriteGhostBlockIds", GSON.toJsonTree(new ArrayList<String>(favoriteGhostBlockIds)));
-            root.addProperty("defaultWeaponHotbarSlot", defaultWeaponHotbarSlot);
-        root.addProperty("chunkChestCounterEnabled", chunkChestCounterEnabled);
-        root.addProperty("chunkChestOverlayX", chunkChestOverlayX);
-        root.addProperty("chunkChestOverlayY", chunkChestOverlayY);
-        root.addProperty("damageTruncationEnabled", damageTruncationEnabled);
-        root.addProperty("elementRarityEnabled", elementRarityEnabled);
-        root.addProperty("gearViewEnabled", gearViewEnabled);
-        root.addProperty("gearViewKeyCode", gearViewKeyCode);
-        root.addProperty("gearViewKeyScanCode", gearViewKeyScanCode);
-        root.addProperty("gearViewKeyType", gearViewKeyType);
-        root.addProperty("alchemyKilnAutomationKeyCode", alchemyKilnAutomationKeyCode);
-        root.addProperty("alchemyKilnAutomationScanCode", alchemyKilnAutomationScanCode);
-        root.addProperty("alchemyKilnAutomationKeyType", alchemyKilnAutomationKeyType);
-        root.addProperty("mobEspEnabled", mobEspEnabled);
-            root.addProperty("mobEspTargetName", mobEspTargetName);
-            root.addProperty("afkFarmingEnabled", afkFarmingEnabled);
-            root.addProperty("afkFarmingActive", afkFarmingActive);
-            root.addProperty("afkFarmingWebhookUrl", afkFarmingWebhookUrl);
-            root.addProperty("afkFarmingReportIntervalMinutes", afkFarmingReportIntervalMinutes);
-            root.addProperty("afkFarmingPlayerAlertsEnabled", afkFarmingPlayerAlertsEnabled);
-            root.addProperty("afkFarmingKeyAdminAlertsEnabled", afkFarmingKeyAdminAlertsEnabled);
-            root.addProperty("afkFarmingKeyAdminName", afkFarmingKeyAdminName);
-            root.addProperty("afkFarmingMobMacroEnabled", afkFarmingMobMacroEnabled);
-            root.addProperty("afkFarmingMobCircleVisible", afkFarmingMobCircleVisible);
-            root.addProperty("afkFarmingMobDebugHudEnabled", afkFarmingMobDebugHudEnabled);
-            root.addProperty("afkFarmingMobMacroIndex", afkFarmingMobMacroIndex);
-            root.addProperty("afkFarmingMobMinCount", afkFarmingMobMinCount);
-            root.addProperty("afkFarmingMobMaxCount", afkFarmingMobMaxCount);
-            root.addProperty("afkFarmingMobMacroCooldownSeconds", afkFarmingMobMacroCooldownSeconds);
-            root.addProperty("afkFarmingAutoMoveEnabled", afkFarmingAutoMoveEnabled);
-            root.addProperty("afkFarmingAutoMoveIntervalSeconds", afkFarmingAutoMoveIntervalSeconds);
-            root.addProperty("afkFarmingAutoMoveIntervalMinutes", afkFarmingAutoMoveIntervalSeconds / 60.0D);
-            root.addProperty("afkFarmingAutoMoveJitterSeconds", afkFarmingAutoMoveJitterSeconds);
-            root.add("swapEntries", GSON.toJsonTree(toSavedSwapEntries()));
-        }
-
-        return root;
-    }
-
-    private List<SavedSwapEntry> toSavedSwapEntries() {
-        List<SavedSwapEntry> savedEntries = new ArrayList<SavedSwapEntry>();
-        for (SwapEntry entry : swapEntries) {
-            SavedSwapEntry savedEntry = new SavedSwapEntry();
-            savedEntry.name = entry.name;
-            savedEntry.hotbarSlot = entry.hotbarSlot;
-            savedEntry.intervalSeconds = entry.intervalSeconds;
-            savedEntry.holdTicks = entry.holdTicks;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedHpAlertEntry> toSavedHpAlertEntries() {
-        List<SavedHpAlertEntry> savedEntries = new ArrayList<SavedHpAlertEntry>();
-        for (HpAlertEntry entry : hpAlertEntries) {
-            SavedHpAlertEntry savedEntry = new SavedHpAlertEntry();
-            savedEntry.enabled = entry.enabled;
-            savedEntry.healthPercentage = entry.healthPercentage;
-            savedEntry.colorIndex = entry.colorIndex;
-            savedEntry.titleText = entry.titleText;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedManaAlertEntry> toSavedManaAlertEntries() {
-        List<SavedManaAlertEntry> savedEntries = new ArrayList<SavedManaAlertEntry>();
-        for (ManaAlertEntry entry : manaAlertEntries) {
-            SavedManaAlertEntry savedEntry = new SavedManaAlertEntry();
-            savedEntry.enabled = entry.enabled;
-            savedEntry.manaPercentage = entry.manaPercentage;
-            savedEntry.colorIndex = entry.colorIndex;
-            savedEntry.titleText = entry.titleText;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedChatFilterEntry> toSavedChatFilterEntries() {
-        List<SavedChatFilterEntry> savedEntries = new ArrayList<SavedChatFilterEntry>();
-        for (ChatFilterEntry entry : chatFilterEntries) {
-            if (entry.matchText == null || entry.matchText.trim().isEmpty()) {
-                continue;
-            }
-            SavedChatFilterEntry savedEntry = new SavedChatFilterEntry();
-            savedEntry.enabled = entry.enabled;
-            savedEntry.matchText = entry.matchText;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedDropNotifierEntry> toSavedDropNotifierEntries() {
-        List<SavedDropNotifierEntry> savedEntries = new ArrayList<SavedDropNotifierEntry>();
-        for (DropNotifierEntry entry : dropNotifierEntries) {
-            if (entry.matchText == null || entry.matchText.trim().isEmpty()) {
-                continue;
-            }
-            SavedDropNotifierEntry savedEntry = new SavedDropNotifierEntry();
-            savedEntry.enabled = entry.enabled;
-            savedEntry.matchText = entry.matchText;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedElementTrackerTargetEntry> toSavedElementTrackerTargets() {
-        List<SavedElementTrackerTargetEntry> savedEntries = new ArrayList<SavedElementTrackerTargetEntry>();
-        for (ElementTrackerTargetEntry entry : elementTrackerTargets) {
-            SavedElementTrackerTargetEntry savedEntry = new SavedElementTrackerTargetEntry();
-            savedEntry.elementKey = entry.elementKey;
-            savedEntry.enabled = entry.enabled;
-            savedEntry.targetRank = entry.targetRank;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private List<SavedElementTrackerObservedCountEntry> toSavedElementTrackerObservedCounts() {
-        List<SavedElementTrackerObservedCountEntry> savedEntries = new ArrayList<SavedElementTrackerObservedCountEntry>();
-        for (ElementTrackerObservedCountEntry entry : elementTrackerObservedCounts) {
-            SavedElementTrackerObservedCountEntry savedEntry = new SavedElementTrackerObservedCountEntry();
-            savedEntry.elementKey = entry.elementKey;
-            savedEntry.commonCount = entry.commonCount;
-            savedEntry.rareCount = entry.rareCount;
-            savedEntry.superiorCount = entry.superiorCount;
-            savedEntry.epicCount = entry.epicCount;
-            savedEntry.legendaryCount = entry.legendaryCount;
-            savedEntry.transcendentCount = entry.transcendentCount;
-            savedEntry.untouchableCount = entry.untouchableCount;
-            savedEntry.uniqueCount = entry.uniqueCount;
-            savedEntries.add(savedEntry);
-        }
-        return savedEntries;
-    }
-
-    private void resetDangerousState() {
+    void resetDangerousState() {
         swapEntries.clear();
         autoHealEnabled = false;
         autoHealHotbarSlot = 1;
@@ -1128,181 +658,6 @@ public final class HaConfig {
             return InputUtil.Type.MOUSE.createFromCode(keyCode);
         }
         return InputUtil.fromKeyCode(keyCode, scanCode);
-    }
-
-    private static final class SavedConfig {
-        boolean autoHealEnabled;
-        int autoHealHotbarSlot = 1;
-        double autoHealCooldownSeconds = 1.0D;
-        // Deprecated (kept only for backward compatibility with earlier config files).
-        float autoHealHealthThreshold = 0.0F;
-        float autoHealHealthRatioThreshold = 0.75F;
-        boolean macroEnabled = true;
-        int macroToggleKeyCode = GLFW.GLFW_KEY_H;
-        int macroToggleScanCode = -1;
-        String macroToggleKeyType = "keysym";
-        boolean alchemyKilnAutomationEnabled = false;
-        int alchemyKilnAutomationKeyCode = GLFW.GLFW_KEY_UNKNOWN;
-        int alchemyKilnAutomationScanCode = -1;
-        String alchemyKilnAutomationKeyType = "keysym";
-        int alchemyKilnAutomationClickIntervalTicks = 4;
-        boolean macroStatusHudEnabled = false;
-        int macroStatusHudX = 8;
-        int macroStatusHudY = 8;
-        boolean extrasEnabled = true;
-        boolean ghostWallEditMode = false;
-        boolean extrasHudEnabled = false;
-        int extrasHudX = 8;
-        int extrasHudY = 24;
-        String selectedGhostBlockId = "minecraft:glass";
-        List<String> favoriteGhostBlockIds = new ArrayList<String>();
-        int cameraToggleKeyCode = GLFW.GLFW_KEY_V;
-        int cameraToggleScanCode = -1;
-        String cameraToggleKeyType = "keysym";
-        int defaultWeaponHotbarSlot = 0;
-        boolean itemLockEnabled = true;
-        boolean soulbindProtectionEnabled = true;
-        boolean chunkChestCounterEnabled = false;
-        int chunkChestOverlayX = 8;
-        int chunkChestOverlayY = 40;
-        boolean damageTruncationEnabled = false;
-        boolean elementRarityEnabled = true;
-        boolean gearViewEnabled = true;
-        int gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
-        int gearViewKeyScanCode = -1;
-        String gearViewKeyType = "mouse";
-        boolean mobEspEnabled = false;
-        String mobEspTargetName = "";
-        boolean afkFarmingEnabled = false;
-        boolean afkFarmingActive = false;
-        String afkFarmingWebhookUrl = "";
-        double afkFarmingReportIntervalMinutes = 5.0D;
-        boolean afkFarmingPlayerAlertsEnabled = true;
-        boolean afkFarmingKeyAdminAlertsEnabled = true;
-        String afkFarmingKeyAdminName = "KeyAdmin";
-        boolean afkFarmingMobMacroEnabled = false;
-        boolean afkFarmingMobCircleVisible = true;
-        boolean afkFarmingMobDebugHudEnabled = true;
-        int afkFarmingMobMacroIndex = 0;
-        int afkFarmingMobMinCount = 3;
-        int afkFarmingMobMaxCount = 5;
-        double afkFarmingMobMacroCooldownSeconds = 5.0D;
-        boolean afkFarmingAutoMoveEnabled = false;
-        double afkFarmingAutoMoveIntervalSeconds = 300.0D;
-        double afkFarmingAutoMoveIntervalMinutes = 5.0D;
-        double afkFarmingAutoMoveJitterSeconds = 10.0D;
-        boolean chestSearchEnabled = false;
-        String chestSearchQuery = "";
-        int chestSearchKeyCode = GLFW.GLFW_KEY_UNKNOWN;
-        int chestSearchScanCode = -1;
-        String chestSearchKeyType = "keysym";
-        boolean evolutionForgeHelperEnabled = true;
-        boolean dropTrackerEnabled = false;
-        String dropTrackerMode = HaDropTracker.MODE_ALL;
-        long dropTrackerElapsedSeconds = 0L;
-        boolean dropTrackerShowTimer = false;
-        boolean dropTrackerShowHourlyProfit = false;
-        boolean dropTrackerCompactNumbers = false;
-        boolean dropTrackerContinueAfterStart = false;
-        int dropTrackerOverlayX = 8;
-        int dropTrackerOverlayY = 72;
-        boolean dropNotifierEnabled = false;
-        boolean dropNotifierContinueAfterStart = false;
-        boolean expTrackerEnabled = false;
-        long expTrackerTotalTenths = 0L;
-        long expTrackerTotal = 0L;
-        long expTrackerElapsedSeconds = 0L;
-        boolean expTrackerShowTimer = false;
-        boolean expTrackerShowHourlyRate = false;
-        boolean expTrackerCompactNumbers = false;
-        boolean expTrackerContinueAfterStart = false;
-        int expTrackerOverlayX = 8;
-        int expTrackerOverlayY = 104;
-        boolean elementTrackerEnabled = false;
-        long elementTrackerElapsedSeconds = 0L;
-        boolean elementTrackerShowTimer = false;
-        boolean elementTrackerContinueAfterStart = false;
-        int elementTrackerOverlayX = 8;
-        int elementTrackerOverlayY = 168;
-        boolean mobHpDisplayEnabled = false;
-        String mobHpDisplayPosition = "hud";
-        boolean mobHpDisplaySlim = false;
-        boolean mobHpDisplayShowPercentage = true;
-        boolean mobHpDisplayCompactNumbers = false;
-        int mobHpDisplayOverlayX = 8;
-        int mobHpDisplayOverlayY = 136;
-        boolean subSkillTimerEnabled = false;
-        boolean subSkillTimerSlim = false;
-        double subSkillTimerCooldownSeconds = 10.0D;
-        int subSkillTimerOverlayX = 8;
-        int subSkillTimerOverlayY = 200;
-        boolean ritualBookTimerEnabled = false;
-        boolean ritualBookTimerSlim = false;
-        int ritualBookTimerSoundVolume = 100;
-        int ritualBookTimerOverlayX = 8;
-        int ritualBookTimerOverlayY = 232;
-        boolean spotifyEnabled = false;
-        boolean spotifyChromeDetectionEnabled = false;
-        int spotifyOverlayX = 8;
-        int spotifyOverlayY = 264;
-        boolean chatFilterEnabled = false;
-        Set<Integer> lockedSlotIds = new HashSet<Integer>();
-        List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
-        List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
-        List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
-        List<SavedHpAlertEntry> hpAlertEntries = new ArrayList<SavedHpAlertEntry>();
-        List<SavedManaAlertEntry> manaAlertEntries = new ArrayList<SavedManaAlertEntry>();
-        List<SavedChatFilterEntry> chatFilterEntries = new ArrayList<SavedChatFilterEntry>();
-        List<SavedDropNotifierEntry> dropNotifierEntries = new ArrayList<SavedDropNotifierEntry>();
-    }
-
-    private static final class SavedSwapEntry {
-        String name = "New Macro";
-        int hotbarSlot = 0;
-        double intervalSeconds = 5.0D;
-        int holdTicks = 4;
-    }
-
-    private static final class SavedHpAlertEntry {
-        boolean enabled = true;
-        int healthPercentage = 50;
-        int colorIndex = 0;
-        String titleText = "HP ALERT";
-    }
-
-    private static final class SavedManaAlertEntry {
-        boolean enabled = true;
-        int manaPercentage = 50;
-        int colorIndex = 0;
-        String titleText = "MANA ALERT";
-    }
-
-    private static final class SavedChatFilterEntry {
-        boolean enabled = true;
-        String matchText = "";
-    }
-
-    private static final class SavedDropNotifierEntry {
-        boolean enabled = true;
-        String matchText = "";
-    }
-
-    private static final class SavedElementTrackerTargetEntry {
-        String elementKey = "";
-        boolean enabled = false;
-        String targetRank = HaElementTracker.ElementRank.LEGENDARY.getKey();
-    }
-
-    private static final class SavedElementTrackerObservedCountEntry {
-        String elementKey = "";
-        long commonCount = 0L;
-        long rareCount = 0L;
-        long superiorCount = 0L;
-        long epicCount = 0L;
-        long legendaryCount = 0L;
-        long transcendentCount = 0L;
-        long untouchableCount = 0L;
-        long uniqueCount = 0L;
     }
 
     public static final String[] TITLE_COLORS = new String[] {
