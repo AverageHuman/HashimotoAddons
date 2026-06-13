@@ -265,7 +265,7 @@ public final class HaTickHandler {
         float maxHealth = player.getMaxHealth();
         float ratio = maxHealth > 0.0F ? (player.getHealth() / maxHealth) : 1.0F;
         if (ratio <= config.autoHealHealthRatioThreshold) {
-            pressHotbarSlot(client, config.autoHealHotbarSlot);
+            simulateHotbarKeyPress(client, config.autoHealHotbarSlot, 0);
             healCooldownTicks = Math.max(1, (int) Math.round(config.autoHealCooldownSeconds * TICKS_PER_SECOND));
         }
     }
