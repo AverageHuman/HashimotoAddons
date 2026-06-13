@@ -22,6 +22,8 @@ This file contains reusable implementation knowledge, not session history. Updat
 - Item keys should omit enhancement suffixes from `(+1)` through `(+12)`.
 - Subweapons and soul protectors use a different enhancement reverse-calculation rule from ordinary equipment.
 - HP booster contribution must be removed before learning or displaying base maximum-HP ranges.
+- Evolution Forge stat caches should be keyed by item name, item rank, and sub-accessory flag; legacy caches without rank metadata are treated as contaminated and dropped.
+- Sub-accessory enhancement reverse-calculation uses a flat `1.5%` per-level multiplier for most stats and a `15%` per-level additive rule for `対MOBダメージ`.
 - This area has historically contained mojibake-sensitive Japanese literals; inspect encoding carefully before broad edits.
 
 ## Build And Reporting
