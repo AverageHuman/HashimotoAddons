@@ -89,6 +89,7 @@ public final class HaTickHandler {
             HaAlchemyKilnAutomation.tick(client, config);
             HaAfkFarming.tick(client, this);
         }
+        HaConfigPersistence.tick(config);
 
         if (openConfigScreenRequested && client.currentScreen == null) {
             openConfigScreenRequested = false;

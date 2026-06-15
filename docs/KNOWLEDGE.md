@@ -30,3 +30,10 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 - Safe and Full artifacts are grouped by version under `build/libs/<version>/`.
 - A successful local build does not prove that its source state was committed.
+
+## Client GUI Performance
+
+- Forge-specific material/range parsing stays limited to Evolution Forge and recipe-preview containers. When observed-bound learning must inspect an ordinary `GenericContainerScreen`, split the full-slot tooltip scan across a few ticks and keep hovered-item learning immediate.
+- `ItemStack#getTooltip` hooks can run repeatedly while a stack is hovered, so learning work needs a server/item/tooltip-content cache.
+- Runtime persistence must not write JSON on the Minecraft client thread. Snapshot state, serialize/write on a single background worker, and flush on disconnect and client shutdown.
+- Tracker elapsed-time persistence is shared and throttled; explicit user configuration changes still enqueue an immediate save.
