@@ -467,25 +467,35 @@ public final class HaDropTracker {
                     }
                 }
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            reportLoadFailure(exception);
+        } catch (RuntimeException exception) {
+            reportLoadFailure(exception);
         }
     }
 
     private static void save() {
-        try {
-            Files.createDirectories(STORAGE_FILE.getParent());
-            SavedDropTracker saved = new SavedDropTracker();
-            for (DropEntry entry : ENTRIES) {
-                saved.entries.add(toSavedEntry(entry));
-            }
-            for (RegisteredItem item : REGISTERED_ITEMS) {
-                saved.registeredItems.add(toSavedRegisteredItem(item));
-            }
-            try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(saved, writer);
-            }
-        } catch (IOException ignored) {
+        final SavedDropTracker saved = new SavedDropTracker();
+        for (DropEntry entry : ENTRIES) {
+            saved.entries.add(toSavedEntry(entry));
         }
+        for (RegisteredItem item : REGISTERED_ITEMS) {
+            saved.registeredItems.add(toSavedRegisteredItem(item));
+        }
+        HaAsyncFileWriter.submit(STORAGE_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(STORAGE_FILE.getParent());
+                try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(saved, writer);
+                }
+            }
+        });
+    }
+
+    private static void reportLoadFailure(Exception exception) {
+        System.err.println("[HashimotoAddons] Failed to load drop_tracker.json: " + exception.getMessage());
+        exception.printStackTrace(System.err);
     }
 
     private static SavedDropEntry toSavedEntry(DropEntry entry) {
@@ -630,7 +640,7 @@ public final class HaDropTracker {
             long seconds = tickAccumulatorMillis / 1000L;
             tickAccumulatorMillis %= 1000L;
             config.dropTrackerElapsedSeconds += seconds;
-            config.save();
+            HaConfigPersistence.markDirty();
         }
     }
 

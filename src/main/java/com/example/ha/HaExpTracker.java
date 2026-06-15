@@ -195,7 +195,7 @@ public final class HaExpTracker {
         config.expTrackerTotalTenths += exp;
         config.expTrackerTotal = config.expTrackerTotalTenths / 10L;
         updateHourlyRate(config);
-        config.save();
+        HaConfigPersistence.markDirty();
         SEEN_EXP_EVENTS.put(key, SEEN_TTL_TICKS);
         addDebug(source, entity, exp, "recorded", parseResult, key);
         return true;
@@ -317,7 +317,7 @@ public final class HaExpTracker {
             long seconds = tickAccumulatorMillis / 1000L;
             tickAccumulatorMillis %= 1000L;
             config.expTrackerElapsedSeconds += seconds;
-            config.save();
+            HaConfigPersistence.markDirty();
         }
     }
 

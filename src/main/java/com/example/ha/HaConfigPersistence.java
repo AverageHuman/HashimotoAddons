@@ -15,9 +15,12 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.util.InputUtil;
 
 public final class HaConfigPersistence {
+    private static final long DEFERRED_SAVE_INTERVAL_MILLIS = 10_000L;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons");
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.json");
+    private static boolean deferredSavePending;
+    private static long deferredSaveStartedMillis;
 
     private HaConfigPersistence() {
     }
@@ -31,7 +34,10 @@ public final class HaConfigPersistence {
         try (Reader reader = Files.newBufferedReader(CONFIG_FILE, StandardCharsets.UTF_8)) {
             SavedConfig saved = GSON.fromJson(reader, SavedConfig.class);
             apply(config, saved);
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            reportLoadFailure(exception);
+        } catch (RuntimeException exception) {
+            reportLoadFailure(exception);
         }
 
         config.normalizeBeforeLoad();
@@ -39,14 +45,40 @@ public final class HaConfigPersistence {
 
     public static void save(HaConfig config) {
         config.normalize();
-
-        try {
-            Files.createDirectories(CONFIG_DIR);
-            try (Writer writer = Files.newBufferedWriter(CONFIG_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(toJson(config), writer);
+        deferredSavePending = false;
+        deferredSaveStartedMillis = 0L;
+        final JsonObject snapshot = toJson(config);
+        HaAsyncFileWriter.submit(CONFIG_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(CONFIG_DIR);
+                try (Writer writer = Files.newBufferedWriter(CONFIG_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(snapshot, writer);
+                }
             }
-        } catch (IOException ignored) {
+        });
+    }
+
+    public static void markDirty() {
+        if (!deferredSavePending) {
+            deferredSavePending = true;
+            deferredSaveStartedMillis = System.currentTimeMillis();
         }
+    }
+
+    public static void tick(HaConfig config) {
+        if (!deferredSavePending) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - deferredSaveStartedMillis >= DEFERRED_SAVE_INTERVAL_MILLIS) {
+            save(config);
+        }
+    }
+
+    public static void flush(HaConfig config) {
+        save(config);
+        HaAsyncFileWriter.flush(3000L);
     }
 
     public static void apply(HaConfig config, SavedConfig saved) {
@@ -411,6 +443,11 @@ public final class HaConfigPersistence {
             root.add("swapEntries", GSON.toJsonTree(toSavedSwapEntries(config)));
         }
         return root;
+    }
+
+    private static void reportLoadFailure(Exception exception) {
+        System.err.println("[HashimotoAddons] Failed to load config.json: " + exception.getMessage());
+        exception.printStackTrace(System.err);
     }
 
     private static long safeMultiplyByTen(long value) {

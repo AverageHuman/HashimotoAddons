@@ -37,6 +37,8 @@ import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 public final class HaEvolutionForgeHelper {
+    private static final int MIN_SCAN_SLOTS_PER_TICK = 18;
+    private static final long TARGET_SCAN_BUDGET_NANOS = 2_000_000L;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.########", DecimalFormatSymbols.getInstance(Locale.US));
     private static final Path STORAGE_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("evolution_forge_items.json");
@@ -57,7 +59,7 @@ public final class HaEvolutionForgeHelper {
     private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern HP_BOOSTER_VALUE_PATTERN = Pattern.compile("増強剤(?:\\s*極)?(?:<[^>]+>)?.*?HP\\s*[+＋]([0-9]+(?:\\.[0-9]+)?)");
-    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 2;
+    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 3;
     private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
     private static final String MAX_HP_STAT_NAME = "最大HP";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
@@ -162,6 +164,11 @@ public final class HaEvolutionForgeHelper {
     private static String trackedScreenTitle = "";
     private static String previousContainerTitle = "";
     private static boolean recipePreviewCanRegisterMaterials;
+    private static int pendingScanSyncId = -1;
+    private static String pendingScanSignature = "";
+    private static int pendingScanSlotIndex;
+    private static boolean pendingScanDirty;
+    private static String lastLearnedTooltipSignature = "";
 
     private HaEvolutionForgeHelper() {
     }
@@ -170,12 +177,14 @@ public final class HaEvolutionForgeHelper {
         if (!HaConfig.get().evolutionForgeHelperEnabled) {
             lastSyncId = -1;
             lastSignature = "";
+            resetPendingScan();
             resetScreenTracking();
             return;
         }
         if (client == null || !(client.currentScreen instanceof GenericContainerScreen)) {
             lastSyncId = -1;
             lastSignature = "";
+            resetPendingScan();
             resetScreenTracking();
             return;
         }
@@ -193,13 +202,12 @@ public final class HaEvolutionForgeHelper {
         }
 
         String signature = createSignature(handler);
-        if (handler.syncId == lastSyncId && signature.equals(lastSignature)) {
-            return;
+        if (handler.syncId != lastSyncId || !signature.equals(lastSignature)) {
+            lastSyncId = handler.syncId;
+            lastSignature = signature;
+            beginPendingScan(handler.syncId, signature);
         }
-
-        lastSyncId = handler.syncId;
-        lastSignature = signature;
-        scanVisiblePage(client, handler);
+        scanVisiblePage(client, handler, signature);
     }
 
     public static List<Text> applyTooltipAnnotations(ItemStack stack, List<Text> tooltip) {
@@ -250,13 +258,18 @@ public final class HaEvolutionForgeHelper {
         trackedScreenTitle = newTitle;
         lastSyncId = -1;
         lastSignature = "";
+        resetPendingScan();
 
         if (!newTitle.isEmpty() && !isRecipePreviewTitle(newTitle)) {
             previousContainerTitle = newTitle;
         }
     }
 
-    private static void scanVisiblePage(MinecraftClient client, GenericContainerScreenHandler handler) {
+    private static void scanVisiblePage(MinecraftClient client, GenericContainerScreenHandler handler, String signature) {
+        if (handler.syncId != pendingScanSyncId || !signature.equals(pendingScanSignature)) {
+            return;
+        }
+
         load();
         EvolutionForgeData data = getOrCreateData(getServerKey(client));
         int beforeItems = data.items.size();
@@ -264,31 +277,66 @@ public final class HaEvolutionForgeHelper {
         int beforeObservedBounds = getObservedBoundCount(data);
         int beforePrefixTokenCount = PREFIX_TOKEN_CANDIDATES.size();
         boolean shouldScanForgeData = isEvolutionForgeScreen(client);
+        long startedNanos = System.nanoTime();
+        int processedSlots = 0;
 
-        for (int i = 0; i < handler.slots.size(); i++) {
-            Slot slot = handler.slots.get(i);
+        while (pendingScanSlotIndex < handler.slots.size()) {
+            Slot slot = handler.slots.get(pendingScanSlotIndex++);
+            processedSlots++;
             ItemStack stack = slot.getStack();
-            if (stack.isEmpty()) {
-                continue;
+            if (!stack.isEmpty()) {
+                List<Text> tooltip = getRawTooltip(client, stack);
+                ItemVariant variant = resolveItemVariant(stack.getName().getString(), tooltip);
+                if (shouldScanForgeData && shouldRegisterConsumedItems(client)) {
+                    addConsumedItems(data.items, tooltip);
+                }
+                if (shouldScanForgeData) {
+                    addStatRanges(data, variant, tooltip);
+                }
+                collectPrefixTokens(client, tooltip);
+                addObservedBounds(data, variant, tooltip, getEnhancementLevel(stack, tooltip));
             }
-            List<Text> tooltip = getRawTooltip(client, stack);
-            ItemVariant variant = resolveItemVariant(stack.getName().getString(), tooltip);
-            if (shouldScanForgeData && shouldRegisterConsumedItems(client)) {
-                addConsumedItems(data.items, tooltip);
+
+            if (processedSlots >= MIN_SCAN_SLOTS_PER_TICK
+                && System.nanoTime() - startedNanos >= TARGET_SCAN_BUDGET_NANOS) {
+                break;
             }
-            if (shouldScanForgeData) {
-                addStatRanges(data, variant, tooltip);
-            }
-            collectPrefixTokens(client, tooltip);
-            addObservedBounds(data, variant, tooltip, getEnhancementLevel(stack, tooltip));
         }
 
         if (data.items.size() != beforeItems
             || getStatRangeCount(data) != beforeRanges
             || getObservedBoundCount(data) != beforeObservedBounds
             || PREFIX_TOKEN_CANDIDATES.size() != beforePrefixTokenCount) {
+            pendingScanDirty = true;
+        }
+
+        if (pendingScanSlotIndex >= handler.slots.size()) {
+            if (pendingScanDirty) {
+                save();
+            }
+            resetPendingScan();
+        }
+    }
+
+    private static void beginPendingScan(int syncId, String signature) {
+        pendingScanSyncId = syncId;
+        pendingScanSignature = signature;
+        pendingScanSlotIndex = 0;
+        pendingScanDirty = false;
+    }
+
+    private static void resetPendingScan() {
+        pendingScanSyncId = -1;
+        pendingScanSignature = "";
+        pendingScanSlotIndex = 0;
+        pendingScanDirty = false;
+    }
+
+    public static void flushPendingSaves() {
+        if (pendingScanDirty) {
             save();
         }
+        HaAsyncFileWriter.flush(3000L);
     }
 
     public static List<Text> getUnmodifiedTooltip(MinecraftClient client, ItemStack stack) {
@@ -305,6 +353,12 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static void learnDisplayedTooltip(MinecraftClient client, ItemStack stack, List<Text> tooltip) {
+        String tooltipSignature = createTooltipLearningSignature(client, stack, tooltip);
+        if (tooltipSignature.equals(lastLearnedTooltipSignature)) {
+            return;
+        }
+        lastLearnedTooltipSignature = tooltipSignature;
+
         load();
         EvolutionForgeData data = getOrCreateData(getServerKey(client));
         int beforeItems = data.items.size();
@@ -1029,7 +1083,7 @@ public final class HaEvolutionForgeHelper {
         if (exact != null) {
             return exact;
         }
-        return null;
+        return data.statRangesByItem.get(buildItemVariantKey(variant.itemName, false));
     }
 
     private static List<ObservedStatBound> findObservedBoundsForItemName(EvolutionForgeData data, ItemVariant variant) {
@@ -1041,7 +1095,7 @@ public final class HaEvolutionForgeHelper {
         if (exact != null) {
             return exact;
         }
-        return null;
+        return data.observedBoundsByItem.get(buildItemVariantKey(variant.itemName, false));
     }
 
     private static EvolutionForgeData getDataForCurrentServer() {
@@ -1082,6 +1136,15 @@ public final class HaEvolutionForgeHelper {
             if (!stack.isEmpty()) {
                 result.append(i).append(':').append(stack.getItem()).append(':').append(stack.getCount()).append(':').append(stack.getName().getString()).append(';');
             }
+        }
+        return result.toString();
+    }
+
+    private static String createTooltipLearningSignature(MinecraftClient client, ItemStack stack, List<Text> tooltip) {
+        StringBuilder result = new StringBuilder(getServerKey(client));
+        result.append('\u0001').append(stack.getItem()).append('\u0001').append(stack.getName().getString());
+        for (Text line : tooltip) {
+            result.append('\u0002').append(line == null ? "" : line.getString());
         }
         return result.toString();
     }
@@ -1595,6 +1658,7 @@ public final class HaEvolutionForgeHelper {
             if (saved != null && saved.servers != null) {
                 DATA_BY_SERVER.clear();
                 boolean legacySchema = saved.schemaVersion < EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION;
+                boolean allowMissingItemRank = saved.schemaVersion < EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION;
                 for (ServerItems server : saved.servers) {
                     if (server == null || server.serverKey == null || server.serverKey.trim().isEmpty()) {
                         continue;
@@ -1608,13 +1672,13 @@ public final class HaEvolutionForgeHelper {
                             }
                         }
                     }
-                    if (!legacySchema && server.statRanges != null) {
+                    if (server.statRanges != null) {
                         for (ItemStatRanges itemRanges : server.statRanges) {
                             if (itemRanges == null || itemRanges.itemName == null || itemRanges.ranges == null) {
                                 continue;
                             }
                             itemRanges.normalize();
-                            if (!itemRanges.isValid()) {
+                            if (!itemRanges.isValid(allowMissingItemRank)) {
                                 continue;
                             }
                             List<StatRange> ranges = new ArrayList<StatRange>();
@@ -1631,13 +1695,13 @@ public final class HaEvolutionForgeHelper {
                             }
                         }
                     }
-                    if (!legacySchema && server.observedBounds != null) {
+                    if (server.observedBounds != null) {
                         for (ItemObservedBounds itemBounds : server.observedBounds) {
                             if (itemBounds == null || itemBounds.itemName == null || itemBounds.bounds == null) {
                                 continue;
                             }
                             itemBounds.normalize();
-                            if (!itemBounds.isValid()) {
+                            if (!itemBounds.isValid(allowMissingItemRank)) {
                                 continue;
                             }
                             List<ObservedStatBound> bounds = new ArrayList<ObservedStatBound>();
@@ -1667,38 +1731,58 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static void save() {
-        try {
-            Files.createDirectories(STORAGE_FILE.getParent());
-            savePrefixTokens();
-            SavedEvolutionForgeItems saved = new SavedEvolutionForgeItems();
-            saved.schemaVersion = EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION;
-            for (Map.Entry<String, EvolutionForgeData> entry : DATA_BY_SERVER.entrySet()) {
-                EvolutionForgeData data = entry.getValue();
-                if (data.items.isEmpty() && data.statRangesByItem.isEmpty() && data.observedBoundsByItem.isEmpty()) {
-                    continue;
+        final SavedEvolutionForgeItems saved = createSavedSnapshot();
+        final PrefixTokenCandidatesFile savedPrefixTokens = createPrefixTokenSnapshot();
+        HaAsyncFileWriter.submit(STORAGE_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(STORAGE_FILE.getParent());
+                try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(saved, writer);
                 }
-                ServerItems server = new ServerItems();
-                server.serverKey = entry.getKey();
-                server.items = new ArrayList<String>(data.items);
-                for (Map.Entry<String, List<StatRange>> rangeEntry : data.statRangesByItem.entrySet()) {
-                    ItemStatRanges itemRanges = new ItemStatRanges();
-                    itemRanges.fromKey(rangeEntry.getKey());
-                    itemRanges.ranges = new ArrayList<StatRange>(rangeEntry.getValue());
-                    server.statRanges.add(itemRanges);
-                }
-                for (Map.Entry<String, List<ObservedStatBound>> observedEntry : data.observedBoundsByItem.entrySet()) {
-                    ItemObservedBounds itemBounds = new ItemObservedBounds();
-                    itemBounds.fromKey(observedEntry.getKey());
-                    itemBounds.bounds = new ArrayList<ObservedStatBound>(observedEntry.getValue());
-                    server.observedBounds.add(itemBounds);
-                }
-                saved.servers.add(server);
             }
-            try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(saved, writer);
+        });
+        HaAsyncFileWriter.submit(PREFIX_TOKEN_CANDIDATES_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(PREFIX_TOKEN_CANDIDATES_FILE.getParent());
+                try (Writer writer = Files.newBufferedWriter(PREFIX_TOKEN_CANDIDATES_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(savedPrefixTokens, writer);
+                }
             }
-        } catch (IOException ignored) {
+        });
+    }
+
+    private static SavedEvolutionForgeItems createSavedSnapshot() {
+        SavedEvolutionForgeItems saved = new SavedEvolutionForgeItems();
+        saved.schemaVersion = EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION;
+        for (Map.Entry<String, EvolutionForgeData> entry : DATA_BY_SERVER.entrySet()) {
+            EvolutionForgeData data = entry.getValue();
+            if (data.items.isEmpty() && data.statRangesByItem.isEmpty() && data.observedBoundsByItem.isEmpty()) {
+                continue;
+            }
+            ServerItems server = new ServerItems();
+            server.serverKey = entry.getKey();
+            server.items = new ArrayList<String>(data.items);
+            for (Map.Entry<String, List<StatRange>> rangeEntry : data.statRangesByItem.entrySet()) {
+                ItemStatRanges itemRanges = new ItemStatRanges();
+                itemRanges.fromKey(rangeEntry.getKey());
+                for (StatRange range : rangeEntry.getValue()) {
+                    itemRanges.ranges.add(range.copy());
+                }
+                server.statRanges.add(itemRanges);
+            }
+            for (Map.Entry<String, List<ObservedStatBound>> observedEntry : data.observedBoundsByItem.entrySet()) {
+                ItemObservedBounds itemBounds = new ItemObservedBounds();
+                itemBounds.fromKey(observedEntry.getKey());
+                for (ObservedStatBound bound : observedEntry.getValue()) {
+                    itemBounds.bounds.add(bound.copy());
+                }
+                server.observedBounds.add(itemBounds);
+            }
+            saved.servers.add(server);
         }
+        return saved;
     }
 
     private static void loadPrefixTokens() {
@@ -1744,8 +1828,7 @@ public final class HaEvolutionForgeHelper {
         }
     }
 
-    private static void savePrefixTokens() throws IOException {
-        Files.createDirectories(PREFIX_TOKEN_CANDIDATES_FILE.getParent());
+    private static PrefixTokenCandidatesFile createPrefixTokenSnapshot() {
         PrefixTokenCandidatesFile saved = new PrefixTokenCandidatesFile();
         for (PrefixTokenCandidate candidate : PREFIX_TOKEN_CANDIDATES.values()) {
             if (candidate == null || !candidate.isValid()) {
@@ -1753,9 +1836,7 @@ public final class HaEvolutionForgeHelper {
             }
             saved.candidates.add(candidate.copy());
         }
-        try (Writer writer = Files.newBufferedWriter(PREFIX_TOKEN_CANDIDATES_FILE, StandardCharsets.UTF_8)) {
-            GSON.toJson(saved, writer);
-        }
+        return saved;
     }
 
     private static final class EvolutionForgeData {
@@ -1827,12 +1908,12 @@ public final class HaEvolutionForgeHelper {
             itemRank = normalizeItemRank(itemRank);
         }
 
-        boolean isValid() {
-            return itemName != null && !itemName.isEmpty() && itemRank != null && !itemRank.isEmpty();
+        boolean isValid(boolean allowMissingItemRank) {
+            return itemName != null && !itemName.isEmpty();
         }
 
         String key() {
-            return buildItemVariantKey(itemName, itemRank, subAccessory);
+            return buildItemVariantKey(itemName, subAccessory);
         }
 
         void fromKey(String key) {
@@ -1857,12 +1938,12 @@ public final class HaEvolutionForgeHelper {
             itemRank = normalizeItemRank(itemRank);
         }
 
-        boolean isValid() {
-            return itemName != null && !itemName.isEmpty() && itemRank != null && !itemRank.isEmpty();
+        boolean isValid(boolean allowMissingItemRank) {
+            return itemName != null && !itemName.isEmpty();
         }
 
         String key() {
-            return buildItemVariantKey(itemName, itemRank, subAccessory);
+            return buildItemVariantKey(itemName, subAccessory);
         }
 
         void fromKey(String key) {
@@ -1913,6 +1994,18 @@ public final class HaEvolutionForgeHelper {
                 displayMax = formatRangeValue(max, false);
             }
         }
+
+        StatRange copy() {
+            StatRange copy = new StatRange();
+            copy.statName = statName;
+            copy.min = min;
+            copy.max = max;
+            copy.unit = unit;
+            copy.separator = separator;
+            copy.displayMin = displayMin;
+            copy.displayMax = displayMax;
+            return copy;
+        }
     }
 
     private static final class ObservedStatBound {
@@ -1951,6 +2044,19 @@ public final class HaEvolutionForgeHelper {
                 displayMax = formatRangeValue(max, true);
             }
         }
+
+        ObservedStatBound copy() {
+            ObservedStatBound copy = new ObservedStatBound();
+            copy.statName = statName;
+            copy.min = min;
+            copy.max = max;
+            copy.hasMin = hasMin;
+            copy.hasMax = hasMax;
+            copy.unit = unit;
+            copy.displayMin = displayMin;
+            copy.displayMax = displayMax;
+            return copy;
+        }
     }
 
     private static final class ParsedCurrentStat {
@@ -1988,11 +2094,15 @@ public final class HaEvolutionForgeHelper {
         }
 
         boolean isValid() {
-            return itemName != null && !itemName.isEmpty() && itemRank != null && !itemRank.isEmpty();
+            return itemName != null && !itemName.isEmpty();
+        }
+
+        boolean hasItemName() {
+            return itemName != null && !itemName.isEmpty();
         }
 
         String key() {
-            return buildItemVariantKey(itemName, itemRank, subAccessory);
+            return buildItemVariantKey(itemName, subAccessory);
         }
     }
 
@@ -2001,19 +2111,23 @@ public final class HaEvolutionForgeHelper {
             return null;
         }
         String[] parts = key.split("\u0001", -1);
-        if (parts.length != 3) {
+        if (parts.length != 2 && parts.length != 3) {
             return null;
         }
         ItemVariant variant = new ItemVariant();
         variant.itemName = parts[0];
-        variant.itemRank = parts[1];
-        variant.subAccessory = "1".equals(parts[2]);
+        if (parts.length == 3) {
+            variant.itemRank = parts[1];
+            variant.subAccessory = "1".equals(parts[2]);
+        } else {
+            variant.subAccessory = "1".equals(parts[1]);
+        }
         variant.normalize();
-        return variant.isValid() ? variant : null;
+        return variant.hasItemName() ? variant : null;
     }
 
-    private static String buildItemVariantKey(String itemName, String itemRank, boolean subAccessory) {
-        return normalizeItemName(itemName) + "\u0001" + normalizeItemRank(itemRank) + "\u0001" + (subAccessory ? "1" : "0");
+    private static String buildItemVariantKey(String itemName, boolean subAccessory) {
+        return normalizeItemName(itemName) + "\u0001" + (subAccessory ? "1" : "0");
     }
 
     private static String normalizeItemRank(String value) {
