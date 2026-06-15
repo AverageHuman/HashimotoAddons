@@ -8,6 +8,7 @@
 - Impact: Every feature change touches a shared high-risk file and requires manual synchronization of multiple representations.
 - Desired state: Feature-owned configuration models with a compatible aggregate persistence layer.
 - Migration: Extract one feature group at a time while preserving the current JSON schema.
+- Prevention rule: `HaConfig` must stay limited to state and normalization; persistence, JSON mapping, and migration helpers belong in dedicated classes, and new settings should be added to the narrowest feature-owned group available.
 
 ## TD-002: Oversized feature classes
 
