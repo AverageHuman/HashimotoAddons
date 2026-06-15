@@ -18,8 +18,12 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -70,12 +74,12 @@ public final class HaGhostWall {
         BlockPos pos = hit.getBlockPos();
         GhostBlock existing = find(client, pos);
         if (existing != null) {
-            if (client.player != null && client.player.isSneaking() && addReplaceablePlacement(client, pos.offset(hit.getSide()))) {
+            if (client.player != null && client.player.isSneaking() && addReplaceablePlacement(client, pos.offset(hit.getSide()), hit)) {
                 useActionConsumedUntilRelease = true;
                 return true;
             }
 
-            existing.ghostStateRawId = Block.getRawIdFromState(getSelectedBlock().getDefaultState());
+            existing.ghostStateRawId = Block.getRawIdFromState(getSelectedPlacementState(client, pos, hit));
             applyGhostBlock(client, existing, false);
             refreshManagedNeighbors(client, pos);
             save();
@@ -86,7 +90,7 @@ public final class HaGhostWall {
         if (client.player == null || !client.player.isSneaking()) {
             return false;
         }
-        if (addReplaceablePlacement(client, pos.offset(hit.getSide()))) {
+        if (addReplaceablePlacement(client, pos.offset(hit.getSide()), hit)) {
             useActionConsumedUntilRelease = true;
             return true;
         }
@@ -312,9 +316,9 @@ public final class HaGhostWall {
         return true;
     }
 
-    private static boolean addReplaceablePlacement(MinecraftClient client, BlockPos pos) {
+    private static boolean addReplaceablePlacement(MinecraftClient client, BlockPos pos, BlockHitResult hit) {
         load();
-        if (client.world == null || pos == null || find(client, pos) != null) {
+        if (client.world == null || pos == null || hit == null || find(client, pos) != null) {
             return false;
         }
 
@@ -330,13 +334,29 @@ public final class HaGhostWall {
             pos.getY(),
             pos.getZ(),
             Block.getRawIdFromState(Blocks.AIR.getDefaultState()),
-            Block.getRawIdFromState(getSelectedBlock().getDefaultState())
+            Block.getRawIdFromState(getSelectedPlacementState(client, pos, hit))
         );
         BLOCKS.add(block);
         applyGhostBlock(client, block, false);
         refreshManagedNeighbors(client, pos);
         save();
         return true;
+    }
+
+    private static BlockState getSelectedPlacementState(MinecraftClient client, BlockPos targetPos, BlockHitResult hit) {
+        Block selectedBlock = getSelectedBlock();
+        if (client == null || client.player == null || targetPos == null || hit == null) {
+            return selectedBlock.getDefaultState();
+        }
+
+        ItemStack stack = new ItemStack(selectedBlock.asItem());
+        ItemPlacementContext context = new ItemPlacementContext(client.player, Hand.MAIN_HAND, stack, hit);
+        if (!targetPos.equals(context.getBlockPos())) {
+            context = new TargetedPlacementContext(client.player, stack, hit, targetPos);
+        }
+
+        BlockState placementState = selectedBlock.getPlacementState(context);
+        return placementState == null ? selectedBlock.getDefaultState() : placementState;
     }
 
     private static boolean isReplaceablePlacementState(BlockState state) {
@@ -545,6 +565,37 @@ public final class HaGhostWall {
 
     private static final class SavedGhostWalls {
         List<GhostBlock> blocks = new ArrayList<GhostBlock>();
+    }
+
+    private static final class TargetedPlacementContext extends ItemPlacementContext {
+        private final PlayerEntity player;
+        private final BlockPos targetPos;
+
+        TargetedPlacementContext(PlayerEntity player, ItemStack stack, BlockHitResult hit, BlockPos targetPos) {
+            super(player, Hand.MAIN_HAND, stack, hit);
+            this.player = player;
+            this.targetPos = targetPos;
+        }
+
+        @Override
+        public BlockPos getBlockPos() {
+            return targetPos == null ? super.getBlockPos() : targetPos;
+        }
+
+        @Override
+        public boolean canPlace() {
+            return true;
+        }
+
+        @Override
+        public boolean canReplaceExisting() {
+            return true;
+        }
+
+        @Override
+        public Direction[] getPlacementDirections() {
+            return Direction.getEntityFacingOrder(player);
+        }
     }
 
     private static final class GhostBlock {

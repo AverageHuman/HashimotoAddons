@@ -43,7 +43,6 @@ public final class HaEvolutionForgeHelper {
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.########", DecimalFormatSymbols.getInstance(Locale.US));
     private static final Path STORAGE_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("evolution_forge_items.json");
     private static final Path PREFIX_TOKEN_CANDIDATES_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("prefix_token_candidates.json");
-    private static final Path ALLOWED_PREFIX_TOKENS_FILE = FabricLoader.getInstance().getConfigDir().resolve("HashimotoAddons").resolve("allowed_prefix_tokens.json");
     private static final String FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30d5\u30a9\u30fc\u30b8";
     private static final String ARMOR_FORGE_TITLE = "\u30a8\u30dc\u30ea\u30e5\u30fc\u30b7\u30e7\u30f3\u30a2\u30fc\u30de\u30fc\u30d5\u30a9\u30fc\u30b8";
     private static final String RECIPE_PREVIEW_TITLE = "\u30ec\u30b7\u30d4\u30d7\u30ec\u30d3\u30e5\u30fc";
@@ -52,14 +51,12 @@ public final class HaEvolutionForgeHelper {
     private static final String RIGHT_CLICK = "\u53f3\u30af\u30ea\u30c3\u30af";
     private static final String ITEM_RANK_LABEL = "\u30a2\u30a4\u30c6\u30e0\u30e9\u30f3\u30af";
     private static final String MARKER = "Evo?: Yes";
-    private static final Pattern LEADING_MARKERS = Pattern.compile("^[\\s\\u2715\\u2716\\u00d7xX*\\-:\\uFF1A\\u30FB]+");
-    private static final Pattern LEADING_COUNT = Pattern.compile("^[0-9]+\\s+");
     private static final Pattern ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([0-9]+)\\)\\s*$");
     private static final Pattern ITEM_KEY_ENHANCEMENT_SUFFIX = Pattern.compile("\\s*\\(\\+([1-9]|1[0-2])\\)\\s*$");
     private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern HP_BOOSTER_VALUE_PATTERN = Pattern.compile("増強剤(?:\\s*極)?(?:<[^>]+>)?.*?HP\\s*[+＋]([0-9]+(?:\\.[0-9]+)?)");
-    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 3;
+    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 4;
     private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
     private static final String MAX_HP_STAT_NAME = "最大HP";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
@@ -73,16 +70,6 @@ public final class HaEvolutionForgeHelper {
     private static final double SUB_ACCESSORY_PERCENT_BOOST = 1.5D;
     private static final double SUB_ACCESSORY_MOB_DAMAGE_BOOST = 15.0D;
     private static final String NO_TRACK_ITEM_LABEL = "\u306e\u52a0\u8b77";
-    private static final String[] ITEM_NAME_EXCEPTION_PREFIXES = new String[] {
-        "\u5b8c\u5168\u7121\u6b20\u306e",
-        "\u6975\u81f4\u306e",
-        "\u5353\u8d8a\u3057\u305f",
-        "\u552f\u4e00\u7121\u4e8c\u306e",
-        "\u8a08\u308a\u77e5\u308c\u306a\u3044"
-    };
-    private static final Set<String> DISABLED_PREFIX_TOKENS = new LinkedHashSet<String>(Arrays.asList(
-        "\u7d14\u771f\u306a\u8a18\u61b6"
-    ));
     private static final Set<String> TRACKED_STAT_NAMES = new LinkedHashSet<String>(Arrays.asList(
         "HP\u81ea\u7136\u56de\u5fa9",
         "MANA\u81ea\u7136\u56de\u5fa9",
@@ -154,7 +141,6 @@ public final class HaEvolutionForgeHelper {
     ));
     private static final Map<String, EvolutionForgeData> DATA_BY_SERVER = new LinkedHashMap<String, EvolutionForgeData>();
     private static final Map<String, PrefixTokenCandidate> PREFIX_TOKEN_CANDIDATES = new LinkedHashMap<String, PrefixTokenCandidate>();
-    private static final Set<String> ALLOWED_PREFIX_TOKENS = new LinkedHashSet<String>();
     private static boolean loaded;
     private static boolean prefixTokensLoaded;
     private static boolean scanningForgeTooltips;
@@ -1164,38 +1150,11 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static String normalizeItemName(String value) {
-        loadPrefixTokens();
         String result = normalizeDisplay(value);
         if (shouldSkipTrackingName(result)) {
             return "";
         }
-        result = ITEM_KEY_ENHANCEMENT_SUFFIX.matcher(result).replaceFirst("");
-        result = LEADING_MARKERS.matcher(result).replaceFirst("");
-        result = toAsciiDigits(result);
-        result = LEADING_COUNT.matcher(result).replaceFirst("");
-        result = stripItemNameExceptionPrefixes(result);
-        result = stripAllowedPrefixTokens(result);
-        result = result.trim();
-        return result;
-    }
-
-    private static String stripItemNameExceptionPrefixes(String value) {
-        String result = value == null ? "" : value.trim();
-        boolean changed;
-        do {
-            changed = false;
-            for (String prefix : ITEM_NAME_EXCEPTION_PREFIXES) {
-                if (prefix == null || prefix.isEmpty() || !result.startsWith(prefix)) {
-                    continue;
-                }
-                if (result.length() <= prefix.length() || !Character.isWhitespace(result.charAt(prefix.length()))) {
-                    continue;
-                }
-                result = result.substring(prefix.length()).trim();
-                    changed = true;
-            }
-        } while (changed);
-        return result;
+        return HaItemNameNormalizer.normalize(result);
     }
 
     private static String resolveTrackedItemName(String fallbackName, List<Text> tooltip) {
@@ -1258,36 +1217,6 @@ public final class HaEvolutionForgeHelper {
     private static boolean shouldSkipTrackingName(String value) {
         String normalized = normalizeDisplay(value);
         return !normalized.isEmpty() && normalized.contains(NO_TRACK_ITEM_LABEL);
-    }
-
-    private static String stripAllowedPrefixTokens(String value) {
-        String result = value == null ? "" : value.trim();
-        if (result.isEmpty() || ALLOWED_PREFIX_TOKENS.isEmpty()) {
-            return result;
-        }
-
-        List<String> tokens = new ArrayList<String>(Arrays.asList(result.split("\\s+")));
-        while (!tokens.isEmpty()) {
-            String first = normalizeDisplay(tokens.get(0));
-            if (first.isEmpty() || !ALLOWED_PREFIX_TOKENS.contains(first)) {
-                break;
-            }
-            tokens.remove(0);
-        }
-        if (tokens.isEmpty()) {
-            return "";
-        }
-        StringBuilder rebuilt = new StringBuilder();
-        for (String token : tokens) {
-            if (token == null || token.isEmpty()) {
-                continue;
-            }
-            if (rebuilt.length() > 0) {
-                rebuilt.append(' ');
-            }
-            rebuilt.append(token);
-        }
-        return rebuilt.toString().trim();
     }
 
     private static String findRankColoredItemName(List<Text> tooltip) {
@@ -1681,7 +1610,11 @@ public final class HaEvolutionForgeHelper {
                             if (!itemRanges.isValid(allowMissingItemRank)) {
                                 continue;
                             }
-                            List<StatRange> ranges = new ArrayList<StatRange>();
+                            String key = itemRanges.key();
+                            List<StatRange> ranges = data.statRangesByItem.get(key);
+                            if (ranges == null) {
+                                ranges = new ArrayList<StatRange>();
+                            }
                             for (StatRange range : itemRanges.ranges) {
                                 if (range != null) {
                                     range.normalize();
@@ -1691,7 +1624,7 @@ public final class HaEvolutionForgeHelper {
                                 }
                             }
                             if (!ranges.isEmpty()) {
-                                data.statRangesByItem.put(itemRanges.key(), ranges);
+                                data.statRangesByItem.put(key, ranges);
                             }
                         }
                     }
@@ -1704,7 +1637,11 @@ public final class HaEvolutionForgeHelper {
                             if (!itemBounds.isValid(allowMissingItemRank)) {
                                 continue;
                             }
-                            List<ObservedStatBound> bounds = new ArrayList<ObservedStatBound>();
+                            String key = itemBounds.key();
+                            List<ObservedStatBound> bounds = data.observedBoundsByItem.get(key);
+                            if (bounds == null) {
+                                bounds = new ArrayList<ObservedStatBound>();
+                            }
                             for (ObservedStatBound bound : itemBounds.bounds) {
                                 if (bound != null) {
                                     bound.normalize();
@@ -1714,7 +1651,7 @@ public final class HaEvolutionForgeHelper {
                                 }
                             }
                             if (!bounds.isEmpty()) {
-                                data.observedBoundsByItem.put(itemBounds.key(), bounds);
+                                data.observedBoundsByItem.put(key, bounds);
                             }
                         }
                     }
@@ -1790,23 +1727,7 @@ public final class HaEvolutionForgeHelper {
             return;
         }
         prefixTokensLoaded = true;
-        ALLOWED_PREFIX_TOKENS.clear();
         PREFIX_TOKEN_CANDIDATES.clear();
-
-        if (Files.exists(ALLOWED_PREFIX_TOKENS_FILE)) {
-            try (Reader reader = Files.newBufferedReader(ALLOWED_PREFIX_TOKENS_FILE, StandardCharsets.UTF_8)) {
-                AllowedPrefixTokensFile allowed = GSON.fromJson(reader, AllowedPrefixTokensFile.class);
-                if (allowed != null && allowed.allowedPrefixTokens != null) {
-                    for (String token : allowed.allowedPrefixTokens) {
-                        String normalized = normalizeDisplay(token);
-                        if (!normalized.isEmpty() && !DISABLED_PREFIX_TOKENS.contains(normalized)) {
-                            ALLOWED_PREFIX_TOKENS.add(normalized);
-                        }
-                    }
-                }
-            } catch (IOException ignored) {
-            }
-        }
 
         if (Files.exists(PREFIX_TOKEN_CANDIDATES_FILE)) {
             try (Reader reader = Files.newBufferedReader(PREFIX_TOKEN_CANDIDATES_FILE, StandardCharsets.UTF_8)) {
@@ -1852,10 +1773,6 @@ public final class HaEvolutionForgeHelper {
 
     private static final class PrefixTokenCandidatesFile {
         List<PrefixTokenCandidate> candidates = new ArrayList<PrefixTokenCandidate>();
-    }
-
-    private static final class AllowedPrefixTokensFile {
-        List<String> allowedPrefixTokens = new ArrayList<String>();
     }
 
     private static final class PrefixTokenCandidate {
