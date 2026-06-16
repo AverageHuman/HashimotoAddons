@@ -10,10 +10,12 @@
     "ItemStackTooltipMixin",
     "KeyBindingAccessor",
     "MinecraftClientGhostWallMixin",
+    "MinecraftClientWaypointMixin",
     "MinecraftClientAccessor",
     "MinecraftClientDisconnectMixin",
     "ScreenButtonTooltipMixin",
     "SlotAccessor",
+    "PlayerInventoryAccessor",
     "HandledScreenAccessor",
     "HandledScreenMixin",
     "HandledScreenRenderMixin"

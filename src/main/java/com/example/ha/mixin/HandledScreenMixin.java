@@ -1,11 +1,13 @@
 package com.example.ha.mixin;
 
 import com.example.ha.HaConfig;
+import com.example.ha.HaItemProtect;
 import com.example.ha.HaItemLockHelper;
 import com.example.ha.HaLoreClipboard;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.sound.SoundCategory;
@@ -21,7 +23,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class HandledScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void ha$handleItemLock(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        ItemStack cursorStack = ItemStack.EMPTY;
+        if (client != null && client.player != null && client.player.inventory != null) {
+            cursorStack = ((PlayerInventoryAccessor) client.player.inventory).ha$getCursorStack();
+        }
+
         Slot focusedSlot = ((HandledScreenAccessor) this).ha$getFocusedSlot();
+        KeyBinding dropKey = MinecraftClient.getInstance().options.keyDrop;
+        boolean dropPressed = dropKey != null && dropKey.matchesKey(keyCode, scanCode);
+        if (dropPressed && ((focusedSlot != null && HaItemProtect.isProtected(focusedSlot.getStack())) || HaItemProtect.isProtected(cursorStack))) {
+            HaItemProtect.notifyBlockedProtection();
+            cir.setReturnValue(true);
+            return;
+        }
+
         if (focusedSlot == null) {
             return;
         }
@@ -52,7 +68,6 @@ abstract class HandledScreenMixin {
             }
 
             config.save();
-            MinecraftClient client = MinecraftClient.getInstance();
             if (client.player != null) {
                 float pitch = lockedNow ? 1.35F : 0.85F;
                 client.player.playSound(SoundEvents.UI_BUTTON_CLICK, SoundCategory.MASTER, 0.7F, pitch);
@@ -61,7 +76,6 @@ abstract class HandledScreenMixin {
             return;
         }
 
-        KeyBinding dropKey = MinecraftClient.getInstance().options.keyDrop;
         if (dropKey != null && dropKey.matchesKey(keyCode, scanCode) && HaItemLockHelper.isLockActiveForSlot(MinecraftClient.getInstance(), focusedSlot)) {
             cir.setReturnValue(true);
         }
@@ -69,11 +83,40 @@ abstract class HandledScreenMixin {
 
     @Inject(method = "onMouseClick", at = @At("HEAD"), cancellable = true)
     private void ha$preventLockedSlotMovement(Slot slot, int slotId, int button, SlotActionType actionType, CallbackInfo ci) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client != null
+            && client.player != null
+            && slot == null
+            && (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW)
+            && HaItemProtect.isProtected(((PlayerInventoryAccessor) client.player.inventory).ha$getCursorStack())) {
+            HaItemProtect.notifyBlockedProtection();
+            ci.cancel();
+            return;
+        }
+
+        if (slot != null && HaItemProtect.isProtected(slot.getStack())) {
+            if (actionType == SlotActionType.THROW) {
+                HaItemProtect.notifyBlockedProtection();
+                ci.cancel();
+                return;
+            }
+
+            if (client != null
+                && HaItemProtect.isMagicalBombCursor(client)
+                && (actionType == SlotActionType.PICKUP
+                    || actionType == SlotActionType.QUICK_MOVE
+                    || actionType == SlotActionType.SWAP
+                    || actionType == SlotActionType.PICKUP_ALL)) {
+                HaItemProtect.notifyBlockedProtection();
+                ci.cancel();
+                return;
+            }
+        }
+
         if (!HaConfig.get().itemLockEnabled || slot == null) {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
         if (actionType == SlotActionType.PICKUP
             || actionType == SlotActionType.QUICK_MOVE
             || actionType == SlotActionType.THROW

@@ -154,6 +154,7 @@ public final class HaConfigPersistence {
         config.spotifyOverlayY = saved.spotifyOverlayY;
         config.chatFilterEnabled = saved.chatFilterEnabled;
         config.lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
+        config.protectedItemIds = saved.protectedItemIds != null ? new HashSet<String>(saved.protectedItemIds) : new HashSet<String>();
         if (saved.elementTrackerTargets != null) {
             for (SavedElementTrackerTargetEntry savedEntry : saved.elementTrackerTargets) {
                 HaConfig.ElementTrackerTargetEntry entry = new HaConfig.ElementTrackerTargetEntry();
@@ -380,6 +381,7 @@ public final class HaConfigPersistence {
         root.addProperty("spotifyOverlayY", config.spotifyOverlayY);
         root.addProperty("chatFilterEnabled", config.chatFilterEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(config.lockedSlotIds)));
+        root.add("protectedItemIds", GSON.toJsonTree(new HashSet<String>(config.protectedItemIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries(config)));
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries(config)));
         root.add("chatFilterEntries", GSON.toJsonTree(toSavedChatFilterEntries(config)));

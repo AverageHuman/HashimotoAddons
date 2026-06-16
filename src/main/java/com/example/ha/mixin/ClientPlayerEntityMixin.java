@@ -1,6 +1,6 @@
 package com.example.ha.mixin;
 
-import com.example.ha.HaConfig;
+import com.example.ha.HaItemProtect;
 import net.minecraft.client.network.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,8 +12,8 @@ abstract class ClientPlayerEntityMixin {
     @Inject(method = "dropSelectedItem", at = @At("HEAD"), cancellable = true)
     private void ha$preventLockedHotbarDrop(boolean entireStack, CallbackInfoReturnable<Boolean> cir) {
         ClientPlayerEntity player = (ClientPlayerEntity) (Object) this;
-        Integer lockKey = Integer.valueOf(player.inventory.selectedSlot);
-        if (HaConfig.get().itemLockEnabled && HaConfig.get().lockedSlotIds.contains(lockKey)) {
+        if (HaItemProtect.isProtected(player.getMainHandStack())) {
+            HaItemProtect.notifyBlockedProtection();
             cir.setReturnValue(false);
         }
     }
