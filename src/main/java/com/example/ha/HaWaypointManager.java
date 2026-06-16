@@ -102,18 +102,6 @@ public final class HaWaypointManager {
         return state.renderFullBlocks;
     }
 
-    public static boolean isThroughWallsEnabled() {
-        ensureLoaded();
-        return state.renderThroughWalls;
-    }
-
-    public static boolean toggleThroughWalls() {
-        ensureLoaded();
-        state.renderThroughWalls = !state.renderThroughWalls;
-        save();
-        return state.renderThroughWalls;
-    }
-
     public static int getActiveColorSlot() {
         ensureLoaded();
         return clampSlot(state.activeColorSlot);
@@ -443,10 +431,6 @@ public final class HaWaypointManager {
 
     public static String getRenderModeLabel() {
         return isRenderFullBlocks() ? "Full Block" : "Outline Only";
-    }
-
-    public static String getThroughWallsLabel() {
-        return isThroughWallsEnabled() ? "Enabled" : "Disabled";
     }
 
     public static String getEditModeLabel() {

@@ -40,7 +40,6 @@ public final class HaWaypointOverlay {
 
         Vec3d cameraPos = context.camera().getPos();
         VertexConsumer lineBuffer = context.consumers().getBuffer(RenderLayer.getLines());
-        boolean throughWalls = HaWaypointManager.isThroughWallsEnabled();
         boolean fullBlock = HaWaypointManager.isRenderFullBlocks();
 
         RenderSystem.enableBlend();
@@ -48,11 +47,7 @@ public final class HaWaypointOverlay {
         RenderSystem.disableTexture();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
-        if (throughWalls) {
-            RenderSystem.disableDepthTest();
-        } else {
-            RenderSystem.enableDepthTest();
-        }
+        RenderSystem.disableDepthTest();
 
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder fillBuffer = tessellator.getBuffer();
@@ -91,7 +86,7 @@ public final class HaWaypointOverlay {
         }
 
         RenderSystem.enableTexture();
-        HaWaypointTextRenderer.render(context, client, waypoints, cameraPos, throughWalls, fullBlock);
+        HaWaypointTextRenderer.render(context, client, waypoints, cameraPos);
 
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();

@@ -6,12 +6,10 @@ import java.util.Map;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.OrderedText;
-import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 
 final class HaWaypointTextRenderer {
@@ -32,18 +30,15 @@ final class HaWaypointTextRenderer {
         WorldRenderContext context,
         MinecraftClient client,
         List<HaWaypointManager.WaypointEntry> waypoints,
-        Vec3d cameraPos,
-        boolean throughWalls,
-        boolean fullBlock
+        Vec3d cameraPos
     ) {
         if (context == null || context.camera() == null || client == null || client.player == null || waypoints == null || waypoints.isEmpty()) {
             return;
         }
 
-        MatrixStack matrices = new MatrixStack();
-        matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+        MatrixStack matrices = context.matrixStack();
         Camera camera = context.camera();
-        VertexConsumerProvider.Immediate textConsumers = VertexConsumerProvider.immediate(new BufferBuilder(256));
+        VertexConsumerProvider textConsumers = context.consumers();
 
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
             String label = waypoint.label == null ? "" : waypoint.label.trim();
@@ -56,11 +51,18 @@ final class HaWaypointTextRenderer {
 
             LabelRenderData labelRenderData = getLabelRenderData(client, label);
             if (labelRenderData != null) {
-                renderLabel(client, matrices, camera, waypoint.x + 0.5D, waypoint.y + LABEL_VERTICAL_OFFSET, waypoint.z + 0.5D, labelRenderData, textConsumers, throughWalls);
+                renderLabel(
+                    client,
+                    matrices,
+                    camera,
+                    waypoint.x - cameraPos.x + 0.5D,
+                    waypoint.y - cameraPos.y + LABEL_VERTICAL_OFFSET,
+                    waypoint.z - cameraPos.z + 0.5D,
+                    labelRenderData,
+                    textConsumers
+                );
             }
         }
-
-        textConsumers.draw();
     }
 
     private static void renderLabel(
@@ -71,8 +73,7 @@ final class HaWaypointTextRenderer {
         double y,
         double z,
         LabelRenderData labelRenderData,
-        VertexConsumerProvider.Immediate textConsumers,
-        boolean throughWalls
+        VertexConsumerProvider textConsumers
     ) {
         matrices.push();
         matrices.translate(x, y, z);
@@ -80,8 +81,7 @@ final class HaWaypointTextRenderer {
         matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
         float width = labelRenderData.textWidth / 2.0F;
-        Matrix4f matrix = matrices.peek().getModel();
-        client.textRenderer.draw(labelRenderData.orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrix, textConsumers, throughWalls, 0, 0xF000F0);
+        client.textRenderer.draw(labelRenderData.orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrices.peek().getModel(), textConsumers, true, 0, 0xF000F0);
         matrices.pop();
     }
 

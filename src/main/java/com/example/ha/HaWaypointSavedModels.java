@@ -9,7 +9,6 @@ import org.lwjgl.glfw.GLFW;
 final class SavedWaypointState {
     boolean editMode = false;
     boolean renderFullBlocks = false;
-    boolean renderThroughWalls = false;
     int activeColorSlot = 0;
     int cycleKeyCode = GLFW.GLFW_KEY_UNKNOWN;
     int cycleKeyScanCode = -1;

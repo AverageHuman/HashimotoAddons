@@ -13,7 +13,6 @@ public final class HaWaypointScreen extends Screen {
     private boolean waitingForCycleKey;
     private ButtonWidget editModeButton;
     private ButtonWidget renderModeButton;
-    private ButtonWidget throughWallsButton;
     private ButtonWidget activeSlotButton;
     private ButtonWidget cycleKeyButton;
     private ButtonWidget[] slotButtons;
@@ -43,19 +42,13 @@ public final class HaWaypointScreen extends Screen {
             notifyStatus("Waypoint render mode " + (fullBlock ? "Full Block" : "Outline Only"));
         }));
 
-        throughWallsButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 2, 210, 20, new LiteralText(""), button -> {
-            boolean enabled = HaWaypointManager.toggleThroughWalls();
-            refreshButtons();
-            notifyStatus("Through-wall rendering " + (enabled ? "Enabled" : "Disabled"));
-        }));
-
-        activeSlotButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 3, 210, 20, new LiteralText(""), button -> {
+        activeSlotButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 2, 210, 20, new LiteralText(""), button -> {
             int slot = HaWaypointManager.cycleActiveColorSlot();
             refreshButtons();
             notifyStatus("Active waypoint color slot: " + (slot + 1));
         }));
 
-        cycleKeyButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 4, 210, 20, new LiteralText(""), button -> {
+        cycleKeyButton = addButton(new ButtonWidget(centerX - 105, top + spacing * 3, 210, 20, new LiteralText(""), button -> {
             waitingForCycleKey = true;
             refreshButtons();
         }));
@@ -63,7 +56,7 @@ public final class HaWaypointScreen extends Screen {
         slotButtons = new ButtonWidget[4];
         for (int i = 0; i < 4; i++) {
             final int slotIndex = i;
-            int rowY = top + spacing * (5 + i);
+            int rowY = top + spacing * (4 + i);
             slotButtons[i] = addButton(new ButtonWidget(centerX - 105, rowY, 210, 20, new LiteralText(""), button -> {
                 if (client != null) {
                     client.openScreen(new HaWaypointColorSelectScreen(this, slotIndex));
@@ -71,7 +64,7 @@ public final class HaWaypointScreen extends Screen {
             }));
         }
 
-        addButton(new ButtonWidget(centerX - 105, top + spacing * 9, 210, 20, new LiteralText("Manage Current Dimension Waypoints"), button -> {
+        addButton(new ButtonWidget(centerX - 105, top + spacing * 8, 210, 20, new LiteralText("Manage Current Dimension Waypoints"), button -> {
             if (client != null) {
                 client.openScreen(new HaWaypointListScreen(this, 0));
             }
@@ -138,7 +131,6 @@ public final class HaWaypointScreen extends Screen {
         boolean waiting = waitingForCycleKey;
         editModeButton.setMessage(new LiteralText("Waypoint Edit Mode: " + (HaWaypointManager.isEditModeEnabled() ? "\u00a7aEnabled" : "\u00a7cDisabled")));
         renderModeButton.setMessage(new LiteralText("Render Mode: " + HaWaypointManager.getRenderModeLabel()));
-        throughWallsButton.setMessage(new LiteralText("Through Walls: " + (HaWaypointManager.isThroughWallsEnabled() ? "\u00a7aEnabled" : "\u00a7cDisabled")));
         activeSlotButton.setMessage(new LiteralText("Active Color Slot: " + (HaWaypointManager.getActiveColorSlot() + 1)));
         cycleKeyButton.setMessage(new LiteralText(waiting ? "Press any key or mouse button..." : "Cycle Color Key: " + HaWaypointManager.getCycleColorKeyName()));
 
