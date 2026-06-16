@@ -53,6 +53,7 @@ public final class HaConfig {
     public String cameraToggleKeyType = "keysym";
     public int defaultWeaponHotbarSlot = 0;
     public boolean itemLockEnabled = true;
+    public Set<String> protectedItemIds = new HashSet<String>();
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
@@ -154,6 +155,7 @@ public final class HaConfig {
         normalizeTrackerSettings();
         normalizeOverlaySettings();
         normalizeDangerousSettings();
+        normalizeProtectionSettings();
         normalizeSharedCollections();
     }
 
@@ -269,6 +271,22 @@ public final class HaConfig {
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
+    }
+
+    private void normalizeProtectionSettings() {
+        if (protectedItemIds == null) {
+            protectedItemIds = new HashSet<String>();
+            return;
+        }
+
+        Set<String> normalized = new HashSet<String>();
+        for (String key : protectedItemIds) {
+            String normalizedKey = normalizeProtectionKey(key);
+            if (normalizedKey != null) {
+                normalized.add(normalizedKey);
+            }
+        }
+        protectedItemIds = normalized;
     }
 
     private void normalizeSharedCollections() {
@@ -462,6 +480,15 @@ public final class HaConfig {
             return max;
         }
         return value;
+    }
+
+    private static String normalizeProtectionKey(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private void normalizeGhostBlockSettings() {

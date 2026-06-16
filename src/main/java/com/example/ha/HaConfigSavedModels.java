@@ -122,6 +122,7 @@ final class SavedConfig {
     int spotifyOverlayY = 264;
     boolean chatFilterEnabled = false;
     Set<Integer> lockedSlotIds = new HashSet<Integer>();
+    Set<String> protectedItemIds = new HashSet<String>();
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
     List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
     List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();

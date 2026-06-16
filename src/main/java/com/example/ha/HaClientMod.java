@@ -22,15 +22,24 @@ public final class HaClientMod implements ClientModInitializer {
     private static KeyBinding cameraToggleKeyBinding;
     private static KeyBinding chestSearchKeyBinding;
     private static KeyBinding gearViewKeyBinding;
+    private static KeyBinding waypointCycleKeyBinding;
     private HaTickHandler tickHandler;
 
     @Override
     public void onInitializeClient() {
         HaSounds.register();
         HaConfig.get().load();
+        HaWaypointManager.load();
         KeyBinding macroBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateMacroToggleKeyBinding() : null;
         KeyBinding alchemyBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateAlchemyKilnAutomationKeyBinding() : null;
-        tickHandler = new HaTickHandler(macroBinding, alchemyBinding, getOrCreateCameraToggleKeyBinding(), getOrCreateChestSearchKeyBinding(), getOrCreateGearViewKeyBinding());
+        tickHandler = new HaTickHandler(
+            macroBinding,
+            alchemyBinding,
+            getOrCreateCameraToggleKeyBinding(),
+            getOrCreateChestSearchKeyBinding(),
+            getOrCreateGearViewKeyBinding(),
+            getOrCreateWaypointCycleKeyBinding()
+        );
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
             updateAlchemyKilnAutomationBinding(HaConfig.get().getAlchemyKilnAutomationKey());
@@ -38,6 +47,7 @@ public final class HaClientMod implements ClientModInitializer {
         updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
         updateChestSearchBinding(HaConfig.get().getChestSearchKey());
         updateGearViewBinding(HaConfig.get().getGearViewKey());
+        updateWaypointCycleBinding(HaWaypointManager.getCycleColorKey());
         registerCommand();
         ClientTickEvents.END_CLIENT_TICK.register(tickHandler::onEndClientTick);
         HudRenderCallback.EVENT.register(HaMacroStatusOverlay::render);
@@ -56,14 +66,22 @@ public final class HaClientMod implements ClientModInitializer {
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaChestSearchOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaMobEspOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaAfkFarmingCircleOverlay::render);
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaWaypointOverlay::render);
     }
 
     private void registerCommand() {
+        ClientCommandManager.DISPATCHER.register(
+            ClientCommandManager.literal("protectitem")
+                .executes(context -> protectHeldItem())
+        );
+
         LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommandManager.literal("ha")
             .executes(context -> {
                 tickHandler.requestOpenConfigScreen();
                 return 1;
             })
+            .then(ClientCommandManager.literal("wp")
+                .executes(context -> toggleWaypointEditMode()))
             .then(ClientCommandManager.literal("edithud")
                 .executes(context -> openHudEditor()))
             .then(ClientCommandManager.literal("expdebug")
@@ -92,6 +110,10 @@ public final class HaClientMod implements ClientModInitializer {
         ClientCommandManager.DISPATCHER.register(command);
     }
 
+    private int protectHeldItem() {
+        return HaItemProtect.toggleHeldItemProtection() ? 1 : 0;
+    }
+
     private int toggleExtras() {
         HaConfig config = HaConfig.get();
         HaGhostWall.setExtrasEnabled(!config.extrasEnabled);
@@ -114,6 +136,12 @@ public final class HaClientMod implements ClientModInitializer {
 
     private int openHudEditor() {
         tickHandler.requestOpenHudEditScreen();
+        return 1;
+    }
+
+    private int toggleWaypointEditMode() {
+        boolean enabled = HaWaypointManager.toggleEditMode();
+        sendMessage("Waypoint Edit Mode " + (enabled ? "\u00a7aEnabled" : "\u00a7cDisabled"));
         return 1;
     }
 
@@ -199,6 +227,11 @@ public final class HaClientMod implements ClientModInitializer {
         KeyBinding.updateKeysByCode();
     }
 
+    public static void updateWaypointCycleBinding(InputUtil.Key key) {
+        getOrCreateWaypointCycleKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
     private static KeyBinding getOrCreateMacroToggleKeyBinding() {
         if (macroToggleKeyBinding == null) {
             macroToggleKeyBinding = KeyBindingHelper.registerKeyBinding(
@@ -267,5 +300,19 @@ public final class HaClientMod implements ClientModInitializer {
             );
         }
         return gearViewKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateWaypointCycleKeyBinding() {
+        if (waypointCycleKeyBinding == null) {
+            waypointCycleKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.waypoint_cycle",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return waypointCycleKeyBinding;
     }
 }
