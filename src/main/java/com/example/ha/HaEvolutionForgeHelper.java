@@ -54,7 +54,7 @@ public final class HaEvolutionForgeHelper {
     private static final Pattern RANGE_LINE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)(\\s*[~\\u2393\\uFF5E\\u301C\\-\\u2212\\u2013\\u2014]\\s*)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern CURRENT_VALUE_PATTERN = Pattern.compile("^(.*?)([+\\-]?[0-9]+(?:\\.[0-9]+)?)([%\\uFF05]?)(.*)$");
     private static final Pattern HP_BOOSTER_VALUE_PATTERN = Pattern.compile("増強剤(?:\\s*極)?(?:<[^>]+>)?.*?HP\\s*[+＋]([0-9]+(?:\\.[0-9]+)?)");
-    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 3;
+    private static final int EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION = 2;
     private static final String OBSERVED_RANGE_SEPARATOR = "\u2393";
     private static final String MAX_HP_STAT_NAME = "最大HP";
     private static final Map<String, StatBoost> STAT_BOOSTS = createStatBoosts();
@@ -1523,7 +1523,6 @@ public final class HaEvolutionForgeHelper {
             SavedEvolutionForgeItems saved = GSON.fromJson(reader, SavedEvolutionForgeItems.class);
             if (saved != null && saved.servers != null) {
                 DATA_BY_SERVER.clear();
-                boolean legacySchema = saved.schemaVersion < EVOLUTION_FORGE_STORAGE_SCHEMA_VERSION;
                 for (ServerItems server : saved.servers) {
                     if (server == null || server.serverKey == null || server.serverKey.trim().isEmpty()) {
                         continue;
@@ -1537,7 +1536,7 @@ public final class HaEvolutionForgeHelper {
                             }
                         }
                     }
-                    if (!legacySchema && server.statRanges != null) {
+                    if (server.statRanges != null) {
                         for (ItemStatRanges itemRanges : server.statRanges) {
                             if (itemRanges == null || itemRanges.itemName == null || itemRanges.ranges == null) {
                                 continue;
@@ -1546,7 +1545,11 @@ public final class HaEvolutionForgeHelper {
                             if (!itemRanges.isValid()) {
                                 continue;
                             }
-                            List<StatRange> ranges = new ArrayList<StatRange>();
+                            String key = itemRanges.key();
+                            List<StatRange> ranges = data.statRangesByItem.get(key);
+                            if (ranges == null) {
+                                ranges = new ArrayList<StatRange>();
+                            }
                             for (StatRange range : itemRanges.ranges) {
                                 if (range != null) {
                                     range.normalize();
@@ -1556,11 +1559,11 @@ public final class HaEvolutionForgeHelper {
                                 }
                             }
                             if (!ranges.isEmpty()) {
-                                data.statRangesByItem.put(itemRanges.key(), ranges);
+                                data.statRangesByItem.put(key, ranges);
                             }
                         }
                     }
-                    if (!legacySchema && server.observedBounds != null) {
+                    if (server.observedBounds != null) {
                         for (ItemObservedBounds itemBounds : server.observedBounds) {
                             if (itemBounds == null || itemBounds.itemName == null || itemBounds.bounds == null) {
                                 continue;
@@ -1569,7 +1572,11 @@ public final class HaEvolutionForgeHelper {
                             if (!itemBounds.isValid()) {
                                 continue;
                             }
-                            List<ObservedStatBound> bounds = new ArrayList<ObservedStatBound>();
+                            String key = itemBounds.key();
+                            List<ObservedStatBound> bounds = data.observedBoundsByItem.get(key);
+                            if (bounds == null) {
+                                bounds = new ArrayList<ObservedStatBound>();
+                            }
                             for (ObservedStatBound bound : itemBounds.bounds) {
                                 if (bound != null) {
                                     bound.normalize();
@@ -1579,16 +1586,13 @@ public final class HaEvolutionForgeHelper {
                                 }
                             }
                             if (!bounds.isEmpty()) {
-                                data.observedBoundsByItem.put(itemBounds.key(), bounds);
+                                data.observedBoundsByItem.put(key, bounds);
                             }
                         }
                     }
                     if (!data.items.isEmpty() || !data.statRangesByItem.isEmpty() || !data.observedBoundsByItem.isEmpty()) {
                         DATA_BY_SERVER.put(server.serverKey, data);
                     }
-                }
-                if (legacySchema) {
-                    save();
                 }
             }
         } catch (IOException ignored) {
