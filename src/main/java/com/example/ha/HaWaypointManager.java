@@ -41,6 +41,7 @@ public final class HaWaypointManager {
         }
     };
 
+    private static final Map<String, List<WaypointEntry>> waypointRenderCacheByDimension = new LinkedHashMap<String, List<WaypointEntry>>();
     private static boolean loaded;
     private static SavedWaypointState state = new SavedWaypointState();
     private static boolean useActionConsumedUntilRelease;
@@ -62,6 +63,7 @@ public final class HaWaypointManager {
         }
 
         normalizeState();
+        invalidateWaypointRenderCache();
         loaded = true;
     }
 
@@ -218,17 +220,24 @@ public final class HaWaypointManager {
     public static List<WaypointEntry> getWaypointsForCurrentDimension(MinecraftClient client) {
         String dimensionKey = getCurrentDimensionKey(client);
         if (dimensionKey == null) {
-            return new ArrayList<WaypointEntry>();
+            return Collections.emptyList();
         }
         return getWaypointsForDimension(dimensionKey);
     }
 
     public static List<WaypointEntry> getWaypointsForDimension(String dimensionKey) {
         ensureLoaded();
+        List<WaypointEntry> cachedEntries = waypointRenderCacheByDimension.get(dimensionKey);
+        if (cachedEntries != null) {
+            return cachedEntries;
+        }
+
         List<WaypointEntry> entries = new ArrayList<WaypointEntry>();
         List<SavedWaypointEntry> savedEntries = state.waypointsByDimension.get(dimensionKey);
         if (savedEntries == null) {
-            return entries;
+            List<WaypointEntry> emptyEntries = Collections.emptyList();
+            waypointRenderCacheByDimension.put(dimensionKey, emptyEntries);
+            return emptyEntries;
         }
 
         for (SavedWaypointEntry savedEntry : savedEntries) {
@@ -239,7 +248,9 @@ public final class HaWaypointManager {
         }
 
         Collections.sort(entries, WAYPOINT_COMPARATOR);
-        return entries;
+        List<WaypointEntry> renderEntries = Collections.unmodifiableList(entries);
+        waypointRenderCacheByDimension.put(dimensionKey, renderEntries);
+        return renderEntries;
     }
 
     public static WaypointEntry getWaypoint(MinecraftClient client, BlockPos pos) {
@@ -300,6 +311,7 @@ public final class HaWaypointManager {
         existing.label = normalizeLabel(label);
         existing.colorSlotIndex = clampSlot(colorSlotIndex);
         normalizeState();
+        invalidateWaypointRenderCache();
         save();
         return true;
     }
@@ -334,6 +346,7 @@ public final class HaWaypointManager {
         }
 
         if (removed) {
+            invalidateWaypointRenderCache();
             save();
         }
         return removed;
@@ -348,6 +361,7 @@ public final class HaWaypointManager {
         ensureLoaded();
         List<SavedWaypointEntry> removed = state.waypointsByDimension.remove(dimensionKey);
         if (removed != null) {
+            invalidateWaypointRenderCache();
             save();
             return true;
         }
@@ -636,6 +650,10 @@ public final class HaWaypointManager {
         if (client != null && client.player != null) {
             client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:" + message), false);
         }
+    }
+
+    private static void invalidateWaypointRenderCache() {
+        waypointRenderCacheByDimension.clear();
     }
 
     private static InputUtil.Key getBoundKey(String type, int keyCode, int scanCode) {

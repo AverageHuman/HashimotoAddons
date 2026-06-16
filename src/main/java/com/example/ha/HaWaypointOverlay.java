@@ -61,24 +61,29 @@ public final class HaWaypointOverlay {
         }
 
         MatrixStack matrices = context.matrixStack();
-        for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
-            if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
-                continue;
+        RenderSystem.lineWidth(2.0F);
+        try {
+            for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
+                if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
+                    continue;
+                }
+
+                double x = waypoint.x - cameraPos.x;
+                double y = waypoint.y - cameraPos.y;
+                double z = waypoint.z - cameraPos.z;
+                int rgb = getColorRgb(waypoint.colorSlotIndex);
+                float red = ((rgb >> 16) & 0xFF) / 255.0F;
+                float green = ((rgb >> 8) & 0xFF) / 255.0F;
+                float blue = (rgb & 0xFF) / 255.0F;
+
+                if (fullBlock) {
+                    drawFilledBox(fillBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red * FULL_BLOCK_DARKEN_MULTIPLIER, green * FULL_BLOCK_DARKEN_MULTIPLIER, blue * FULL_BLOCK_DARKEN_MULTIPLIER);
+                }
+
+                net.minecraft.client.render.WorldRenderer.drawBox(matrices, lineBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red, green, blue, OUTLINE_ALPHA);
             }
-
-            double x = waypoint.x - cameraPos.x;
-            double y = waypoint.y - cameraPos.y;
-            double z = waypoint.z - cameraPos.z;
-            int rgb = getColorRgb(waypoint.colorSlotIndex);
-            float red = ((rgb >> 16) & 0xFF) / 255.0F;
-            float green = ((rgb >> 8) & 0xFF) / 255.0F;
-            float blue = (rgb & 0xFF) / 255.0F;
-
-            if (fullBlock) {
-                drawFilledBox(fillBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red * FULL_BLOCK_DARKEN_MULTIPLIER, green * FULL_BLOCK_DARKEN_MULTIPLIER, blue * FULL_BLOCK_DARKEN_MULTIPLIER);
-            }
-
-            net.minecraft.client.render.WorldRenderer.drawBox(matrices, lineBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red, green, blue, OUTLINE_ALPHA);
+        } finally {
+            RenderSystem.lineWidth(1.0F);
         }
 
         if (fullBlock) {

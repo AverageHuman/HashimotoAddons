@@ -1,7 +1,8 @@
 package com.example.ha;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
@@ -14,9 +15,15 @@ import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 
 final class HaWaypointTextRenderer {
-    private static final double LABEL_VERTICAL_OFFSET = 0.60D;
+    private static final double LABEL_VERTICAL_OFFSET = 1.20D;
     private static final float LABEL_SCALE = 0.025F;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
+    private static final Map<String, LabelRenderData> LABEL_RENDER_CACHE = new LinkedHashMap<String, LabelRenderData>(128, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, LabelRenderData> eldest) {
+            return size() > 128;
+        }
+    };
 
     private HaWaypointTextRenderer() {
     }
@@ -37,7 +44,6 @@ final class HaWaypointTextRenderer {
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
         Camera camera = context.camera();
         VertexConsumerProvider.Immediate textConsumers = VertexConsumerProvider.immediate(new BufferBuilder(256));
-        List<TextRenderTask> tasks = new ArrayList<TextRenderTask>();
 
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
             String label = waypoint.label == null ? "" : waypoint.label.trim();
@@ -48,12 +54,10 @@ final class HaWaypointTextRenderer {
                 continue;
             }
 
-            Vec3d renderPos = new Vec3d(waypoint.x + 0.5D, waypoint.y + LABEL_VERTICAL_OFFSET, waypoint.z + 0.5D);
-            tasks.add(new TextRenderTask(label, renderPos, client.textRenderer.getWidth(label)));
-        }
-
-        for (TextRenderTask task : tasks) {
-            renderLabel(client, matrices, camera, task, textConsumers, throughWalls);
+            LabelRenderData labelRenderData = getLabelRenderData(client, label);
+            if (labelRenderData != null) {
+                renderLabel(client, matrices, camera, waypoint.x + 0.5D, waypoint.y + LABEL_VERTICAL_OFFSET, waypoint.z + 0.5D, labelRenderData, textConsumers, throughWalls);
+            }
         }
 
         textConsumers.draw();
@@ -63,30 +67,48 @@ final class HaWaypointTextRenderer {
         MinecraftClient client,
         MatrixStack matrices,
         Camera camera,
-        TextRenderTask task,
+        double x,
+        double y,
+        double z,
+        LabelRenderData labelRenderData,
         VertexConsumerProvider.Immediate textConsumers,
         boolean throughWalls
     ) {
         matrices.push();
-        matrices.translate(task.renderPos.x, task.renderPos.y, task.renderPos.z);
+        matrices.translate(x, y, z);
         matrices.multiply(camera.getRotation());
         matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
-        float width = task.textWidth / 2.0F;
+        float width = labelRenderData.textWidth / 2.0F;
         Matrix4f matrix = matrices.peek().getModel();
-        OrderedText orderedLabel = new LiteralText(task.label).asOrderedText();
-        client.textRenderer.draw(orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrix, textConsumers, throughWalls, 0, 0xF000F0);
+        client.textRenderer.draw(labelRenderData.orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrix, textConsumers, throughWalls, 0, 0xF000F0);
         matrices.pop();
     }
 
-    private static final class TextRenderTask {
-        final String label;
-        final Vec3d renderPos;
+    private static LabelRenderData getLabelRenderData(MinecraftClient client, String label) {
+        if (client == null || client.textRenderer == null || label == null || label.isEmpty()) {
+            return null;
+        }
+
+        synchronized (LABEL_RENDER_CACHE) {
+            LabelRenderData cached = LABEL_RENDER_CACHE.get(label);
+            if (cached != null) {
+                return cached;
+            }
+
+            OrderedText orderedLabel = new LiteralText(label).asOrderedText();
+            LabelRenderData renderData = new LabelRenderData(orderedLabel, client.textRenderer.getWidth(label));
+            LABEL_RENDER_CACHE.put(label, renderData);
+            return renderData;
+        }
+    }
+
+    private static final class LabelRenderData {
+        final OrderedText orderedLabel;
         final int textWidth;
 
-        TextRenderTask(String label, Vec3d renderPos, int textWidth) {
-            this.label = label;
-            this.renderPos = renderPos;
+        LabelRenderData(OrderedText orderedLabel, int textWidth) {
+            this.orderedLabel = orderedLabel;
             this.textWidth = textWidth;
         }
     }
