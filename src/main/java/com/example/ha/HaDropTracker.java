@@ -204,7 +204,7 @@ public final class HaDropTracker {
         load();
         String itemId = getItemKey(stack);
         RegisteredItem existing = findRegisteredItemExact(itemId);
-        String displayName = stripFormatting(stack.getName());
+        String displayName = normalizeDropName(stripFormatting(stack.getName()));
         if (existing != null) {
             existing.displayName = displayName;
             existing.unitPrice = Math.max(0L, unitPrice);
@@ -241,14 +241,15 @@ public final class HaDropTracker {
     private static void add(ItemStack stack, int amount) {
         load();
         String key = getItemKey(stack);
+        String plainName = normalizeDropName(stripFormatting(stack.getName()));
         for (int i = 0; i < ENTRIES.size(); i++) {
             DropEntry entry = ENTRIES.get(i);
             if (entry.key.equals(key)) {
                 entry.count += amount;
                 entry.displayStack = stack.copy();
                 entry.displayStack.setCount(1);
-                entry.displayName = stack.getName();
-                entry.plainName = stripFormatting(stack.getName());
+                entry.displayName = HaItemNameNormalizer.preserveStyle(stack.getName(), plainName);
+                entry.plainName = plainName;
                 ENTRIES.remove(i);
                 ENTRIES.add(0, entry);
                 save();
@@ -258,7 +259,7 @@ public final class HaDropTracker {
 
         ItemStack displayStack = stack.copy();
         displayStack.setCount(1);
-        ENTRIES.add(0, new DropEntry(key, displayStack, stack.getName(), stripFormatting(stack.getName()), amount));
+        ENTRIES.add(0, new DropEntry(key, displayStack, HaItemNameNormalizer.preserveStyle(stack.getName(), plainName), plainName, amount));
         save();
     }
 
@@ -266,7 +267,7 @@ public final class HaDropTracker {
         load();
         String mode = normalizeMode(HaConfig.get().dropTrackerMode);
         String key = getItemKey(stack);
-        String plainName = stripFormatting(stack.getName());
+        String plainName = normalizeDropName(stripFormatting(stack.getName()));
         if (MODE_BUILTIN_ONLY.equals(mode)) {
             return getBuiltinCoinValue(plainName) > 0L;
         }
@@ -422,7 +423,15 @@ public final class HaDropTracker {
     }
 
     private static String normalizeDropName(String plainName) {
-        return plainName == null ? "" : plainName.trim();
+        return HaItemNameNormalizer.normalize(plainName);
+    }
+
+    private static String getItemNameFromKey(String key) {
+        if (key == null) {
+            return "";
+        }
+        int separator = key.indexOf(ITEM_KEY_SEPARATOR);
+        return separator < 0 ? "" : key.substring(separator + ITEM_KEY_SEPARATOR.length());
     }
 
     private static String getLegacyItemKey(String key) {
@@ -448,24 +457,49 @@ public final class HaDropTracker {
                 return;
             }
 
+            boolean migrationNeeded = false;
             ENTRIES.clear();
             if (saved.entries != null) {
                 for (SavedDropEntry savedEntry : saved.entries) {
                     DropEntry entry = toDropEntry(savedEntry);
                     if (entry != null) {
-                        ENTRIES.add(entry);
+                        DropEntry existing = findDropEntryExact(entry.key);
+                        if (existing == null) {
+                            ENTRIES.add(entry);
+                        } else {
+                            existing.count = safeAddCounts(existing.count, entry.count);
+                            migrationNeeded = true;
+                        }
+                        migrationNeeded |= isDropEntryMigrationNeeded(savedEntry, entry);
                     }
                 }
             }
 
             REGISTERED_ITEMS.clear();
+            List<LoadedRegisteredItem> loadedRegisteredItems = new ArrayList<LoadedRegisteredItem>();
             if (saved.registeredItems != null) {
                 for (SavedRegisteredItem savedItem : saved.registeredItems) {
-                    RegisteredItem item = toRegisteredItem(savedItem);
-                    if (item != null) {
-                        REGISTERED_ITEMS.add(item);
+                    LoadedRegisteredItem loadedItem = toRegisteredItem(savedItem);
+                    if (loadedItem != null) {
+                        int existingIndex = findLoadedRegisteredItemIndex(loadedRegisteredItems, loadedItem.item.itemId);
+                        if (existingIndex < 0) {
+                            loadedRegisteredItems.add(loadedItem);
+                        } else {
+                            LoadedRegisteredItem existing = loadedRegisteredItems.get(existingIndex);
+                            if (loadedItem.prefixFree && !existing.prefixFree) {
+                                loadedRegisteredItems.set(existingIndex, loadedItem);
+                            }
+                            migrationNeeded = true;
+                        }
+                        migrationNeeded |= isRegisteredItemMigrationNeeded(savedItem, loadedItem.item);
                     }
                 }
+            }
+            for (LoadedRegisteredItem loadedItem : loadedRegisteredItems) {
+                REGISTERED_ITEMS.add(loadedItem.item);
+            }
+            if (migrationNeeded) {
+                save();
             }
         } catch (IOException ignored) {
         }
@@ -515,27 +549,62 @@ public final class HaDropTracker {
 
         String itemId = getLegacyItemKey(emptyToFallback(saved.itemId, saved.key));
         String displayName = emptyToFallback(saved.displayName, saved.plainName);
-        String plainName = emptyToFallback(saved.plainName, displayName);
-        String key = emptyToFallback(saved.key, createItemKey(itemId, plainName));
-        if (key.indexOf(ITEM_KEY_SEPARATOR) < 0 && !plainName.isEmpty()) {
-            key = createItemKey(itemId, plainName);
-        }
+        String sourceName = emptyToFallback(getItemNameFromKey(saved.key), emptyToFallback(saved.plainName, displayName));
+        String plainName = normalizeDropName(sourceName);
+        String key = createItemKey(itemId, plainName);
         ItemStack displayStack = new ItemStack(getItem(itemId));
         displayStack.setCount(1);
-        Text name = parseSavedName(saved.displayNameJson, displayName);
+        Text name = HaItemNameNormalizer.preserveStyle(parseSavedName(saved.displayNameJson, displayName), plainName);
         return new DropEntry(key, displayStack, name, plainName, saved.count);
     }
 
-    private static RegisteredItem toRegisteredItem(SavedRegisteredItem saved) {
+    private static LoadedRegisteredItem toRegisteredItem(SavedRegisteredItem saved) {
         if (saved == null || saved.itemId == null || saved.itemId.isEmpty()) {
             return null;
         }
-        String displayName = normalizeDisplayName(saved.displayName, saved.itemId);
-        String itemId = saved.itemId;
-        if (itemId.indexOf(ITEM_KEY_SEPARATOR) < 0 && !displayName.equals(itemId)) {
-            itemId = createItemKey(itemId, displayName);
+        String baseItemId = getLegacyItemKey(saved.itemId);
+        String sourceName = emptyToFallback(getItemNameFromKey(saved.itemId), saved.displayName);
+        String displayName = normalizeDropName(normalizeDisplayName(sourceName, baseItemId));
+        String itemId = createItemKey(baseItemId, displayName);
+        RegisteredItem item = new RegisteredItem(itemId, displayName, Math.max(0L, saved.unitPrice));
+        return new LoadedRegisteredItem(item, !HaItemNameNormalizer.hasRemovablePrefix(sourceName));
+    }
+
+    private static DropEntry findDropEntryExact(String key) {
+        for (DropEntry entry : ENTRIES) {
+            if (entry.key.equals(key)) {
+                return entry;
+            }
         }
-        return new RegisteredItem(itemId, displayName, Math.max(0L, saved.unitPrice));
+        return null;
+    }
+
+    private static int findLoadedRegisteredItemIndex(List<LoadedRegisteredItem> items, String itemId) {
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).item.itemId.equals(itemId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int safeAddCounts(int left, int right) {
+        long total = (long) left + (long) right;
+        return total >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
+    }
+
+    private static boolean isDropEntryMigrationNeeded(SavedDropEntry saved, DropEntry entry) {
+        if (saved == null) {
+            return false;
+        }
+        return !entry.key.equals(emptyToFallback(saved.key, entry.key))
+            || !entry.plainName.equals(emptyToFallback(saved.plainName, entry.plainName))
+            || !entry.plainName.equals(emptyToFallback(saved.displayName, entry.plainName));
+    }
+
+    private static boolean isRegisteredItemMigrationNeeded(SavedRegisteredItem saved, RegisteredItem item) {
+        return saved != null
+            && (!item.itemId.equals(saved.itemId) || !item.displayName.equals(saved.displayName));
     }
 
     private static Text parseSavedName(String displayNameJson, String fallback) {
@@ -663,6 +732,16 @@ public final class HaDropTracker {
         String itemId = "";
         String displayName = "";
         long unitPrice;
+    }
+
+    private static final class LoadedRegisteredItem {
+        final RegisteredItem item;
+        final boolean prefixFree;
+
+        LoadedRegisteredItem(RegisteredItem item, boolean prefixFree) {
+            this.item = item;
+            this.prefixFree = prefixFree;
+        }
     }
 
     public static final class DropEntry {
