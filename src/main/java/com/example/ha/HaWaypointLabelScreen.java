@@ -33,9 +33,9 @@ public final class HaWaypointLabelScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        int top = 42;
+        int top = 46;
 
-        labelField = new TextFieldWidget(this.textRenderer, centerX - 90, top + 18, 180, 20, new LiteralText("Waypoint Label"));
+        labelField = new TextFieldWidget(this.textRenderer, centerX - 90, top + 24, 180, 20, new LiteralText("Waypoint Label"));
         labelField.setMaxLength(64);
         labelField.setText(initialLabel);
         children.add(labelField);
@@ -59,7 +59,7 @@ public final class HaWaypointLabelScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         renderBackground(matrices);
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 12, 0xFFFFFF);
-        this.textRenderer.draw(matrices, "Label text is shown in white.", this.width / 2 - 90, 38, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Label text is shown in white.", this.width / 2 - 90, 34, 0xA0A0A0);
         this.textRenderer.draw(matrices, "Position: " + HaWaypointManager.formatPosition(pos), this.width / 2 - 90, 54, 0xA0E8FF);
         labelField.render(matrices, mouseX, mouseY, delta);
         super.render(matrices, mouseX, mouseY, delta);

@@ -8,19 +8,16 @@ import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.OrderedText;
 import org.lwjgl.opengl.GL11;
 
 public final class HaWaypointOverlay {
-    private static final float OUTLINE_ALPHA = 0.95F;
-    private static final float FILL_ALPHA = 0.20F;
+    private static final float OUTLINE_ALPHA = 0.80F;
+    private static final float FILL_ALPHA = 0.80F;
+    private static final float FULL_BLOCK_DARKEN_MULTIPLIER = 0.72F;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
 
     private HaWaypointOverlay() {
@@ -42,8 +39,7 @@ public final class HaWaypointOverlay {
         }
 
         Vec3d cameraPos = context.camera().getPos();
-        VertexConsumerProvider.Immediate overlayConsumers = VertexConsumerProvider.immediate(new BufferBuilder(256));
-        VertexConsumer lineBuffer = overlayConsumers.getBuffer(RenderLayer.getLines());
+        VertexConsumer lineBuffer = context.consumers().getBuffer(RenderLayer.getLines());
         boolean throughWalls = HaWaypointManager.isThroughWallsEnabled();
         boolean fullBlock = HaWaypointManager.isRenderFullBlocks();
 
@@ -79,7 +75,7 @@ public final class HaWaypointOverlay {
             float blue = (rgb & 0xFF) / 255.0F;
 
             if (fullBlock) {
-                drawFilledBox(fillBuffer, x + 0.03D, y + 0.03D, z + 0.03D, x + 0.97D, y + 0.97D, z + 0.97D, red, green, blue);
+                drawFilledBox(fillBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red * FULL_BLOCK_DARKEN_MULTIPLIER, green * FULL_BLOCK_DARKEN_MULTIPLIER, blue * FULL_BLOCK_DARKEN_MULTIPLIER);
             }
 
             net.minecraft.client.render.WorldRenderer.drawBox(matrices, lineBuffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red, green, blue, OUTLINE_ALPHA);
@@ -90,44 +86,13 @@ public final class HaWaypointOverlay {
         }
 
         RenderSystem.enableTexture();
-        renderLabels(client, matrices, waypoints, cameraPos, throughWalls, overlayConsumers);
-        overlayConsumers.draw();
+        HaWaypointTextRenderer.render(context, client, waypoints, cameraPos, throughWalls, fullBlock);
 
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         RenderSystem.enableTexture();
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
-    }
-
-    private static void renderLabels(MinecraftClient client, MatrixStack matrices, List<HaWaypointManager.WaypointEntry> waypoints, Vec3d cameraPos, boolean throughWalls, VertexConsumerProvider.Immediate textConsumers) {
-        for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
-            if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
-                continue;
-            }
-
-            double x = waypoint.x - cameraPos.x + 0.5D;
-            double y = waypoint.y - cameraPos.y + 1.08D;
-            double z = waypoint.z - cameraPos.z + 0.5D;
-            renderLabel(client, matrices, waypoint, x, y, z, textConsumers, throughWalls);
-        }
-    }
-
-    private static void renderLabel(MinecraftClient client, MatrixStack matrices, HaWaypointManager.WaypointEntry waypoint, double x, double y, double z, VertexConsumerProvider.Immediate textConsumers, boolean throughWalls) {
-        String label = HaWaypointManager.getDisplayLabel(waypoint);
-        if (label.isEmpty()) {
-            return;
-        }
-
-        matrices.push();
-        matrices.translate(x, y, z);
-        matrices.multiply(client.gameRenderer.getCamera().getRotation());
-        matrices.scale(-0.025F, -0.025F, 0.025F);
-        float width = client.textRenderer.getWidth(label) / 2.0F;
-        Matrix4f matrix = matrices.peek().getModel();
-        OrderedText orderedLabel = new LiteralText(label).asOrderedText();
-        client.textRenderer.draw(orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrix, textConsumers, throughWalls, 0, 0xF000F0);
-        matrices.pop();
     }
 
     private static void drawFilledBox(BufferBuilder buffer, double minX, double minY, double minZ, double maxX, double maxY, double maxZ, float red, float green, float blue) {

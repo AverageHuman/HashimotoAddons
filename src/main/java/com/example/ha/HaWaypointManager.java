@@ -43,6 +43,7 @@ public final class HaWaypointManager {
 
     private static boolean loaded;
     private static SavedWaypointState state = new SavedWaypointState();
+    private static boolean useActionConsumedUntilRelease;
 
     private HaWaypointManager() {
     }
@@ -195,6 +196,12 @@ public final class HaWaypointManager {
             return null;
         }
         return client.world.getRegistryKey().getValue().toString();
+    }
+
+    public static void tick(MinecraftClient client) {
+        if (client == null || client.options == null || !client.options.keyUse.isPressed()) {
+            useActionConsumedUntilRelease = false;
+        }
     }
 
     public static int getWaypointCountForCurrentDimension(MinecraftClient client) {
@@ -373,21 +380,28 @@ public final class HaWaypointManager {
             return false;
         }
 
+        if (useActionConsumedUntilRelease) {
+            return true;
+        }
+
         BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
         WaypointEntry existing = getWaypoint(client, pos);
         if (Screen.hasShiftDown()) {
             openLabelScreen(client, pos, existing);
+            useActionConsumedUntilRelease = true;
             return true;
         }
 
         if (existing != null) {
             upsertCurrentWaypoint(client, pos, existing.label, getActiveColorSlot());
             notify(client, "Waypoint color updated.");
+            useActionConsumedUntilRelease = true;
             return true;
         }
 
         upsertCurrentWaypoint(client, pos, "", getActiveColorSlot());
         notify(client, "Waypoint placed.");
+        useActionConsumedUntilRelease = true;
         return true;
     }
 

@@ -86,6 +86,7 @@ public final class HaTickHandler {
         HaRitualBookTimer.tick(client, config);
         HaSpotify.tick(client, config);
         HaGhostWall.tick(client);
+        HaWaypointManager.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
             tickAlchemyKilnAutomationToggle(client, config);
