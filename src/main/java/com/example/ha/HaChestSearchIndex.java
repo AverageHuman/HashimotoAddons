@@ -230,20 +230,30 @@ public final class HaChestSearchIndex {
                 records.clear();
                 records.addAll(saved.records);
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            reportLoadFailure(exception);
+        } catch (RuntimeException exception) {
+            reportLoadFailure(exception);
         }
     }
 
     private void save() {
-        try {
-            Files.createDirectories(STORAGE_FILE.getParent());
-            SavedChestSearch saved = new SavedChestSearch();
-            saved.records = new ArrayList<ChestRecord>(records);
-            try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(saved, writer);
+        final SavedChestSearch saved = new SavedChestSearch();
+        saved.records = new ArrayList<ChestRecord>(records);
+        HaAsyncFileWriter.submit(STORAGE_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(STORAGE_FILE.getParent());
+                try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(saved, writer);
+                }
             }
-        } catch (IOException ignored) {
-        }
+        });
+    }
+
+    private static void reportLoadFailure(Exception exception) {
+        System.err.println("[HashimotoAddons] Failed to load chest_search.json: " + exception.getMessage());
+        exception.printStackTrace(System.err);
     }
 
     private static String normalize(String value) {

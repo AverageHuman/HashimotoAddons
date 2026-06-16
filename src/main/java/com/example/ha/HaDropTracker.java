@@ -501,25 +501,35 @@ public final class HaDropTracker {
             if (migrationNeeded) {
                 save();
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            reportLoadFailure(exception);
+        } catch (RuntimeException exception) {
+            reportLoadFailure(exception);
         }
     }
 
     private static void save() {
-        try {
-            Files.createDirectories(STORAGE_FILE.getParent());
-            SavedDropTracker saved = new SavedDropTracker();
-            for (DropEntry entry : ENTRIES) {
-                saved.entries.add(toSavedEntry(entry));
-            }
-            for (RegisteredItem item : REGISTERED_ITEMS) {
-                saved.registeredItems.add(toSavedRegisteredItem(item));
-            }
-            try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
-                GSON.toJson(saved, writer);
-            }
-        } catch (IOException ignored) {
+        final SavedDropTracker saved = new SavedDropTracker();
+        for (DropEntry entry : ENTRIES) {
+            saved.entries.add(toSavedEntry(entry));
         }
+        for (RegisteredItem item : REGISTERED_ITEMS) {
+            saved.registeredItems.add(toSavedRegisteredItem(item));
+        }
+        HaAsyncFileWriter.submit(STORAGE_FILE, new HaAsyncFileWriter.WriteOperation() {
+            @Override
+            public void write() throws IOException {
+                Files.createDirectories(STORAGE_FILE.getParent());
+                try (Writer writer = Files.newBufferedWriter(STORAGE_FILE, StandardCharsets.UTF_8)) {
+                    GSON.toJson(saved, writer);
+                }
+            }
+        });
+    }
+
+    private static void reportLoadFailure(Exception exception) {
+        System.err.println("[HashimotoAddons] Failed to load drop_tracker.json: " + exception.getMessage());
+        exception.printStackTrace(System.err);
     }
 
     private static SavedDropEntry toSavedEntry(DropEntry entry) {
@@ -556,6 +566,19 @@ public final class HaDropTracker {
         displayStack.setCount(1);
         Text name = HaItemNameNormalizer.preserveStyle(parseSavedName(saved.displayNameJson, displayName), plainName);
         return new DropEntry(key, displayStack, name, plainName, saved.count);
+    }
+
+    private static Text parseSavedName(String displayNameJson, String fallback) {
+        if (displayNameJson != null && !displayNameJson.isEmpty()) {
+            try {
+                Text parsed = Text.Serializer.fromJson(displayNameJson);
+                if (parsed != null) {
+                    return parsed;
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        return new LiteralText(fallback);
     }
 
     private static LoadedRegisteredItem toRegisteredItem(SavedRegisteredItem saved) {
@@ -605,19 +628,6 @@ public final class HaDropTracker {
     private static boolean isRegisteredItemMigrationNeeded(SavedRegisteredItem saved, RegisteredItem item) {
         return saved != null
             && (!item.itemId.equals(saved.itemId) || !item.displayName.equals(saved.displayName));
-    }
-
-    private static Text parseSavedName(String displayNameJson, String fallback) {
-        if (displayNameJson != null && !displayNameJson.isEmpty()) {
-            try {
-                Text parsed = Text.Serializer.fromJson(displayNameJson);
-                if (parsed != null) {
-                    return parsed;
-                }
-            } catch (RuntimeException ignored) {
-            }
-        }
-        return new LiteralText(fallback);
     }
 
     private static Item getItem(String itemId) {
@@ -699,7 +709,7 @@ public final class HaDropTracker {
             long seconds = tickAccumulatorMillis / 1000L;
             tickAccumulatorMillis %= 1000L;
             config.dropTrackerElapsedSeconds += seconds;
-            config.save();
+            HaConfigPersistence.markDirty();
         }
     }
 

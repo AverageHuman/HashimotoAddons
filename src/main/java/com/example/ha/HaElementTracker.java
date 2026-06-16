@@ -129,7 +129,7 @@ public final class HaElementTracker {
 
         startSessionIfNeeded();
         recordObservation(config, parsed.elementType, parsed.rank, Math.max(1, packet.getStackAmount()));
-        config.save();
+        HaConfigPersistence.markDirty();
     }
 
     private static ParsedElementStack parseElementStack(MinecraftClient client, ItemStack stack) {
@@ -257,7 +257,7 @@ public final class HaElementTracker {
             long seconds = tickAccumulatorMillis / 1000L;
             tickAccumulatorMillis %= 1000L;
             config.elementTrackerElapsedSeconds += seconds;
-            config.save();
+            HaConfigPersistence.markDirty();
         }
     }
 

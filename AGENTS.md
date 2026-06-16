@@ -5,7 +5,6 @@
 - Target Minecraft Java Edition 1.16.5 with Fabric.
 - Treat Full and Safe as separate supported products.
 - Communicate with the project owner in Japanese.
-- Read `docs/PROJECT.md` for stable project facts and `docs/ARCHITECTURE.md` before structural changes.
 
 ## Before Editing
 
@@ -19,11 +18,12 @@
 
 - Default new features to disabled unless the owner requests otherwise.
 - Put gameplay automation and server-sensitive behavior in Full unless explicitly approved for Safe.
-- Do not add a new responsibility to an oversized class without considering extraction.
-- Reuse established UI behavior when it remains appropriate, but do not copy known technical debt merely for consistency.
 - Separate Minecraft-dependent integration from testable parsing and business logic where practical.
 - Do not silently swallow persistence, process, or network failures.
-- Keep changes scoped; separate feature work, infrastructure, and unrelated refactoring.
+- Keep changes scoped.
+- Keep configuration state thin: `HaConfig` should hold feature state and normalization only; persistence, schema migration, and JSON mapping belong in dedicated classes.
+- Add new configuration fields to the smallest feature-owned group that fits them, and split a group before it becomes another large mixed-responsibility block.
+- When a config change needs a new DTO, mapper, or migration step, put that logic beside the owning feature or persistence layer rather than back in `HaConfig`.
 
 ## Safe And Full
 
@@ -45,7 +45,6 @@
 - Do not change the version unless requested or approved.
 - Do not commit or push unless requested.
 - Do not treat generated jars as proof that source changes were committed.
-- Use `docs/DEVELOPMENT.md` for build and release procedures.
 
 ## Project Knowledge
 
@@ -53,4 +52,3 @@
 - Record reusable discoveries in `docs/KNOWLEDGE.md`.
 - Record unresolved structural problems in `docs/TECHNICAL_DEBT.md`.
 - Keep only volatile session state in `.codex/CURRENT_STATE.md`.
-- Do not create a new dated handoff file for ordinary session transitions.

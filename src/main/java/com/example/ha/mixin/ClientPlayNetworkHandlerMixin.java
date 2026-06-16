@@ -2,6 +2,8 @@ package com.example.ha.mixin;
 
 import com.example.ha.HaSoulbindProtection;
 import com.example.ha.HaChatFilter;
+import com.example.ha.HaConfig;
+import com.example.ha.HaConfigPersistence;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
 import com.example.ha.HaEvolutionForgeHelper;
@@ -70,6 +72,8 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaRitualBookTimer.onDisconnected();
         HaAfkFarming.onDisconnected();
         HaAlchemyKilnAutomation.onDisconnected();
+        HaEvolutionForgeHelper.flushPendingSaves();
+        HaConfigPersistence.flush(HaConfig.get());
     }
 
     @Inject(method = "onOpenScreen", at = @At("HEAD"))
