@@ -224,6 +224,10 @@ public final class HaEvolutionForgeHelper {
         save();
     }
 
+    public static void flushPendingSaves() {
+        HaAsyncFileWriter.flush(3000L);
+    }
+
     public static void onOpenScreen(int syncId, Text title) {
         String newTitle = normalizeDisplay(title == null ? "" : title.getString());
         String currentTitle = getNormalizedCurrentScreenTitle(MinecraftClient.getInstance());
