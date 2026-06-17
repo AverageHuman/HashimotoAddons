@@ -67,7 +67,6 @@ public final class HaClientMod implements ClientModInitializer {
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaMobEspOverlay::render);
         WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaAfkFarmingCircleOverlay::render);
         WorldRenderEvents.LAST.register(HaWaypointOverlay::render);
-        WorldRenderEvents.LAST.register(HaWaypointTextRenderer::render);
     }
 
     private void registerCommand() {
