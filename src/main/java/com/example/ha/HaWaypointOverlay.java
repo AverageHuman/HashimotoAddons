@@ -15,7 +15,7 @@ public final class HaWaypointOverlay {
     private static final float OUTLINE_ALPHA = 0.80F;
     private static final float FILL_ALPHA = 0.80F;
     private static final float FULL_BLOCK_DARKEN_MULTIPLIER = 0.72F;
-    private static final double OUTLINE_PIXEL_THICKNESS = 4.0D;
+    private static final double OUTLINE_PIXEL_THICKNESS = 2.0D;
     private static final double OUTLINE_FOV_DEGREES = 70.0D;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
 
