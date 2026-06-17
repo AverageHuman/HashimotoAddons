@@ -15,6 +15,7 @@ import net.minecraft.util.math.Vec3d;
 final class HaWaypointTextRenderer {
     private static final double LABEL_VERTICAL_OFFSET = 1.20D;
     private static final float LABEL_SCALE = 0.025F;
+    private static final int LABEL_BACKGROUND_COLOR = 0xA0000000;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
     private static final Map<String, LabelRenderData> LABEL_RENDER_CACHE = new LinkedHashMap<String, LabelRenderData>(128, 0.75F, true) {
         @Override
@@ -81,7 +82,18 @@ final class HaWaypointTextRenderer {
         matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
         float width = labelRenderData.textWidth / 2.0F;
-        client.textRenderer.draw(labelRenderData.orderedLabel, -width, 0.0F, 0xFFFFFFFF, false, matrices.peek().getModel(), textConsumers, true, 0, 0xF000F0);
+        client.textRenderer.draw(
+            labelRenderData.orderedLabel,
+            -width,
+            0.0F,
+            0xFFFFFFFF,
+            false,
+            matrices.peek().getModel(),
+            textConsumers,
+            true,
+            LABEL_BACKGROUND_COLOR,
+            0xF000F0
+        );
         matrices.pop();
     }
 
