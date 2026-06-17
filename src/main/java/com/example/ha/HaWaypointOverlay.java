@@ -1,6 +1,7 @@
 package com.example.ha;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.BufferBuilder;
@@ -31,11 +32,14 @@ public final class HaWaypointOverlay {
             return;
         }
 
-        if (HaWaypointManager.getWaypointsForCurrentDimension(client).isEmpty()) {
+        List<HaWaypointManager.WaypointEntry> waypoints = HaWaypointManager.getWaypointsForCurrentDimension(client);
+        if (waypoints.isEmpty()) {
             return;
         }
 
         Vec3d cameraPos = context.camera().getPos();
+        boolean fullBlock = HaWaypointManager.isRenderFullBlocks();
+
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableTexture();
@@ -48,7 +52,7 @@ public final class HaWaypointOverlay {
         buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
 
         boolean renderedAny = false;
-        for (HaWaypointManager.WaypointEntry waypoint : HaWaypointManager.getWaypointsForCurrentDimension(client)) {
+        for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
             if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
                 continue;
             }
@@ -61,7 +65,7 @@ public final class HaWaypointOverlay {
             float green = ((rgb >> 8) & 0xFF) / 255.0F;
             float blue = (rgb & 0xFF) / 255.0F;
 
-            if (waypoint.renderFullBlocks) {
+            if (fullBlock) {
                 drawFilledBox(buffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, red * FULL_BLOCK_DARKEN_MULTIPLIER, green * FULL_BLOCK_DARKEN_MULTIPLIER, blue * FULL_BLOCK_DARKEN_MULTIPLIER, FILL_ALPHA);
             }
 
@@ -80,6 +84,9 @@ public final class HaWaypointOverlay {
         }
 
         tessellator.draw();
+
+        RenderSystem.enableTexture();
+        HaWaypointTextRenderer.render(context, client, waypoints, cameraPos);
 
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();

@@ -3,11 +3,9 @@ package com.example.ha;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
@@ -15,8 +13,9 @@ import net.minecraft.text.OrderedText;
 import net.minecraft.util.math.Vec3d;
 
 final class HaWaypointTextRenderer {
-    private static final double LABEL_VERTICAL_OFFSET = 0.60D;
+    private static final double LABEL_VERTICAL_OFFSET = 1.20D;
     private static final float LABEL_SCALE = 0.025F;
+    private static final int LABEL_BACKGROUND_COLOR = 0xA0000000;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
     private static final Map<String, LabelRenderData> LABEL_RENDER_CACHE = new LinkedHashMap<String, LabelRenderData>(128, 0.75F, true) {
         @Override
@@ -38,36 +37,9 @@ final class HaWaypointTextRenderer {
             return;
         }
 
-        renderInternal(context, client, waypoints, cameraPos);
-    }
-
-    static void render(WorldRenderContext context) {
-        if (context == null || context.camera() == null) {
-            return;
-        }
-
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.world == null) {
-            return;
-        }
-
-        List<HaWaypointManager.WaypointEntry> waypoints = HaWaypointManager.getWaypointsForCurrentDimension(client);
-        if (waypoints.isEmpty()) {
-            return;
-        }
-
-        renderInternal(context, client, waypoints, context.camera().getPos());
-    }
-
-    private static void renderInternal(
-        WorldRenderContext context,
-        MinecraftClient client,
-        List<HaWaypointManager.WaypointEntry> waypoints,
-        Vec3d cameraPos
-    ) {
         MatrixStack matrices = context.matrixStack();
         Camera camera = context.camera();
-        VertexConsumerProvider.Immediate textConsumers = VertexConsumerProvider.immediate(new BufferBuilder(256));
+        VertexConsumerProvider textConsumers = context.consumers();
 
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
             String label = waypoint.label == null ? "" : waypoint.label.trim();
@@ -92,8 +64,6 @@ final class HaWaypointTextRenderer {
                 );
             }
         }
-
-        textConsumers.draw();
     }
 
     private static void renderLabel(
@@ -104,32 +74,26 @@ final class HaWaypointTextRenderer {
         double y,
         double z,
         LabelRenderData labelRenderData,
-        VertexConsumerProvider.Immediate textConsumers
+        VertexConsumerProvider textConsumers
     ) {
         matrices.push();
         matrices.translate(x, y, z);
         matrices.multiply(camera.getRotation());
         matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
-        int textWidth = labelRenderData.textWidth;
-        float textHalfWidth = textWidth / 2.0F;
-
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
+        float width = labelRenderData.textWidth / 2.0F;
         client.textRenderer.draw(
             labelRenderData.orderedLabel,
-            -textHalfWidth,
+            -width,
             0.0F,
             0xFFFFFFFF,
             false,
             matrices.peek().getModel(),
             textConsumers,
-            false,
-            0x00000000,
+            true,
+            LABEL_BACKGROUND_COLOR,
             0xF000F0
         );
-        RenderSystem.depthMask(true);
-        RenderSystem.enableDepthTest();
         matrices.pop();
     }
 

@@ -265,14 +265,10 @@ public final class HaWaypointManager {
     }
 
     public static boolean upsertCurrentWaypoint(MinecraftClient client, BlockPos pos, String label, int colorSlotIndex) {
-        return upsertWaypoint(getCurrentDimensionKey(client), pos, label, colorSlotIndex, isRenderFullBlocks());
+        return upsertWaypoint(getCurrentDimensionKey(client), pos, label, colorSlotIndex);
     }
 
     public static boolean upsertWaypoint(String dimensionKey, BlockPos pos, String label, int colorSlotIndex) {
-        return upsertWaypoint(dimensionKey, pos, label, colorSlotIndex, isRenderFullBlocks());
-    }
-
-    public static boolean upsertWaypoint(String dimensionKey, BlockPos pos, String label, int colorSlotIndex, boolean renderFullBlocks) {
         ensureLoaded();
         if (dimensionKey == null || pos == null) {
             return false;
@@ -302,7 +298,6 @@ public final class HaWaypointManager {
 
         existing.label = normalizeLabel(label);
         existing.colorSlotIndex = clampSlot(colorSlotIndex);
-        existing.renderFullBlocks = renderFullBlocks;
         normalizeState();
         invalidateWaypointRenderCache();
         save();
@@ -449,16 +444,14 @@ public final class HaWaypointManager {
         public final int z;
         public final String label;
         public final int colorSlotIndex;
-        public final boolean renderFullBlocks;
 
-        WaypointEntry(String dimensionKey, int x, int y, int z, String label, int colorSlotIndex, boolean renderFullBlocks) {
+        WaypointEntry(String dimensionKey, int x, int y, int z, String label, int colorSlotIndex) {
             this.dimensionKey = dimensionKey;
             this.x = x;
             this.y = y;
             this.z = z;
             this.label = label == null ? "" : label;
             this.colorSlotIndex = clampSlot(colorSlotIndex);
-            this.renderFullBlocks = renderFullBlocks;
         }
 
         public BlockPos toBlockPos() {
@@ -484,7 +477,6 @@ public final class HaWaypointManager {
             pos,
             label,
             colorSlotIndex,
-            existing != null && existing.renderFullBlocks,
             existing != null
         ));
     }
@@ -578,8 +570,7 @@ public final class HaWaypointManager {
             savedEntry.y,
             savedEntry.z,
             normalizeLabel(savedEntry.label),
-            clampSlot(savedEntry.colorSlotIndex),
-            savedEntry.renderFullBlocks
+            clampSlot(savedEntry.colorSlotIndex)
         );
     }
 
