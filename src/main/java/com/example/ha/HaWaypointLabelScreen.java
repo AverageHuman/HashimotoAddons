@@ -17,16 +17,27 @@ public final class HaWaypointLabelScreen extends Screen {
     private final boolean editingExisting;
     private final int initialColorSlot;
     private final String initialLabel;
+    private final boolean initialRenderFullBlocks;
 
     private TextFieldWidget labelField;
+    private ButtonWidget renderModeButton;
 
-    public HaWaypointLabelScreen(Screen parent, String dimensionKey, BlockPos pos, String initialLabel, int initialColorSlot, boolean editingExisting) {
+    public HaWaypointLabelScreen(
+        Screen parent,
+        String dimensionKey,
+        BlockPos pos,
+        String initialLabel,
+        int initialColorSlot,
+        boolean initialRenderFullBlocks,
+        boolean editingExisting
+    ) {
         super(TITLE);
         this.parent = parent;
         this.dimensionKey = dimensionKey;
         this.pos = pos;
         this.initialLabel = initialLabel == null ? "" : initialLabel;
         this.initialColorSlot = Math.max(0, Math.min(3, initialColorSlot));
+        this.initialRenderFullBlocks = initialRenderFullBlocks;
         this.editingExisting = editingExisting;
     }
 
@@ -41,11 +52,15 @@ public final class HaWaypointLabelScreen extends Screen {
         children.add(labelField);
         setInitialFocus(labelField);
 
+        renderModeButton = addButton(new ButtonWidget(centerX - 105, top + 50, 210, 20, new LiteralText(""), button -> {
+            toggleRenderMode();
+        }));
         addButton(new ButtonWidget(centerX - 105, this.height - 50, 210, 20, new LiteralText("Save"), button -> saveWaypoint()));
         if (editingExisting) {
             addButton(new ButtonWidget(centerX - 105, this.height - 76, 210, 20, new LiteralText("Delete"), button -> deleteWaypoint()));
         }
         addButton(new ButtonWidget(centerX - 105, this.height - 28, 210, 20, new LiteralText("Go Back"), button -> onClose()));
+        refreshButtons();
     }
 
     @Override
@@ -90,7 +105,7 @@ public final class HaWaypointLabelScreen extends Screen {
         if (label.isEmpty()) {
             label = HaWaypointManager.formatPosition(pos);
         }
-        HaWaypointManager.upsertWaypoint(dimensionKey, pos, label, initialColorSlot);
+        HaWaypointManager.upsertWaypoint(dimensionKey, pos, label, initialColorSlot, initialRenderFullBlocks);
         if (client != null) {
             client.openScreen(resolveReturnScreen());
         }
@@ -109,5 +124,25 @@ public final class HaWaypointLabelScreen extends Screen {
             return new HaWaypointListScreen(listScreen.getParentScreen(), listScreen.getPage());
         }
         return parent;
+    }
+
+    private void toggleRenderMode() {
+        if (client != null) {
+            client.openScreen(new HaWaypointLabelScreen(
+                parent,
+                dimensionKey,
+                pos,
+                labelField == null ? initialLabel : labelField.getText(),
+                initialColorSlot,
+                !initialRenderFullBlocks,
+                editingExisting
+            ));
+        }
+    }
+
+    private void refreshButtons() {
+        if (renderModeButton != null) {
+            renderModeButton.setMessage(new LiteralText("Render Mode: " + (initialRenderFullBlocks ? "Full Block" : "Outline Only")));
+        }
     }
 }

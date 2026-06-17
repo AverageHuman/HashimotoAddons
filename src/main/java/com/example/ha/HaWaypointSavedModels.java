@@ -23,4 +23,5 @@ final class SavedWaypointEntry {
     int z;
     String label = "";
     int colorSlotIndex = 0;
+    boolean renderFullBlocks = false;
 }

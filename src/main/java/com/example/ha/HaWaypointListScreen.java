@@ -47,11 +47,12 @@ public final class HaWaypointListScreen extends Screen {
             HaWaypointManager.WaypointEntry entry = waypoints.get(i);
             String label = trim(HaWaypointManager.getDisplayLabel(entry));
             String colorName = HaWaypointManager.getColorSlotName(entry.colorSlotIndex);
-            String entryLabel = label + " / " + HaWaypointManager.formatPosition(entry.x, entry.y, entry.z) + " / " + colorName;
+            String renderModeName = entry.renderFullBlocks ? "Full Block" : "Outline Only";
+            String entryLabel = label + " / " + HaWaypointManager.formatPosition(entry.x, entry.y, entry.z) + " / " + colorName + " / " + renderModeName;
 
             addButton(new ButtonWidget(centerX - 105, y, 168, 20, new LiteralText(entryLabel).formatted(HaWaypointManager.getColorSlotFormatting(entry.colorSlotIndex)), button -> {
                 if (client != null) {
-                    client.openScreen(new HaWaypointLabelScreen(this, entry.dimensionKey, entry.toBlockPos(), entry.label, entry.colorSlotIndex, true));
+                    client.openScreen(new HaWaypointLabelScreen(this, entry.dimensionKey, entry.toBlockPos(), entry.label, entry.colorSlotIndex, entry.renderFullBlocks, true));
                 }
             }));
             addButton(new ButtonWidget(centerX + 67, y, 38, 20, new LiteralText("Del"), button -> {
