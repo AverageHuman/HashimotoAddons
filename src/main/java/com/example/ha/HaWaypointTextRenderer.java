@@ -89,7 +89,7 @@ final class HaWaypointTextRenderer {
             false,
             matrices.peek().getModel(),
             textConsumers,
-            false,
+            true,
             0x00000000,
             0xF000F0
         );
