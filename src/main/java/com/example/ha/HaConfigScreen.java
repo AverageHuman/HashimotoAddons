@@ -232,6 +232,12 @@ public final class HaConfigScreen extends Screen {
                 return new HaGearViewScreen(parent);
             }
         });
+        entries.add(new OpenScreenEntry("Waypoint") {
+            @Override
+            protected Screen createScreen(Screen parent) {
+                return new HaWaypointScreen(parent);
+            }
+        });
         entries.add(new OpenScreenEntry("Drop Tracker") {
             @Override
             protected Screen createScreen(Screen parent) {

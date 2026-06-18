@@ -38,16 +38,18 @@ public final class HaTickHandler {
     private final KeyBinding cameraToggleKeyBinding;
     private final KeyBinding chestSearchKeyBinding;
     private final KeyBinding gearViewKeyBinding;
+    private final KeyBinding waypointCycleKeyBinding;
     private long swapHoldEndWorldTick = -1L;
     private InputUtil.Key simulatedHotbarKey = InputUtil.UNKNOWN_KEY;
     private boolean manaMissingNotified;
 
-    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding) {
+    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding waypointCycleKeyBinding) {
         this.macroToggleKeyBinding = macroToggleKeyBinding;
         this.alchemyKilnAutomationKeyBinding = alchemyKilnAutomationKeyBinding;
         this.cameraToggleKeyBinding = cameraToggleKeyBinding;
         this.chestSearchKeyBinding = chestSearchKeyBinding;
         this.gearViewKeyBinding = gearViewKeyBinding;
+        this.waypointCycleKeyBinding = waypointCycleKeyBinding;
     }
 
     public void requestOpenConfigScreen() {
@@ -73,6 +75,7 @@ public final class HaTickHandler {
         tickCameraToggle(client);
         tickChestSearchShortcut(client);
         tickGearView(client, config);
+        tickWaypointCycle(client);
         HaDropTracker.tick(client);
         HaDropNotifier.tick(client);
         HaChestSearchIndex.get().tick(client);
@@ -83,6 +86,7 @@ public final class HaTickHandler {
         HaRitualBookTimer.tick(client, config);
         HaSpotify.tick(client, config);
         HaGhostWall.tick(client);
+        HaWaypointManager.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickMacroToggle(client, config);
             tickAlchemyKilnAutomationToggle(client, config);
@@ -248,6 +252,25 @@ public final class HaTickHandler {
                 continue;
             }
             HaGearView.showTargetGear(client);
+        }
+    }
+
+    private void tickWaypointCycle(MinecraftClient client) {
+        if (waypointCycleKeyBinding == null) {
+            return;
+        }
+        if (client.currentScreen != null) {
+            while (waypointCycleKeyBinding.wasPressed()) {
+                // Consume presses while another screen is open.
+            }
+            return;
+        }
+
+        while (waypointCycleKeyBinding.wasPressed()) {
+            int slot = HaWaypointManager.cycleActiveColorSlot();
+            if (client.player != null) {
+                client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:Waypoint color slot -> " + (slot + 1)), false);
+            }
         }
     }
 
@@ -467,7 +490,11 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaElementTrackerOverlayScreen
             || client.currentScreen instanceof HaMobEspScreen
             || client.currentScreen instanceof HaSpotifyScreen
-            || client.currentScreen instanceof HaSpotifyOverlayScreen;
+            || client.currentScreen instanceof HaSpotifyOverlayScreen
+            || client.currentScreen instanceof HaWaypointScreen
+            || client.currentScreen instanceof HaWaypointListScreen
+            || client.currentScreen instanceof HaWaypointLabelScreen
+            || client.currentScreen instanceof HaWaypointColorSelectScreen;
     }
 
     private boolean isCameraToggleBlocked(MinecraftClient client) {
