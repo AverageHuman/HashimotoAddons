@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -13,7 +14,7 @@ import net.minecraft.text.OrderedText;
 import net.minecraft.util.math.Vec3d;
 
 final class HaWaypointTextRenderer {
-    private static final double LABEL_VERTICAL_OFFSET = 1.20D;
+    private static final double LABEL_VERTICAL_OFFSET = 0.05D;
     private static final float LABEL_SCALE = 0.025F;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
     private static final Map<String, LabelRenderData> LABEL_RENDER_CACHE = new LinkedHashMap<String, LabelRenderData>(128, 0.75F, true) {
@@ -36,9 +37,10 @@ final class HaWaypointTextRenderer {
             return;
         }
 
-        MatrixStack matrices = context.matrixStack();
+        MatrixStack matrices = new MatrixStack();
         Camera camera = context.camera();
-        VertexConsumerProvider textConsumers = context.consumers();
+        BufferBuilder textBuffer = new BufferBuilder(256);
+        VertexConsumerProvider.Immediate textConsumers = VertexConsumerProvider.immediate(textBuffer);
 
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
             String label = waypoint.label == null ? "" : waypoint.label.trim();
@@ -51,18 +53,23 @@ final class HaWaypointTextRenderer {
 
             LabelRenderData labelRenderData = getLabelRenderData(client, label);
             if (labelRenderData != null) {
+                double anchorX = waypoint.x + 0.5D;
+                double anchorY = waypoint.y + 0.5D + LABEL_VERTICAL_OFFSET;
+                double anchorZ = waypoint.z + 0.5D;
                 renderLabel(
                     client,
                     matrices,
                     camera,
-                    waypoint.x - cameraPos.x + 0.5D,
-                    waypoint.y - cameraPos.y + LABEL_VERTICAL_OFFSET,
-                    waypoint.z - cameraPos.z + 0.5D,
+                    anchorX - cameraPos.x,
+                    anchorY - cameraPos.y,
+                    anchorZ - cameraPos.z,
                     labelRenderData,
                     textConsumers
                 );
             }
         }
+
+        textConsumers.draw();
     }
 
     private static void renderLabel(
