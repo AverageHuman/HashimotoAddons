@@ -39,6 +39,20 @@ public final class HaWaypointOverlay {
 
         Vec3d cameraPos = context.camera().getPos();
         boolean fullBlock = HaWaypointManager.isRenderFullBlocks();
+        boolean hasVisibleWaypoint = false;
+        boolean hasVisibleLabel = false;
+        for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
+            if (!isInRenderDistance(client, waypoint)) {
+                continue;
+            }
+            hasVisibleWaypoint = true;
+            if (HaWaypointTextRenderer.hasLabel(waypoint.label)) {
+                hasVisibleLabel = true;
+            }
+        }
+        if (!hasVisibleWaypoint) {
+            return;
+        }
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -51,9 +65,8 @@ public final class HaWaypointOverlay {
         BufferBuilder buffer = tessellator.getBuffer();
         buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
 
-        boolean renderedAny = false;
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
-            if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
+            if (!isInRenderDistance(client, waypoint)) {
                 continue;
             }
 
@@ -71,22 +84,14 @@ public final class HaWaypointOverlay {
 
             double outlineThickness = getOutlineThickness(client, cameraPos, waypoint);
             drawOutlineBox(buffer, x, y, z, x + 1.0D, y + 1.0D, z + 1.0D, outlineThickness, red, green, blue, OUTLINE_ALPHA);
-            renderedAny = true;
-        }
-
-        if (!renderedAny) {
-            RenderSystem.depthMask(true);
-            RenderSystem.enableCull();
-            RenderSystem.enableTexture();
-            RenderSystem.enableDepthTest();
-            RenderSystem.disableBlend();
-            return;
         }
 
         tessellator.draw();
 
-        RenderSystem.enableTexture();
-        HaWaypointTextRenderer.render(context, client, waypoints, cameraPos);
+        if (hasVisibleLabel) {
+            RenderSystem.enableTexture();
+            HaWaypointTextRenderer.render(context, client, waypoints, cameraPos);
+        }
 
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();
@@ -171,9 +176,16 @@ public final class HaWaypointOverlay {
 
     private static double getOutlineThickness(MinecraftClient client, Vec3d cameraPos, HaWaypointManager.WaypointEntry waypoint) {
         double screenHeight = Math.max(1.0D, client.getWindow().getScaledHeight());
-        double distance = cameraPos.distanceTo(new Vec3d(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D));
+        double dx = waypoint.x + 0.5D - cameraPos.x;
+        double dy = waypoint.y + 0.5D - cameraPos.y;
+        double dz = waypoint.z + 0.5D - cameraPos.z;
+        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double worldUnitsPerPixel = 2.0D * distance * Math.tan(Math.toRadians(OUTLINE_FOV_DEGREES) * 0.5D) / screenHeight;
         return Math.max(0.01D, worldUnitsPerPixel * OUTLINE_PIXEL_THICKNESS);
+    }
+
+    private static boolean isInRenderDistance(MinecraftClient client, HaWaypointManager.WaypointEntry waypoint) {
+        return client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) <= MAX_DISTANCE_SQUARED;
     }
 
     private static int getColorRgb(int slot) {

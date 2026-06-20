@@ -17,6 +17,9 @@ final class HaWaypointTextRenderer {
     private static final double LABEL_VERTICAL_OFFSET = 0.05D;
     private static final float LABEL_SCALE = 0.025F;
     private static final double MAX_DISTANCE_SQUARED = 65536.0D;
+    private static final MatrixStack LABEL_MATRICES = new MatrixStack();
+    private static final BufferBuilder TEXT_BUFFER = new BufferBuilder(4096);
+    private static final VertexConsumerProvider.Immediate TEXT_CONSUMERS = VertexConsumerProvider.immediate(TEXT_BUFFER);
     private static final Map<String, LabelRenderData> LABEL_RENDER_CACHE = new LinkedHashMap<String, LabelRenderData>(128, 0.75F, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, LabelRenderData> eldest) {
@@ -37,39 +40,38 @@ final class HaWaypointTextRenderer {
             return;
         }
 
-        MatrixStack matrices = new MatrixStack();
         Camera camera = context.camera();
-        BufferBuilder textBuffer = new BufferBuilder(256);
-        VertexConsumerProvider.Immediate textConsumers = VertexConsumerProvider.immediate(textBuffer);
 
-        for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
-            String label = waypoint.label == null ? "" : waypoint.label.trim();
-            if (label.isEmpty()) {
-                continue;
-            }
-            if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
-                continue;
-            }
+        try {
+            for (HaWaypointManager.WaypointEntry waypoint : waypoints) {
+                String label = waypoint.label;
+                if (!hasLabel(label)) {
+                    continue;
+                }
+                if (client.player.squaredDistanceTo(waypoint.x + 0.5D, waypoint.y + 0.5D, waypoint.z + 0.5D) > MAX_DISTANCE_SQUARED) {
+                    continue;
+                }
 
-            LabelRenderData labelRenderData = getLabelRenderData(client, label);
-            if (labelRenderData != null) {
-                double anchorX = waypoint.x + 0.5D;
-                double anchorY = waypoint.y + 0.5D + LABEL_VERTICAL_OFFSET;
-                double anchorZ = waypoint.z + 0.5D;
-                renderLabel(
-                    client,
-                    matrices,
-                    camera,
-                    anchorX - cameraPos.x,
-                    anchorY - cameraPos.y,
-                    anchorZ - cameraPos.z,
-                    labelRenderData,
-                    textConsumers
-                );
+                LabelRenderData labelRenderData = getLabelRenderData(client, label);
+                if (labelRenderData != null) {
+                    double anchorX = waypoint.x + 0.5D;
+                    double anchorY = waypoint.y + 0.5D + LABEL_VERTICAL_OFFSET;
+                    double anchorZ = waypoint.z + 0.5D;
+                    renderLabel(
+                        client,
+                        LABEL_MATRICES,
+                        camera,
+                        anchorX - cameraPos.x,
+                        anchorY - cameraPos.y,
+                        anchorZ - cameraPos.z,
+                        labelRenderData,
+                        TEXT_CONSUMERS
+                    );
+                }
             }
+        } finally {
+            TEXT_CONSUMERS.draw();
         }
-
-        textConsumers.draw();
     }
 
     private static void renderLabel(
@@ -83,24 +85,39 @@ final class HaWaypointTextRenderer {
         VertexConsumerProvider textConsumers
     ) {
         matrices.push();
-        matrices.translate(x, y, z);
-        matrices.multiply(camera.getRotation());
-        matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
+        try {
+            matrices.translate(x, y, z);
+            matrices.multiply(camera.getRotation());
+            matrices.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
-        float width = labelRenderData.textWidth / 2.0F;
-        client.textRenderer.draw(
-            labelRenderData.orderedLabel,
-            -width,
-            0.0F,
-            0xFFFFFFFF,
-            false,
-            matrices.peek().getModel(),
-            textConsumers,
-            true,
-            0x00000000,
-            0xF000F0
-        );
-        matrices.pop();
+            float width = labelRenderData.textWidth / 2.0F;
+            client.textRenderer.draw(
+                labelRenderData.orderedLabel,
+                -width,
+                0.0F,
+                0xFFFFFFFF,
+                false,
+                matrices.peek().getModel(),
+                textConsumers,
+                true,
+                0x00000000,
+                0xF000F0
+            );
+        } finally {
+            matrices.pop();
+        }
+    }
+
+    static boolean hasLabel(String label) {
+        if (label == null || label.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < label.length(); i++) {
+            if (!Character.isWhitespace(label.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static LabelRenderData getLabelRenderData(MinecraftClient client, String label) {

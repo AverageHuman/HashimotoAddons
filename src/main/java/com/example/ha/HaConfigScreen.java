@@ -214,6 +214,12 @@ public final class HaConfigScreen extends Screen {
                 return new HaChestSearchScreen(parent);
             }
         });
+        entries.add(new OpenScreenEntry("Waypoint") {
+            @Override
+            protected Screen createScreen(Screen parent) {
+                return new HaWaypointScreen(parent);
+            }
+        });
         entries.add(new OpenScreenEntry("Damage Truncation") {
             @Override
             protected Screen createScreen(Screen parent) {

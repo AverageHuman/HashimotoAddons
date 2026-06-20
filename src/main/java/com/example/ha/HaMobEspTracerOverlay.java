@@ -48,17 +48,26 @@ public final class HaMobEspTracerOverlay {
 
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();
-        buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
+        boolean fillStarted = false;
+        try {
+            buffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
+            fillStarted = true;
 
-        for (HaMobEsp.RenderTarget target : targets) {
-            ScreenPoint end = projectToScreen(client, target, tickDelta, width, height);
-            drawThickLine(buffer, startX, startY, end.x, end.y, LINE_WIDTH, TRACER_COLOR);
+            for (HaMobEsp.RenderTarget target : targets) {
+                ScreenPoint end = projectToScreen(client, target, tickDelta, width, height);
+                drawThickLine(buffer, startX, startY, end.x, end.y, LINE_WIDTH, TRACER_COLOR);
+            }
+        } finally {
+            if (fillStarted) {
+                try {
+                    tessellator.draw();
+                } finally {
+                    restoreRenderState();
+                }
+            } else {
+                restoreRenderState();
+            }
         }
-
-        tessellator.draw();
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableTexture();
-        RenderSystem.disableBlend();
     }
 
     private static ScreenPoint projectToScreen(MinecraftClient client, HaMobEsp.RenderTarget target, float tickDelta, int width, int height) {
@@ -140,5 +149,11 @@ public final class HaMobEspTracerOverlay {
             this.x = x;
             this.y = y;
         }
+    }
+
+    private static void restoreRenderState() {
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableTexture();
+        RenderSystem.disableBlend();
     }
 }

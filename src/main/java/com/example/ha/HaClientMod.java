@@ -41,8 +41,8 @@ public final class HaClientMod implements ClientModInitializer {
             getOrCreateWaypointCycleKeyBinding()
         );
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
-            updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
-            updateAlchemyKilnAutomationBinding(HaConfig.get().getAlchemyKilnAutomationKey());
+        updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
+        updateAlchemyKilnAutomationBinding(HaConfig.get().getAlchemyKilnAutomationKey());
         }
         updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
         updateChestSearchBinding(HaConfig.get().getChestSearchKey());
@@ -315,4 +315,5 @@ public final class HaClientMod implements ClientModInitializer {
         }
         return waypointCycleKeyBinding;
     }
+
 }

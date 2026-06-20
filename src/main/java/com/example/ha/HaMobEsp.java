@@ -5,6 +5,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.client.MinecraftClient;
+import java.util.Collections;
+import java.util.List;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
@@ -20,22 +22,39 @@ public final class HaMobEsp {
     private HaMobEsp() {
     }
 
-    public static boolean shouldGlow(Entity entity) {
-        return isNameCarrierMatch(entity);
-    }
-
-    public static boolean isNameCarrierMatch(Entity entity) {
-        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED || entity == null || entity instanceof PlayerEntity) {
+    public static boolean isEnabled() {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             return false;
         }
 
         HaConfig config = HaConfig.get();
         config.normalize();
+        return config.mobEspEnabled && !config.mobEspTargetName.isEmpty();
+    }
+
+    public static boolean shouldGlow(Entity entity) {
+        return isNameCarrierMatch(entity);
+    }
+
+    public static boolean isNameCarrierMatch(Entity entity) {
+        HaConfig config = HaConfig.get();
+        config.normalize();
         if (!config.mobEspEnabled || config.mobEspTargetName.isEmpty()) {
             return false;
         }
+        return isNameCarrierMatch(entity, config.mobEspTargetName);
+    }
 
-        return normalizeName(entity.getDisplayName()).contains(config.mobEspTargetName);
+    static boolean isNameCarrierMatch(Entity entity, String targetName) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED || entity == null || entity instanceof PlayerEntity) {
+            return false;
+        }
+
+        if (targetName == null || targetName.isEmpty()) {
+            return false;
+        }
+
+        return normalizeName(entity.getDisplayName()).contains(targetName);
     }
 
     public static RenderTarget findRenderTarget(MinecraftClient client, Entity matchedEntity) {
@@ -74,6 +93,26 @@ public final class HaMobEsp {
             : new RenderTarget(nearest, color, true);
     }
 
+    public static RenderTarget findRenderTarget(MinecraftClient client, Entity matchedEntity, List<Entity> directCandidates, List<Entity> physicalCandidates) {
+        int color = getGlowColor(matchedEntity);
+        if (client == null || client.world == null || matchedEntity == null) {
+            return null;
+        }
+
+        if (isDirectMobTarget(matchedEntity)) {
+            return new RenderTarget(matchedEntity, color, true);
+        }
+
+        Entity nearest = findNearestDirectTarget(matchedEntity, directCandidates);
+        if (nearest == null) {
+            nearest = findNearestPhysicalEntity(matchedEntity, physicalCandidates);
+        }
+
+        return nearest == null
+            ? new RenderTarget(matchedEntity, color, false)
+            : new RenderTarget(nearest, color, true);
+    }
+
     public static int getGlowColor(Entity entity) {
         Text displayName = entity.getDisplayName();
         Integer color = findColor(displayName);
@@ -92,7 +131,7 @@ public final class HaMobEsp {
         return (color & 0xFF) / 255.0F;
     }
 
-    private static boolean isDirectMobTarget(Entity entity) {
+    static boolean isDirectMobTarget(Entity entity) {
         return entity instanceof LivingEntity
             && !(entity instanceof PlayerEntity)
             && !(entity instanceof ArmorStandEntity)
@@ -130,10 +169,56 @@ public final class HaMobEsp {
         return distance;
     }
 
+    private static Entity findNearestDirectTarget(Entity matchedEntity, List<Entity> directCandidates) {
+        Entity nearest = null;
+        double nearestScore = Double.MAX_VALUE;
+        List<Entity> candidates = directCandidates == null ? Collections.<Entity>emptyList() : directCandidates;
+        for (Entity candidate : candidates) {
+            if (candidate == null || candidate == matchedEntity || !isDirectMobTarget(candidate)) {
+                continue;
+            }
+            if (!isWithinNameCarrierRange(matchedEntity, candidate)) {
+                continue;
+            }
+
+            double score = targetScore(matchedEntity, candidate);
+            if (score < nearestScore) {
+                nearest = candidate;
+                nearestScore = score;
+            }
+        }
+        return nearest;
+    }
+
     private static Entity findNearestPhysicalEntity(MinecraftClient client, Entity matchedEntity) {
         Entity nearest = null;
         double nearestScore = Double.MAX_VALUE;
+        if (client == null || client.world == null) {
+            return null;
+        }
+
         for (Entity candidate : client.world.getEntities()) {
+            if (candidate == matchedEntity || candidate instanceof PlayerEntity || candidate instanceof ArmorStandEntity) {
+                continue;
+            }
+            if (!isWithinNameCarrierRange(matchedEntity, candidate) || isTiny(candidate)) {
+                continue;
+            }
+
+            double score = targetScore(matchedEntity, candidate);
+            if (score < nearestScore) {
+                nearest = candidate;
+                nearestScore = score;
+            }
+        }
+        return nearest;
+    }
+
+    private static Entity findNearestPhysicalEntity(Entity matchedEntity, List<Entity> physicalCandidates) {
+        Entity nearest = null;
+        double nearestScore = Double.MAX_VALUE;
+        List<Entity> candidates = physicalCandidates == null ? Collections.<Entity>emptyList() : physicalCandidates;
+        for (Entity candidate : candidates) {
             if (candidate == matchedEntity || candidate instanceof PlayerEntity || candidate instanceof ArmorStandEntity) {
                 continue;
             }

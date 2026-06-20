@@ -2,6 +2,7 @@ package com.example.ha;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,11 @@ public final class HaMobEspOverlay {
     private static final float ESP_BLUE = 1.00F;
     private static final float OUTLINE_ALPHA = 0.95F;
     private static final float FILL_ALPHA = 0.28F;
+    private static long cachedWorldTime = Long.MIN_VALUE;
+    private static int cachedWorldIdentity;
+    private static boolean cachedEnabled;
+    private static String cachedTargetName = "";
+    private static List<HaMobEsp.RenderTarget> cachedTargets = Collections.emptyList();
 
     private HaMobEspOverlay() {
     }
@@ -55,18 +61,26 @@ public final class HaMobEspOverlay {
 
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder fillBuffer = tessellator.getBuffer();
-        fillBuffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
+        boolean fillStarted = false;
+        try {
+            fillBuffer.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR);
+            fillStarted = true;
 
-        for (HaMobEsp.RenderTarget target : targets) {
-            Box box = getRenderBox(target).offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
-            drawFilledBox(fillBuffer, box, ESP_RED, ESP_GREEN, ESP_BLUE);
+            for (HaMobEsp.RenderTarget target : targets) {
+                Box box = getRenderBox(target).offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+                drawFilledBox(fillBuffer, box, ESP_RED, ESP_GREEN, ESP_BLUE);
+            }
+        } finally {
+            if (fillStarted) {
+                try {
+                    tessellator.draw();
+                } finally {
+                    restoreRenderState();
+                }
+            } else {
+                restoreRenderState();
+            }
         }
-        tessellator.draw();
-
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.enableTexture();
-        RenderSystem.disableBlend();
 
         for (HaMobEsp.RenderTarget target : targets) {
             Box box = getRenderBox(target).offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
@@ -88,29 +102,68 @@ public final class HaMobEspOverlay {
     }
 
     static List<HaMobEsp.RenderTarget> collectTargets(MinecraftClient client) {
-        List<HaMobEsp.RenderTarget> targets = new ArrayList<HaMobEsp.RenderTarget>();
-        Set<Integer> renderedEntityIds = new HashSet<Integer>();
+        if (client == null || client.world == null || client.player == null || !HaMobEsp.isEnabled()) {
+            cachedEnabled = false;
+            cachedWorldTime = Long.MIN_VALUE;
+            cachedWorldIdentity = 0;
+            cachedTargetName = "";
+            cachedTargets = Collections.emptyList();
+            return cachedTargets;
+        }
 
+        HaConfig config = HaConfig.get();
+        long worldTime = client.world.getTime();
+        int worldIdentity = System.identityHashCode(client.world);
+        String targetName = config.mobEspTargetName;
+        boolean enabled = config.mobEspEnabled;
+
+        if (cachedEnabled == enabled
+            && cachedWorldTime == worldTime
+            && cachedWorldIdentity == worldIdentity
+            && cachedTargetName.equals(targetName)) {
+            return cachedTargets;
+        }
+
+        List<Entity> directCandidates = new ArrayList<Entity>();
+        List<Entity> physicalCandidates = new ArrayList<Entity>();
+        List<Entity> matchedEntities = new ArrayList<Entity>();
         for (Entity entity : client.world.getEntities()) {
-            if (entity == client.player || client.player.squaredDistanceTo(entity) > MAX_DISTANCE_SQUARED || !HaMobEsp.isNameCarrierMatch(entity)) {
+            if (entity == null || entity == client.player || client.player.squaredDistanceTo(entity) > MAX_DISTANCE_SQUARED) {
                 continue;
             }
 
-            HaMobEsp.RenderTarget target = HaMobEsp.findRenderTarget(client, entity);
+            if (!(entity instanceof net.minecraft.entity.player.PlayerEntity) && !(entity instanceof net.minecraft.entity.decoration.ArmorStandEntity)) {
+                physicalCandidates.add(entity);
+            }
+            if (HaMobEsp.isDirectMobTarget(entity)) {
+                directCandidates.add(entity);
+            }
+            if (HaMobEsp.isNameCarrierMatch(entity, targetName)) {
+                matchedEntities.add(entity);
+            }
+        }
+
+        Set<Integer> renderedEntityIds = new HashSet<Integer>();
+        List<HaMobEsp.RenderTarget> targets = new ArrayList<HaMobEsp.RenderTarget>();
+        for (Entity entity : matchedEntities) {
+            HaMobEsp.RenderTarget target = HaMobEsp.findRenderTarget(client, entity, directCandidates, physicalCandidates);
             if (target == null || target.entity == null) {
                 continue;
             }
 
-            int entityId = target.entity.getEntityId();
-            if (renderedEntityIds.contains(Integer.valueOf(entityId))) {
+            Integer entityId = Integer.valueOf(target.entity.getEntityId());
+            if (!renderedEntityIds.add(entityId)) {
                 continue;
             }
-
-            renderedEntityIds.add(Integer.valueOf(entityId));
             targets.add(target);
         }
 
-        return targets;
+        cachedEnabled = enabled;
+        cachedWorldTime = worldTime;
+        cachedWorldIdentity = worldIdentity;
+        cachedTargetName = targetName;
+        cachedTargets = Collections.unmodifiableList(targets);
+        return cachedTargets;
     }
 
     static Box getRenderBox(HaMobEsp.RenderTarget target) {
@@ -143,6 +196,14 @@ public final class HaMobEspOverlay {
 
     private static void addVertex(BufferBuilder buffer, double x, double y, double z, float red, float green, float blue) {
         buffer.vertex(x, y, z).color(red, green, blue, FILL_ALPHA).next();
+    }
+
+    private static void restoreRenderState() {
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        RenderSystem.enableTexture();
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
     }
 
 }
