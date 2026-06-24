@@ -213,7 +213,6 @@ public final class HaConfigPersistence {
             config.chunkChestCounterEnabled = saved.chunkChestCounterEnabled;
             config.chunkChestOverlayX = saved.chunkChestOverlayX;
             config.chunkChestOverlayY = saved.chunkChestOverlayY;
-            config.damageTruncationEnabled = saved.damageTruncationEnabled;
             config.elementRarityEnabled = saved.elementRarityEnabled;
             config.gearViewEnabled = saved.gearViewEnabled;
             config.gearViewKeyCode = saved.gearViewKeyCode;
@@ -264,6 +263,7 @@ public final class HaConfigPersistence {
         } else {
             config.resetDangerousState();
         }
+        config.damageTruncationEnabled = saved.damageTruncationEnabled;
         if (saved.hpAlertEntries != null) {
             for (SavedHpAlertEntry savedEntry : saved.hpAlertEntries) {
                 HaConfig.HpAlertEntry entry = new HaConfig.HpAlertEntry();
@@ -380,6 +380,7 @@ public final class HaConfigPersistence {
         root.addProperty("spotifyOverlayX", config.spotifyOverlayX);
         root.addProperty("spotifyOverlayY", config.spotifyOverlayY);
         root.addProperty("chatFilterEnabled", config.chatFilterEnabled);
+        root.addProperty("damageTruncationEnabled", config.damageTruncationEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(config.lockedSlotIds)));
         root.add("protectedItemIds", GSON.toJsonTree(new HashSet<String>(config.protectedItemIds)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries(config)));
@@ -413,7 +414,6 @@ public final class HaConfigPersistence {
             root.addProperty("chunkChestCounterEnabled", config.chunkChestCounterEnabled);
             root.addProperty("chunkChestOverlayX", config.chunkChestOverlayX);
             root.addProperty("chunkChestOverlayY", config.chunkChestOverlayY);
-            root.addProperty("damageTruncationEnabled", config.damageTruncationEnabled);
             root.addProperty("elementRarityEnabled", config.elementRarityEnabled);
             root.addProperty("gearViewEnabled", config.gearViewEnabled);
             root.addProperty("gearViewKeyCode", config.gearViewKeyCode);

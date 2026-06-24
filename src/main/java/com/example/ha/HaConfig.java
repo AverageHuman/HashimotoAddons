@@ -444,7 +444,6 @@ public final class HaConfig {
         chunkChestCounterEnabled = false;
         chunkChestOverlayX = 8;
         chunkChestOverlayY = 40;
-        damageTruncationEnabled = false;
         elementRarityEnabled = true;
         gearViewEnabled = true;
         gearViewKeyCode = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
