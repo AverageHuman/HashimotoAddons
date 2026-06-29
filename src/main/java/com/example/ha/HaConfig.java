@@ -66,6 +66,9 @@ public final class HaConfig {
     public String gearViewKeyType = "mouse";
     public boolean mobEspEnabled = false;
     public String mobEspTargetName = "";
+    public boolean triggerBotEnabled = false;
+    public int triggerBotMacroIndex = 0;
+    public double triggerBotCooldownSeconds = 1.0D;
     public boolean afkFarmingEnabled = false;
     public boolean afkFarmingActive = false;
     public String afkFarmingWebhookUrl = "";
@@ -197,6 +200,8 @@ public final class HaConfig {
         autoHealHealthRatioThreshold = (float) clamp(autoHealHealthRatioThreshold, 0.05D, 1.0D);
         chunkChestOverlayX = Math.max(0, chunkChestOverlayX);
         chunkChestOverlayY = Math.max(0, chunkChestOverlayY);
+        triggerBotMacroIndex = Math.max(0, triggerBotMacroIndex);
+        triggerBotCooldownSeconds = clamp(triggerBotCooldownSeconds, 0.1D, 3600.0D);
         if (mobEspTargetName == null) {
             mobEspTargetName = "";
         } else {
@@ -270,6 +275,9 @@ public final class HaConfig {
     private void normalizeDangerousSettings() {
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
+        }
+        if (triggerBotMacroIndex < 0) {
+            triggerBotMacroIndex = 0;
         }
     }
 
@@ -451,6 +459,9 @@ public final class HaConfig {
         gearViewKeyType = "mouse";
         mobEspEnabled = false;
         mobEspTargetName = "";
+        triggerBotEnabled = false;
+        triggerBotMacroIndex = 0;
+        triggerBotCooldownSeconds = 1.0D;
         afkFarmingEnabled = false;
         afkFarmingActive = false;
         afkFarmingWebhookUrl = "";
@@ -522,6 +533,7 @@ public final class HaConfig {
         public int hotbarSlot = 0;
         public int holdTicks = 4;
         public int elapsedTicks = 0;
+        public boolean enabled = true;
 
         public void normalize() {
             if (name == null || name.trim().isEmpty()) {
@@ -535,11 +547,12 @@ public final class HaConfig {
             holdTicks = clamp(holdTicks, 0, 200);
         }
 
-        public void copyFrom(String newName, int newHotbarSlot, double newIntervalSeconds, int newHoldTicks) {
+        public void copyFrom(String newName, int newHotbarSlot, double newIntervalSeconds, int newHoldTicks, boolean newEnabled) {
             name = newName;
             hotbarSlot = newHotbarSlot;
             intervalSeconds = newIntervalSeconds;
             holdTicks = newHoldTicks;
+            enabled = newEnabled;
             normalize();
         }
     }

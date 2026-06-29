@@ -48,6 +48,9 @@ final class SavedConfig {
     String gearViewKeyType = "mouse";
     boolean mobEspEnabled = false;
     String mobEspTargetName = "";
+    boolean triggerBotEnabled = false;
+    int triggerBotMacroIndex = 0;
+    double triggerBotCooldownSeconds = 1.0D;
     boolean afkFarmingEnabled = false;
     boolean afkFarmingActive = false;
     String afkFarmingWebhookUrl = "";
@@ -137,6 +140,7 @@ final class SavedSwapEntry {
     int hotbarSlot = 0;
     double intervalSeconds = 5.0D;
     int holdTicks = 4;
+    boolean enabled = true;
 }
 
 final class SavedHpAlertEntry {

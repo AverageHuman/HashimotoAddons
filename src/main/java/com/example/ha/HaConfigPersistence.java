@@ -223,6 +223,9 @@ public final class HaConfigPersistence {
             config.alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
             config.mobEspEnabled = saved.mobEspEnabled;
             config.mobEspTargetName = saved.mobEspTargetName;
+            config.triggerBotEnabled = saved.triggerBotEnabled;
+            config.triggerBotMacroIndex = saved.triggerBotMacroIndex;
+            config.triggerBotCooldownSeconds = saved.triggerBotCooldownSeconds > 0.0D ? saved.triggerBotCooldownSeconds : 1.0D;
             config.afkFarmingEnabled = saved.afkFarmingEnabled;
             config.afkFarmingActive = saved.afkFarmingActive;
             config.afkFarmingWebhookUrl = saved.afkFarmingWebhookUrl;
@@ -250,16 +253,17 @@ public final class HaConfigPersistence {
             if (saved.swapEntries != null) {
                 for (SavedSwapEntry savedEntry : saved.swapEntries) {
                     HaConfig.SwapEntry entry = new HaConfig.SwapEntry();
-                    if (savedEntry != null) {
-                        entry.name = savedEntry.name;
-                        entry.hotbarSlot = savedEntry.hotbarSlot;
-                        entry.intervalSeconds = savedEntry.intervalSeconds;
-                        entry.holdTicks = savedEntry.holdTicks;
-                    }
-                    entry.normalize();
-                    config.swapEntries.add(entry);
+                if (savedEntry != null) {
+                    entry.name = savedEntry.name;
+                    entry.hotbarSlot = savedEntry.hotbarSlot;
+                    entry.intervalSeconds = savedEntry.intervalSeconds;
+                    entry.holdTicks = savedEntry.holdTicks;
+                    entry.enabled = savedEntry.enabled;
                 }
+                entry.normalize();
+                config.swapEntries.add(entry);
             }
+        }
         } else {
             config.resetDangerousState();
         }
@@ -424,6 +428,9 @@ public final class HaConfigPersistence {
             root.addProperty("alchemyKilnAutomationKeyType", config.alchemyKilnAutomationKeyType);
             root.addProperty("mobEspEnabled", config.mobEspEnabled);
             root.addProperty("mobEspTargetName", config.mobEspTargetName);
+            root.addProperty("triggerBotEnabled", config.triggerBotEnabled);
+            root.addProperty("triggerBotMacroIndex", config.triggerBotMacroIndex);
+            root.addProperty("triggerBotCooldownSeconds", config.triggerBotCooldownSeconds);
             root.addProperty("afkFarmingEnabled", config.afkFarmingEnabled);
             root.addProperty("afkFarmingActive", config.afkFarmingActive);
             root.addProperty("afkFarmingWebhookUrl", config.afkFarmingWebhookUrl);
@@ -464,6 +471,7 @@ public final class HaConfigPersistence {
             savedEntry.hotbarSlot = entry.hotbarSlot;
             savedEntry.intervalSeconds = entry.intervalSeconds;
             savedEntry.holdTicks = entry.holdTicks;
+            savedEntry.enabled = entry.enabled;
             savedEntries.add(savedEntry);
         }
         return savedEntries;

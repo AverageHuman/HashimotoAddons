@@ -3,20 +3,15 @@ package com.example.ha;
 import java.text.DecimalFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
 
 public final class HaMobHpDisplayOverlay {
     public static final String POSITION_HUD = "hud";
@@ -24,8 +19,6 @@ public final class HaMobHpDisplayOverlay {
     private static final DecimalFormat HEALTH_FORMAT = new DecimalFormat("0.#");
     private static final DecimalFormat COMPACT_FORMAT = new DecimalFormat("0.#");
     private static final int BAR_HEIGHT = 4;
-    private static final double FALLBACK_TARGET_DISTANCE = 64.0D;
-    private static final double FALLBACK_BOX_EXPAND = 0.35D;
     private static final Map<Integer, Double> OBSERVED_MAX_HEALTH = new LinkedHashMap<Integer, Double>(50, 0.75F, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<Integer, Double> eldest) {
@@ -94,61 +87,8 @@ public final class HaMobHpDisplayOverlay {
     }
 
     private static TargetInfo findTarget(MinecraftClient client) {
-        if (client.player == null || client.world == null) {
-            return null;
-        }
-
-        LivingEntity directTarget = findDirectTarget(client);
-        if (directTarget != null) {
-            return toTargetInfo(directTarget);
-        }
-
-        LivingEntity fallbackTarget = findFallbackRayTarget(client);
-        return fallbackTarget == null ? null : toTargetInfo(fallbackTarget);
-    }
-
-    private static LivingEntity findDirectTarget(MinecraftClient client) {
-        if (client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.ENTITY) {
-            return null;
-        }
-
-        Entity entity = ((EntityHitResult) client.crosshairTarget).getEntity();
-        if (!isValidTargetEntity(client, entity)) {
-            return null;
-        }
-        return (LivingEntity) entity;
-    }
-
-    private static LivingEntity findFallbackRayTarget(MinecraftClient client) {
-        Vec3d start = client.player.getCameraPosVec(1.0F);
-        Vec3d direction = client.player.getRotationVec(1.0F);
-        Vec3d end = start.add(direction.multiply(FALLBACK_TARGET_DISTANCE));
-
-        LivingEntity best = null;
-        double bestDistance = Double.MAX_VALUE;
-        for (Entity entity : client.world.getEntities()) {
-            if (!isValidTargetEntity(client, entity) || !entity.isAlive()) {
-                continue;
-            }
-
-            LivingEntity living = (LivingEntity) entity;
-            if (living.getHealth() <= 0.0F || resolveMaxHealth(living) <= 0.0D) {
-                continue;
-            }
-
-            Box box = entity.getBoundingBox().expand(FALLBACK_BOX_EXPAND);
-            Optional<Vec3d> hit = box.raycast(start, end);
-            if (!hit.isPresent()) {
-                continue;
-            }
-
-            double distance = start.squaredDistanceTo(hit.get());
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = living;
-            }
-        }
-        return best;
+        LivingEntity living = HaMobTargeting.findTarget(client);
+        return living == null ? null : toTargetInfo(living);
     }
 
     private static TargetInfo toTargetInfo(LivingEntity living) {
@@ -257,13 +197,7 @@ public final class HaMobHpDisplayOverlay {
         return result;
     }
 
-    private static boolean isValidTargetEntity(MinecraftClient client, Entity entity) {
-        return entity instanceof LivingEntity
-            && entity != client.player
-            && entity.getType() != EntityType.ARMOR_STAND;
-    }
-
-    private static String getEntityDebugName(Entity entity) {
+    private static String getEntityDebugName(net.minecraft.entity.Entity entity) {
         return EntityType.getId(entity.getType()).toString() + " #" + entity.getEntityId();
     }
 

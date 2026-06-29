@@ -18,6 +18,8 @@ This file contains reusable implementation knowledge, not session history. Updat
 - Safe must hide dangerous feature UI, config, commands, behavior, and keybindings rather than merely showing them disabled.
 - Chest Search and Drop Tracker have previously been classified as Safe features by the owner.
 - Safe-visible settings must not be folded into dangerous-feature reset logic or gated persistence; Damage Truncation is a Safe setting that should load and save like normal config state.
+- Mob HP Display and TriggerBot should share a single target-resolution helper so crosshair-first and raycast fallback behavior stays aligned.
+- Item Macro macro entries should keep their own enabled state in the macro editor, and Item Macro auto-swap should only run when both Macro Toggle and Auto Heal are enabled.
 
 ## HUD
 

@@ -42,7 +42,9 @@ public final class HaMacroListScreen extends Screen {
         int y = top + 30;
         for (int i = startIndex; i < endIndex; i++) {
             final int macroIndex = i;
-            addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(config.swapEntries.get(i).name), button ->
+            HaConfig.SwapEntry entry = config.swapEntries.get(i);
+            String label = entry.name + " / " + (entry.enabled ? "\u00a7aEnabled" : "\u00a7cDisabled");
+            addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText(label), button ->
                 client.openScreen(new HaMacroEditScreen(this, macroIndex, page))
             ));
             y += 24;

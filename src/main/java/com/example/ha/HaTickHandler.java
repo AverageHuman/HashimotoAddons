@@ -92,6 +92,7 @@ public final class HaTickHandler {
             tickAlchemyKilnAutomationToggle(client, config);
             HaAlchemyKilnAutomation.tick(client, config);
             HaAfkFarming.tick(client, this);
+            HaTriggerBot.tick(client, this);
         }
         HaConfigPersistence.tick(config);
 
@@ -120,9 +121,6 @@ public final class HaTickHandler {
         if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             return;
         }
-        if (!config.macroEnabled) {
-            return;
-        }
         if (HaAlchemyKilnAutomation.isRunning()) {
             return;
         }
@@ -146,9 +144,6 @@ public final class HaTickHandler {
             config.macroEnabled = !config.macroEnabled;
             if (!config.macroEnabled) {
                 healCooldownTicks = 0;
-                resetSwapTimers(config);
-            } else {
-                pressHotbarSlot(client, config.defaultWeaponHotbarSlot);
             }
             config.save();
 
@@ -161,11 +156,18 @@ public final class HaTickHandler {
     }
 
     private void tickAutoSwap(MinecraftClient client, HaConfig config) {
+        if (!isItemMacroAllowed(config)) {
+            resetItemMacroTimers(config);
+            return;
+        }
         if (isSwapHolding(client)) {
             return;
         }
 
         for (HaConfig.SwapEntry entry : config.swapEntries) {
+            if (!entry.enabled) {
+                continue;
+            }
             int intervalTicks = Math.max(1, (int) Math.round(entry.intervalSeconds * TICKS_PER_SECOND));
             entry.elapsedTicks++;
             if (entry.elapsedTicks >= intervalTicks) {
@@ -255,6 +257,10 @@ public final class HaTickHandler {
         }
     }
 
+    private static boolean isItemMacroAllowed(HaConfig config) {
+        return config.macroEnabled && config.autoHealEnabled;
+    }
+
     private void tickWaypointCycle(MinecraftClient client) {
         if (waypointCycleKeyBinding == null) {
             return;
@@ -275,6 +281,11 @@ public final class HaTickHandler {
     }
 
     private void tickAutoHeal(MinecraftClient client, HaConfig config) {
+        if (!config.macroEnabled) {
+            healCooldownTicks = 0;
+            return;
+        }
+
         if (!config.autoHealEnabled) {
             healCooldownTicks = 0;
             return;
@@ -291,6 +302,12 @@ public final class HaTickHandler {
         if (ratio <= config.autoHealHealthRatioThreshold) {
             simulateHotbarKeyPress(client, config.autoHealHotbarSlot, 0);
             healCooldownTicks = Math.max(1, (int) Math.round(config.autoHealCooldownSeconds * TICKS_PER_SECOND));
+        }
+    }
+
+    private static void resetItemMacroTimers(HaConfig config) {
+        for (HaConfig.SwapEntry entry : config.swapEntries) {
+            entry.elapsedTicks = 0;
         }
     }
 
@@ -439,13 +456,6 @@ public final class HaTickHandler {
         swapHoldEndWorldTick = -1L;
     }
 
-    private void resetSwapTimers(HaConfig config) {
-        for (HaConfig.SwapEntry entry : config.swapEntries) {
-            entry.elapsedTicks = 0;
-        }
-        releaseSimulatedHotbarKey();
-    }
-
     private boolean isSwapHolding(MinecraftClient client) {
         return swapHoldEndWorldTick >= 0L && client.world != null && client.world.getTime() < swapHoldEndWorldTick;
     }
@@ -482,6 +492,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaDropNotifierManageScreen
             || client.currentScreen instanceof HaDropNotifierEditScreen
             || client.currentScreen instanceof HaAfkFarmingScreen
+            || client.currentScreen instanceof HaTriggerBotScreen
             || client.currentScreen instanceof HaAlchemyKilnAutomationScreen
             || client.currentScreen instanceof HaExpTrackerScreen
             || client.currentScreen instanceof HaExpTrackerOverlayScreen

@@ -10,7 +10,7 @@ import net.minecraft.text.Text;
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
     private static final int ITEMS_PER_PAGE = 7;
-    private static final int TOTAL_ITEMS = 11;
+    private static final int TOTAL_ITEMS = 12;
 
     private final Screen parent;
     private final int page;
@@ -118,27 +118,34 @@ public final class HaDangerousFeaturesScreen extends Screen {
                 }));
                 break;
             case 7:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("TriggerBot"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaTriggerBotScreen(this));
+                    }
+                }));
+                break;
+            case 8:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Chunk Containers"), button -> {
                     if (client != null) {
                         client.openScreen(new HaChunkChestScreen(this));
                     }
                 }));
                 break;
-            case 8:
+            case 9:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Mob ESP"), button -> {
                     if (client != null) {
                         client.openScreen(new HaMobEspScreen(this));
                     }
                 }));
                 break;
-            case 9:
+            case 10:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("AFK Farming"), button -> {
                     if (client != null) {
                         client.openScreen(new HaAfkFarmingScreen(this));
                     }
                 }));
                 break;
-            case 10:
+            case 11:
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Alchemy Kiln Assist"), button -> {
                     if (client != null) {
                         client.openScreen(new HaAlchemyKilnAutomationScreen(this));

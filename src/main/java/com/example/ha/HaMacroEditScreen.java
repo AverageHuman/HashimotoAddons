@@ -14,12 +14,14 @@ public final class HaMacroEditScreen extends Screen {
     private final int macroIndex;
     private final int returnPage;
 
+    private ButtonWidget enabledButton;
     private TextFieldWidget nameField;
     private TextFieldWidget waitingTimeField;
     private TextFieldWidget holdTicksField;
     private ButtonWidget hotbarButton;
     private int selectedHotbarSlot = 0;
     private int holdTicks = 4;
+    private boolean enabled = true;
 
     public HaMacroEditScreen(Screen parent, int macroIndex, int returnPage) {
         super(TITLE);
@@ -37,42 +39,55 @@ public final class HaMacroEditScreen extends Screen {
         int initialHotbarSlot = 0;
         double initialInterval = 5.0D;
         int initialHoldTicks = 4;
+        boolean initialEnabled = true;
         if (macroIndex >= 0 && macroIndex < config.swapEntries.size()) {
             HaConfig.SwapEntry entry = config.swapEntries.get(macroIndex);
             initialName = entry.name;
             initialHotbarSlot = entry.hotbarSlot;
             initialInterval = entry.intervalSeconds;
             initialHoldTicks = entry.holdTicks;
+            initialEnabled = entry.enabled;
         }
 
         selectedHotbarSlot = initialHotbarSlot;
         holdTicks = initialHoldTicks;
+        enabled = initialEnabled;
         int centerX = this.width / 2;
-        int top = 40;
+        int top = 24;
+        int left = centerX - 105;
+        int right = centerX + 5;
 
-        nameField = new TextFieldWidget(this.textRenderer, centerX - 105, top + 18, 210, 20, new LiteralText("Name"));
+        nameField = new TextFieldWidget(this.textRenderer, centerX - 105, top + 62, 210, 20, new LiteralText("Name"));
         nameField.setText(initialName);
         children.add(nameField);
 
-        hotbarButton = addButton(new ButtonWidget(centerX - 105, top + 62, 210, 20, hotbarButtonText(), button -> {
+        enabledButton = addButton(new ButtonWidget(left, top + 18, 100, 20, new LiteralText(""), button -> {
+            enabled = !enabled;
+            button.setMessage(enabledButtonText());
+        }));
+
+        hotbarButton = addButton(new ButtonWidget(right, top + 18, 100, 20, hotbarButtonText(), button -> {
             selectedHotbarSlot = selectedHotbarSlot >= 8 ? 0 : selectedHotbarSlot + 1;
             button.setMessage(hotbarButtonText());
         }));
 
-        waitingTimeField = new TextFieldWidget(this.textRenderer, centerX - 105, top + 106, 210, 20, new LiteralText("Waiting time"));
+        waitingTimeField = new TextFieldWidget(this.textRenderer, left, top + 106, 210, 20, new LiteralText("Waiting time"));
         waitingTimeField.setText(Double.toString(initialInterval));
         children.add(waitingTimeField);
 
-        holdTicksField = new TextFieldWidget(this.textRenderer, centerX - 105, top + 150, 210, 20, new LiteralText("Hold ticks"));
+        holdTicksField = new TextFieldWidget(this.textRenderer, left, top + 150, 210, 20, new LiteralText("Hold ticks"));
         holdTicksField.setText(Integer.toString(initialHoldTicks));
         children.add(holdTicksField);
 
-        addButton(new ButtonWidget(centerX - 105, this.height - 50, 210, 20, new LiteralText("Add"), button -> saveMacro()));
         if (macroIndex >= 0 && macroIndex < config.swapEntries.size()) {
-            addButton(new ButtonWidget(centerX - 105, this.height - 76, 210, 20, new LiteralText("\u00a74Delete"), button -> deleteMacro()));
+            addButton(new ButtonWidget(left, this.height - 50, 100, 20, new LiteralText("Save"), button -> saveMacro()));
+            addButton(new ButtonWidget(right, this.height - 50, 100, 20, new LiteralText("\u00a74Delete"), button -> deleteMacro()));
+        } else {
+            addButton(new ButtonWidget(left, this.height - 50, 210, 20, new LiteralText("Add"), button -> saveMacro()));
         }
         addButton(new ButtonWidget(10, this.height - 30, 100, 20, new LiteralText("Go Back"), button -> onClose()));
         setInitialFocus(nameField);
+        refreshButtons();
     }
 
     @Override
@@ -104,11 +119,14 @@ public final class HaMacroEditScreen extends Screen {
         drawCenteredText(matrices, this.textRenderer, TITLE, this.width / 2, 12, 0xFFFFFF);
 
         int centerX = this.width / 2;
-        int top = 40;
-        this.textRenderer.draw(matrices, "Name:", centerX - 105, top + 8, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Button", centerX - 105, top + 52, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Waiting time:", centerX - 105, top + 96, 0xA0A0A0);
-        this.textRenderer.draw(matrices, "Hold ticks:", centerX - 105, top + 140, 0xA0A0A0);
+        int top = 24;
+        int left = centerX - 105;
+        int right = centerX + 5;
+        this.textRenderer.draw(matrices, "Enabled:", left, top + 8, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Slot:", right, top + 8, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Name:", left, top + 52, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Waiting time:", left, top + 96, 0xA0A0A0);
+        this.textRenderer.draw(matrices, "Hold ticks:", left, top + 140, 0xA0A0A0);
 
         nameField.render(matrices, mouseX, mouseY, delta);
         waitingTimeField.render(matrices, mouseX, mouseY, delta);
@@ -142,10 +160,10 @@ public final class HaMacroEditScreen extends Screen {
         HaConfig config = HaConfig.get();
         config.normalize();
         if (macroIndex >= 0 && macroIndex < config.swapEntries.size()) {
-            config.swapEntries.get(macroIndex).copyFrom(name, selectedHotbarSlot, interval.doubleValue(), parsedHoldTicks.intValue());
+            config.swapEntries.get(macroIndex).copyFrom(name, selectedHotbarSlot, interval.doubleValue(), parsedHoldTicks.intValue(), enabled);
         } else {
             HaConfig.SwapEntry entry = config.addSwapEntry();
-            entry.copyFrom(name, selectedHotbarSlot, interval.doubleValue(), parsedHoldTicks.intValue());
+            entry.copyFrom(name, selectedHotbarSlot, interval.doubleValue(), parsedHoldTicks.intValue(), enabled);
         }
         config.save();
 
@@ -169,7 +187,20 @@ public final class HaMacroEditScreen extends Screen {
     }
 
     private Text hotbarButtonText() {
-        return new LiteralText(Integer.toString(selectedHotbarSlot + 1));
+        return new LiteralText("Slot: " + (selectedHotbarSlot + 1));
+    }
+
+    private Text enabledButtonText() {
+        return new LiteralText("Enabled: " + (enabled ? "\u00a7aEnabled" : "\u00a7cDisabled"));
+    }
+
+    private void refreshButtons() {
+        if (enabledButton != null) {
+            enabledButton.setMessage(enabledButtonText());
+        }
+        if (hotbarButton != null) {
+            hotbarButton.setMessage(hotbarButtonText());
+        }
     }
 
     private static Double parsePositiveDouble(String value) {
