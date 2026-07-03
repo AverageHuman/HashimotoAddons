@@ -354,12 +354,13 @@ public final class HaEvolutionForgeHelper {
             if (range == null) {
                 continue;
             }
-            applyStatRangeAdjustments(range, adjustments);
+            StatRange storedRange = copyStatRange(range);
+            applyStatRangeAdjustments(storedRange, adjustments);
             if (ranges == null) {
                 ranges = new ArrayList<StatRange>();
                 data.statRangesByItem.put(key, ranges);
             }
-            putRange(ranges, range);
+            putRange(ranges, storedRange);
         }
     }
 
@@ -819,6 +820,16 @@ public final class HaEvolutionForgeHelper {
             return Double.valueOf(3.0D);
         }
 
+        if (normalizedLine.contains("\u552f\u4e00\u7121\u4e8c\u306e\u5897\u5f37\u5264<\u53c2\u6bb5>")) {
+            return Double.valueOf(320.0D);
+        }
+        if (normalizedLine.contains("\u552f\u4e00\u7121\u4e8c\u306e\u5897\u5f37\u5264<\u5f10\u6bb5>")) {
+            return Double.valueOf(240.0D);
+        }
+        if (normalizedLine.contains("\u552f\u4e00\u7121\u4e8c\u306e\u5897\u5f37\u5264")) {
+            return Double.valueOf(180.0D);
+        }
+
         Matcher matcher = HP_BOOSTER_VALUE_PATTERN.matcher(normalizedLine);
         if (matcher.find()) {
             try {
@@ -858,6 +869,21 @@ public final class HaEvolutionForgeHelper {
             range.displayMin = formatRangeValue(range.min, true);
             range.displayMax = formatRangeValue(range.max, false);
         }
+    }
+
+    private static StatRange copyStatRange(StatRange source) {
+        if (source == null) {
+            return null;
+        }
+        StatRange copy = new StatRange();
+        copy.statName = source.statName;
+        copy.min = source.min;
+        copy.max = source.max;
+        copy.unit = source.unit;
+        copy.separator = source.separator;
+        copy.displayMin = source.displayMin;
+        copy.displayMax = source.displayMax;
+        return copy;
     }
 
     private static double applyStatAdjustments(String statName, double value, ItemStatAdjustments adjustments) {
