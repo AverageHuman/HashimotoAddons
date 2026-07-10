@@ -6,6 +6,7 @@ import net.minecraft.util.registry.Registry;
 
 public final class HaSounds {
     public static final SoundEvent RITUAL_TIMER_READY = register("ritual_timer_ready");
+    public static final SoundEvent CRITICAL_SOUND = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? register("critical_sound") : null;
 
     private HaSounds() {
     }

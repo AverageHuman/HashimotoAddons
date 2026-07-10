@@ -3,5 +3,10 @@
     "sounds": [
       "ha:ritual_timer_ready"
     ]
+  },
+  "critical_sound": {
+    "sounds": [
+      "ha:critical_sound"
+    ]
   }
 }
