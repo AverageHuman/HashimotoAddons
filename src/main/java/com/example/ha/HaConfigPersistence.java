@@ -190,6 +190,8 @@ public final class HaConfigPersistence {
             config.autoHealHotbarSlot = saved.autoHealHotbarSlot;
             config.autoHealCooldownSeconds = saved.autoHealCooldownSeconds > 0.0D ? saved.autoHealCooldownSeconds : 1.0D;
             config.autoHealHealthRatioThreshold = saved.autoHealHealthRatioThreshold > 0.0F ? saved.autoHealHealthRatioThreshold : 0.75F;
+            config.criticalSoundEnabled = saved.criticalSoundEnabled;
+            config.criticalSoundVolume = saved.criticalSoundVolume;
             config.macroEnabled = saved.macroEnabled;
             config.macroToggleKeyCode = saved.macroToggleKeyCode;
             config.macroToggleScanCode = saved.macroToggleScanCode;
@@ -398,6 +400,8 @@ public final class HaConfigPersistence {
             root.addProperty("autoHealHotbarSlot", config.autoHealHotbarSlot);
             root.addProperty("autoHealCooldownSeconds", config.autoHealCooldownSeconds);
             root.addProperty("autoHealHealthRatioThreshold", config.autoHealHealthRatioThreshold);
+            root.addProperty("criticalSoundEnabled", config.criticalSoundEnabled);
+            root.addProperty("criticalSoundVolume", config.criticalSoundVolume);
             root.addProperty("macroEnabled", config.macroEnabled);
             root.addProperty("macroToggleKeyCode", config.macroToggleKeyCode);
             root.addProperty("macroToggleScanCode", config.macroToggleScanCode);

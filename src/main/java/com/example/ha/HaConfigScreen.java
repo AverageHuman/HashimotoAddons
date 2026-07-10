@@ -292,6 +292,14 @@ public final class HaConfigScreen extends Screen {
                 return new HaRitualBookTimerScreen(parent);
             }
         });
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            entries.add(new OpenScreenEntry("Critical Sound") {
+                @Override
+                protected Screen createScreen(Screen parent) {
+                    return new HaCriticalSoundScreen(parent);
+                }
+            });
+        }
         entries.add(new OpenScreenEntry("Spotify") {
             @Override
             protected Screen createScreen(Screen parent) {

@@ -126,6 +126,8 @@ public final class HaButtonTooltips {
         } else if ("HaRitualBookTimerScreen".equals(screenName)
             || "HaRitualBookTimerOverlayScreen".equals(screenName)) {
             addRitualBookTimerTooltip(lines, label);
+        } else if ("HaCriticalSoundScreen".equals(screenName)) {
+            addCriticalSoundTooltip(lines, label);
         } else if ("HaElementRarityScreen".equals(screenName)) {
             lines.add("エレメント名を含むアイテム枠をレアリティ色で見やすくします。");
         } else if ("HaDamageTruncationScreen".equals(screenName)) {
@@ -161,6 +163,8 @@ public final class HaButtonTooltips {
             lines.add("サブスキルの再使用時間を画面上に表示します。");
         } else if ("Ritual Book Timer".equals(label)) {
             lines.add("\u5100\u5f0f\u66f8\u7269\u8cfc\u5165\u30c1\u30e3\u30c3\u30c8\u3092\u691c\u77e5\u3057\u306610\u5206\u30bf\u30a4\u30de\u30fc\u3092\u8868\u793a\u3057\u307e\u3059\u3002");
+        } else if ("Critical Sound".equals(label)) {
+            lines.add("クリティカル判定のネームタグに一致したら、同梱音を選択音量で再生します。");
         } else if ("Drop Notifier".equals(label)) {
             lines.add("指定したアイテムのドロップを検知したときに通知します。");
         } else if ("Chat Filter".equals(label)) {
@@ -366,6 +370,16 @@ public final class HaButtonTooltips {
             lines.add("Slim\u8868\u793a\u3068Full\u8868\u793a\u3092\u5207\u308a\u66ff\u3048\u307e\u3059\u3002");
         } else if ("Adjust Overlay Position".equals(label)) {
             lines.add("\u5100\u5f0f\u66f8\u7269\u30bf\u30a4\u30de\u30fcHUD\u306e\u8868\u793a\u4f4d\u7f6e\u3092\u8abf\u6574\u3057\u307e\u3059\u3002");
+        }
+    }
+
+    private static void addCriticalSoundTooltip(List<String> lines, String label) {
+        if (label.startsWith("Critical Sound:")) {
+            lines.add("クリティカル判定時の音声再生を有効/無効にします。");
+        } else if (label.startsWith("Critical Sound Volume")) {
+            lines.add("クリティカル音の再生音量を調整します。");
+        } else if ("Test Critical Sound".equals(label)) {
+            lines.add("同梱されているクリティカル音をすぐ再生します。");
         }
     }
 

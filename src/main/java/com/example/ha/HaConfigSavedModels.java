@@ -117,6 +117,8 @@ final class SavedConfig {
     boolean ritualBookTimerEnabled = false;
     boolean ritualBookTimerSlim = false;
     int ritualBookTimerSoundVolume = 100;
+    boolean criticalSoundEnabled = false;
+    int criticalSoundVolume = 100;
     int ritualBookTimerOverlayX = 8;
     int ritualBookTimerOverlayY = 232;
     boolean spotifyEnabled = false;

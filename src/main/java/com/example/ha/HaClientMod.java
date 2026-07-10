@@ -84,14 +84,6 @@ public final class HaClientMod implements ClientModInitializer {
                 .executes(context -> toggleWaypointEditMode()))
             .then(ClientCommandManager.literal("edithud")
                 .executes(context -> openHudEditor()))
-            .then(ClientCommandManager.literal("expdebug")
-                .then(ClientCommandManager.literal("clear")
-                    .executes(context -> clearExpDebugLog()))
-                .then(ClientCommandManager.literal("mark")
-                    .then(ClientCommandManager.argument("label", StringArgumentType.greedyString())
-                        .executes(context -> markExpDebugLog(StringArgumentType.getString(context, "label")))))
-                .then(ClientCommandManager.literal("copy")
-                    .executes(context -> copyExpDebugLog())))
             .then(ClientCommandManager.literal("tracker")
                 .then(ClientCommandManager.literal("add")
                     .executes(context -> registerHeldTrackerItem(0L))
@@ -99,6 +91,15 @@ public final class HaClientMod implements ClientModInitializer {
                         .executes(context -> registerHeldTrackerItem(LongArgumentType.getLong(context, "price"))))));
 
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            command.then(ClientCommandManager.literal("expdebug")
+                .executes(context -> copyExpDebugLog())
+                .then(ClientCommandManager.literal("clear")
+                    .executes(context -> clearExpDebugLog()))
+                .then(ClientCommandManager.literal("mark")
+                    .then(ClientCommandManager.argument("label", StringArgumentType.greedyString())
+                        .executes(context -> markExpDebugLog(StringArgumentType.getString(context, "label")))))
+                .then(ClientCommandManager.literal("copy")
+                    .executes(context -> copyExpDebugLog())));
             command.then(ClientCommandManager.literal("extras")
                 .executes(context -> toggleExtras()));
             command.then(ClientCommandManager.literal("em")

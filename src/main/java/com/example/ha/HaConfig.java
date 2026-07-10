@@ -136,6 +136,8 @@ public final class HaConfig {
     public boolean ritualBookTimerEnabled = false;
     public boolean ritualBookTimerSlim = false;
     public int ritualBookTimerSoundVolume = 100;
+    public boolean criticalSoundEnabled = false;
+    public int criticalSoundVolume = 100;
     public int ritualBookTimerOverlayX = 8;
     public int ritualBookTimerOverlayY = 232;
     public boolean spotifyEnabled = false;
@@ -276,6 +278,7 @@ public final class HaConfig {
         if (lockedSlotIds == null) {
             lockedSlotIds = new HashSet<Integer>();
         }
+        criticalSoundVolume = clamp(criticalSoundVolume, 0, 100);
         if (triggerBotMacroIndex < 0) {
             triggerBotMacroIndex = 0;
         }
@@ -480,6 +483,8 @@ public final class HaConfig {
         afkFarmingAutoMoveIntervalSeconds = 300.0D;
         afkFarmingAutoMoveIntervalMinutes = 5.0D;
         afkFarmingAutoMoveJitterSeconds = 10.0D;
+        criticalSoundEnabled = false;
+        criticalSoundVolume = 100;
     }
 
     private static int clamp(int value, int min, int max) {
