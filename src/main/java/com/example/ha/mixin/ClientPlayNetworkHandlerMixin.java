@@ -14,6 +14,7 @@ import com.example.ha.HaDropNotifier;
 import com.example.ha.HaAfkFarming;
 import com.example.ha.HaAlchemyKilnAutomation;
 import com.example.ha.HaRitualBookTimer;
+import com.example.ha.HaCriticalSound;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
@@ -70,6 +71,7 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaSoulbindProtection.onDisconnected();
         HaDropNotifier.onDisconnected();
         HaRitualBookTimer.onDisconnected();
+        HaCriticalSound.onDisconnected();
         HaAfkFarming.onDisconnected();
         HaAlchemyKilnAutomation.onDisconnected();
         HaEvolutionForgeHelper.flushPendingSaves();

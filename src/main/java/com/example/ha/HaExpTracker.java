@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,7 +15,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.MobSpawnS2CPacket;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.registry.Registry;
 
@@ -22,10 +25,12 @@ public final class HaExpTracker {
     private static final double TRACKING_DISTANCE_SQUARED = 40.0D * 40.0D;
     private static final int SEEN_TTL_TICKS = 20 * 30;
     private static final int PENDING_TTL_TICKS = 20 * 2;
+    private static final int LABEL_DEBUG_TTL_TICKS = 5;
     private static final int DEBUG_LIMIT = 200;
     private static final Pattern XP_PATTERN = Pattern.compile("\\+\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*(?:XP|EXP)\\s*!?", Pattern.CASE_INSENSITIVE);
     private static final Map<String, Integer> SEEN_EXP_EVENTS = new HashMap<String, Integer>();
     private static final Map<Integer, PendingEntity> PENDING_ENTITIES = new HashMap<Integer, PendingEntity>();
+    private static final Map<String, Integer> RECENT_LABEL_EVENTS = new HashMap<String, Integer>();
     private static final ArrayDeque<String> DEBUG_EVENTS = new ArrayDeque<String>();
     private static boolean activeSession;
     private static long cachedExpPerHourTenths;
@@ -93,6 +98,9 @@ public final class HaExpTracker {
         result.append("Soulbind Active: ").append(HaSoulbindProtection.isSoulbound()).append("\r\n");
         result.append("Elapsed Seconds: ").append(config.expTrackerElapsedSeconds).append("\r\n");
         result.append("Total XP: ").append(HaExpTrackerOverlay.formatNumber(config.expTrackerTotalTenths, false)).append("\r\n");
+        result.append("Label Tracking: numeric entity name tags are logged for damage analysis.\r\n");
+        result.append("Unicode Log: visible text keeps raw Unicode and codepoints stay for exact-copy support.\r\n");
+        result.append("Text Snapshot: root style and first rendered segment are logged for comparison.\r\n");
         result.append("Pending: ").append(PENDING_ENTITIES.size()).append("\r\n");
         result.append("Seen: ").append(SEEN_EXP_EVENTS.size()).append("\r\n");
         result.append("\r\n");
@@ -110,7 +118,7 @@ public final class HaExpTracker {
 
     public static void addDebugMarker(String marker) {
         String trimmed = marker == null ? "" : marker.trim();
-        addDebugLine("===== MARK " + (trimmed.isEmpty() ? "(no label)" : trimmed) + " =====");
+        addDebugLine("===== MARK " + (trimmed.isEmpty() ? "(no label)" : escapeLogValue(trimmed)) + " =====");
     }
 
     public static void clear() {
@@ -125,7 +133,37 @@ public final class HaExpTracker {
         config.save();
         SEEN_EXP_EVENTS.clear();
         PENDING_ENTITIES.clear();
+        RECENT_LABEL_EVENTS.clear();
         DEBUG_EVENTS.clear();
+    }
+
+    public static void recordRenderedNameTag(Entity entity, Text text) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED || entity == null || text == null) {
+            return;
+        }
+
+        String raw = text.getString();
+        String normalized = normalizeLabel(raw);
+        if (normalized.isEmpty() || !looksLikeDamageLabel(normalized)) {
+            return;
+        }
+
+        String key = entity.getEntityId() + ":" + normalized;
+        if (isRecentLabelEvent(key)) {
+            return;
+        }
+
+        MinecraftClient client = MinecraftClient.getInstance();
+        double distance = client == null || client.player == null ? -1.0D : Math.sqrt(entity.squaredDistanceTo(client.player));
+        String line = "render_label kind=damage"
+            + " id=" + entity.getEntityId()
+            + " uuid=" + entity.getUuid()
+            + " type=" + getEntityTypeName(entity)
+            + " dist=" + (distance < 0.0D ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", distance))
+            + " text=" + describeText(text)
+            + " raw=" + escapeLogValue(normalized);
+        addDebugLine(line);
+        RECENT_LABEL_EVENTS.put(key, Integer.valueOf(LABEL_DEBUG_TTL_TICKS));
     }
 
     public static boolean isActiveSession() {
@@ -276,6 +314,15 @@ public final class HaExpTracker {
                 entry.setValue(nextTtl);
             }
         }
+        for (Iterator<Map.Entry<String, Integer>> iterator = RECENT_LABEL_EVENTS.entrySet().iterator(); iterator.hasNext();) {
+            Map.Entry<String, Integer> entry = iterator.next();
+            int nextTtl = entry.getValue().intValue() - 1;
+            if (nextTtl <= 0) {
+                iterator.remove();
+            } else {
+                entry.setValue(Integer.valueOf(nextTtl));
+            }
+        }
     }
 
     private static void startSessionIfNeeded(HaConfig config) {
@@ -289,6 +336,7 @@ public final class HaExpTracker {
         updateHourlyRate(config);
         SEEN_EXP_EVENTS.clear();
         PENDING_ENTITIES.clear();
+        RECENT_LABEL_EVENTS.clear();
     }
 
     private static void stopSession() {
@@ -301,6 +349,7 @@ public final class HaExpTracker {
         lastRateUpdateMillis = 0L;
         SEEN_EXP_EVENTS.clear();
         PENDING_ENTITIES.clear();
+        RECENT_LABEL_EVENTS.clear();
     }
 
     private static void tickElapsedTime(HaConfig config) {
@@ -349,12 +398,12 @@ public final class HaExpTracker {
             + " type=" + getEntityTypeName(entity)
             + " dist=" + (distance < 0.0D ? "unknown" : String.format(java.util.Locale.ROOT, "%.2f", distance))
             + " exp=" + exp
-            + " name=" + getEntityName(entity);
+            + " name=" + escapeLogValue(getEntityName(entity))
+            + " customName=" + describeText(entity.getCustomName())
+            + " displayName=" + describeText(entity.getDisplayName())
+            + " entityName=" + describeText(entity.getName());
         if (isPacketDebugSource(source)) {
-            line += " customName=" + debugName(entity.getCustomName())
-                + " displayName=" + debugName(entity.getDisplayName())
-                + " entityName=" + debugName(entity.getName())
-                + " parseValue=" + (parseResult == null ? exp : parseResult.exp)
+            line += " parseValue=" + (parseResult == null ? exp : parseResult.exp)
                 + " parseReason=" + (parseResult == null ? "unknown" : parseResult.reason);
         }
         if ("duplicate".equals(result) && duplicateKey != null) {
@@ -462,12 +511,185 @@ public final class HaExpTracker {
         return entity == null ? "missing" : getEntityTypeName(entity);
     }
 
-    private static String debugName(Text text) {
+    private static String describeText(Text text) {
         if (text == null) {
             return "<null>";
         }
-        String value = text.getString();
-        return value == null ? "<null-string>" : value.replace("\r", "\\r").replace("\n", "\\n");
+        String plain = text.getString();
+        if (plain == null) {
+            plain = "<null-string>";
+        }
+
+        String json;
+        try {
+            json = Text.Serializer.toJson(text);
+        } catch (RuntimeException exception) {
+            json = "<json_error:" + exception.getClass().getSimpleName() + ">";
+        }
+
+        return "{plain=\"" + escapeLogValue(plain)
+            + "\", json=\"" + escapeLogValue(json)
+            + "\", styleColor=\"" + describeStyleColor(text.getStyle())
+            + "\", bold=" + isStyleBold(text.getStyle())
+            + ", italic=" + isStyleItalic(text.getStyle())
+            + ", firstSegment=" + describeFirstSegment(text)
+            + ", codepoints=" + describeCodepoints(plain)
+            + "}";
+    }
+
+    private static String describeFirstSegment(Text text) {
+        if (text == null) {
+            return "<null>";
+        }
+
+        final String[] segmentText = new String[1];
+        final Style[] segmentStyle = new Style[1];
+        try {
+            text.visit((style, value) -> {
+                if (value == null || value.isEmpty()) {
+                    return Optional.empty();
+                }
+                segmentText[0] = value;
+                segmentStyle[0] = style;
+                return Optional.of(Boolean.TRUE);
+            }, Style.EMPTY);
+        } catch (RuntimeException exception) {
+            return "<visit_error:" + exception.getClass().getSimpleName() + ">";
+        }
+
+        if (segmentText[0] == null) {
+            return "<empty>";
+        }
+
+        return "{plain=\"" + escapeLogValue(segmentText[0])
+            + "\", styleColor=\"" + describeStyleColor(segmentStyle[0])
+            + "\", bold=" + isStyleBold(segmentStyle[0])
+            + ", italic=" + isStyleItalic(segmentStyle[0])
+            + ", codepoints=" + describeCodepoints(segmentText[0])
+            + "}";
+    }
+
+    private static String describeStyleColor(Style style) {
+        if (style == null) {
+            return "<null>";
+        }
+
+        TextColor color = style.getColor();
+        return color == null ? "inherit" : formatColor(color);
+    }
+
+    private static boolean isStyleBold(Style style) {
+        return style != null && style.isBold();
+    }
+
+    private static boolean isStyleItalic(Style style) {
+        return style != null && style.isItalic();
+    }
+
+    private static String formatColor(TextColor color) {
+        if (color == null) {
+            return "inherit";
+        }
+        return String.format(java.util.Locale.ROOT, "#%06X", Integer.valueOf(color.getRgb() & 0xFFFFFF));
+    }
+
+    private static String escapeLogValue(String value) {
+        if (value == null) {
+            return "<null>";
+        }
+        StringBuilder result = new StringBuilder(value.length());
+        for (int offset = 0; offset < value.length();) {
+            int codePoint = value.codePointAt(offset);
+            if (codePoint == '\\') {
+                result.append("\\\\");
+            } else if (codePoint == '\"') {
+                result.append("\\\"");
+            } else if (codePoint == '\r') {
+                result.append("\\r");
+            } else if (codePoint == '\n') {
+                result.append("\\n");
+            } else if (codePoint == '\t') {
+                result.append("\\t");
+            } else {
+                result.appendCodePoint(codePoint);
+            }
+            offset += Character.charCount(codePoint);
+        }
+        return result.toString();
+    }
+
+    private static String describeCodepoints(String value) {
+        if (value == null || value.isEmpty()) {
+            return "(empty)";
+        }
+
+        StringBuilder result = new StringBuilder();
+        for (int offset = 0; offset < value.length();) {
+            int codePoint = value.codePointAt(offset);
+            if (result.length() > 0) {
+                result.append(' ');
+            }
+            result.append("U+").append(codePointHex(codePoint));
+            offset += Character.charCount(codePoint);
+        }
+        return result.toString();
+    }
+
+    private static String codePointHex(int codePoint) {
+        String value = Integer.toHexString(codePoint).toUpperCase(java.util.Locale.ROOT);
+        StringBuilder result = new StringBuilder();
+        for (int i = value.length(); i < 4; i++) {
+            result.append('0');
+        }
+        return result.append(value).toString();
+    }
+
+    private static String normalizeLabel(String value) {
+        if (value == null) {
+            return "";
+        }
+        String stripped = Formatting.strip(value);
+        if (stripped == null) {
+            stripped = value;
+        }
+        return stripped.trim();
+    }
+
+    private static boolean containsExp(String raw) {
+        String normalized = Formatting.strip(raw);
+        if (normalized == null) {
+            normalized = raw;
+        }
+        return normalized != null && normalized.toLowerCase(java.util.Locale.ROOT).contains("exp");
+    }
+
+    private static boolean looksLikeDamageLabel(String value) {
+        if (value == null || value.isEmpty() || containsExp(value)) {
+            return false;
+        }
+
+        boolean hasDigit = false;
+        for (int offset = 0; offset < value.length();) {
+            int codePoint = value.codePointAt(offset);
+            if (Character.isDigit(codePoint)) {
+                hasDigit = true;
+            } else if (Character.isLetter(codePoint)) {
+                return false;
+            } else if (!Character.isWhitespace(codePoint) && ".,:+-!*/xX".indexOf(codePoint) < 0) {
+                return false;
+            }
+            offset += Character.charCount(codePoint);
+        }
+        return hasDigit;
+    }
+
+    private static boolean isRecentLabelEvent(String key) {
+        Integer ttl = RECENT_LABEL_EVENTS.get(key);
+        if (ttl == null) {
+            return false;
+        }
+        RECENT_LABEL_EVENTS.put(key, Integer.valueOf(LABEL_DEBUG_TTL_TICKS));
+        return true;
     }
 
     private static final class PendingEntity {

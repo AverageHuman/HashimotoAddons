@@ -20,6 +20,10 @@ This file contains reusable implementation knowledge, not session history. Updat
 - Safe-visible settings must not be folded into dangerous-feature reset logic or gated persistence; Damage Truncation is a Safe setting that should load and save like normal config state.
 - Mob HP Display and TriggerBot should share a single target-resolution helper so crosshair-first and raycast fallback behavior stays aligned.
 - Item Macro macro entries should keep their own enabled state in the macro editor, and Item Macro auto-swap should only run when both Macro Toggle and Auto Heal are enabled.
+- Diagnostic commands that dump live entity labels belong in Full-only command surfaces, and exact-copy logs should include `Text.Serializer.toJson` plus codepoints instead of relying on `getString()` alone.
+- Rendered numeric name tags can be captured in `EntityRenderer.renderLabelIfPresent` before damage truncation runs, and debug output should keep raw Unicode text while escaping only line-breaking control characters.
+- When comparing colored name-tag output, include the root text style color plus bold and italic flags in the debug snapshot so inherited formatting can be distinguished from glyph content.
+- When a name-tag glyph looks color-shifted in-game, also capture the first visited text segment with `Text.visit(StyledVisitor, Style.EMPTY)` because the root `Text` style and the first visible segment can inherit formatting differently.
 
 ## HUD
 
@@ -42,6 +46,7 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 - Safe and Full artifacts are grouped by version under `build/libs/<version>/`.
 - A successful local build does not prove that its source state was committed.
+- Minecraft 1.16.5 sound events still play `.ogg` assets from `assets/<namespace>/sounds`; if the owner wants the original MP3 bundled in the jar too, keep the MP3 beside the converted OGG and point `sounds.json` at the OGG filename.
 
 ## Client GUI Performance
 
