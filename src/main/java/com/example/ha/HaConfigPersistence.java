@@ -225,6 +225,11 @@ public final class HaConfigPersistence {
             config.alchemyKilnAutomationKeyType = saved.alchemyKilnAutomationKeyType;
             config.mobEspEnabled = saved.mobEspEnabled;
             config.mobEspTargetName = saved.mobEspTargetName;
+            config.revealInvisibleMobsEnabled = saved.revealInvisibleMobsEnabled;
+            config.invisibleEntityInspectorEnabled = saved.invisibleEntityInspectorEnabled;
+            config.invisibleEntityInspectorKeyCode = saved.invisibleEntityInspectorKeyCode;
+            config.invisibleEntityInspectorScanCode = saved.invisibleEntityInspectorScanCode;
+            config.invisibleEntityInspectorKeyType = saved.invisibleEntityInspectorKeyType;
             config.triggerBotEnabled = saved.triggerBotEnabled;
             config.triggerBotMacroIndex = saved.triggerBotMacroIndex;
             config.triggerBotCooldownSeconds = saved.triggerBotCooldownSeconds > 0.0D ? saved.triggerBotCooldownSeconds : 1.0D;
@@ -432,6 +437,11 @@ public final class HaConfigPersistence {
             root.addProperty("alchemyKilnAutomationKeyType", config.alchemyKilnAutomationKeyType);
             root.addProperty("mobEspEnabled", config.mobEspEnabled);
             root.addProperty("mobEspTargetName", config.mobEspTargetName);
+            root.addProperty("revealInvisibleMobsEnabled", config.revealInvisibleMobsEnabled);
+            root.addProperty("invisibleEntityInspectorEnabled", config.invisibleEntityInspectorEnabled);
+            root.addProperty("invisibleEntityInspectorKeyCode", config.invisibleEntityInspectorKeyCode);
+            root.addProperty("invisibleEntityInspectorScanCode", config.invisibleEntityInspectorScanCode);
+            root.addProperty("invisibleEntityInspectorKeyType", config.invisibleEntityInspectorKeyType);
             root.addProperty("triggerBotEnabled", config.triggerBotEnabled);
             root.addProperty("triggerBotMacroIndex", config.triggerBotMacroIndex);
             root.addProperty("triggerBotCooldownSeconds", config.triggerBotCooldownSeconds);

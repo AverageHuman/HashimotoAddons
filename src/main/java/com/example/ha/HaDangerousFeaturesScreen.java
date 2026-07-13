@@ -10,7 +10,7 @@ import net.minecraft.text.Text;
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
     private static final int ITEMS_PER_PAGE = 7;
-    private static final int TOTAL_ITEMS = 12;
+    private static final int TOTAL_ITEMS = 14;
 
     private final Screen parent;
     private final int page;
@@ -149,6 +149,20 @@ public final class HaDangerousFeaturesScreen extends Screen {
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Alchemy Kiln Assist"), button -> {
                     if (client != null) {
                         client.openScreen(new HaAlchemyKilnAutomationScreen(this));
+                    }
+                }));
+                break;
+            case 12:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Reveal Mobs/Players: " + onOff(config.revealInvisibleMobsEnabled)), button -> {
+                    config.revealInvisibleMobsEnabled = !config.revealInvisibleMobsEnabled;
+                    config.save();
+                    button.setMessage(new LiteralText("Reveal Mobs/Players: " + onOff(config.revealInvisibleMobsEnabled)));
+                }));
+                break;
+            case 13:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Invisible Entity Inspector"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaInvisibleEntityInspectorScreen(this));
                     }
                 }));
                 break;

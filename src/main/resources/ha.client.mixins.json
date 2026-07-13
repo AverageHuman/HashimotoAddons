@@ -6,6 +6,7 @@
     "ClientPlayerEntityMixin",
     "ClientPlayNetworkHandlerMixin",
     "EntityRendererMixin",
+    "LivingEntityRendererMixin",
     "GameMenuScreenMixin",
     "ItemStackTooltipMixin",
     "KeyBindingAccessor",

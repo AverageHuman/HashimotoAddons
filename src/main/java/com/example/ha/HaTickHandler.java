@@ -38,17 +38,19 @@ public final class HaTickHandler {
     private final KeyBinding cameraToggleKeyBinding;
     private final KeyBinding chestSearchKeyBinding;
     private final KeyBinding gearViewKeyBinding;
+    private final KeyBinding invisibleEntityInspectorKeyBinding;
     private final KeyBinding waypointCycleKeyBinding;
     private long swapHoldEndWorldTick = -1L;
     private InputUtil.Key simulatedHotbarKey = InputUtil.UNKNOWN_KEY;
     private boolean manaMissingNotified;
 
-    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding waypointCycleKeyBinding) {
+    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding invisibleEntityInspectorKeyBinding, KeyBinding waypointCycleKeyBinding) {
         this.macroToggleKeyBinding = macroToggleKeyBinding;
         this.alchemyKilnAutomationKeyBinding = alchemyKilnAutomationKeyBinding;
         this.cameraToggleKeyBinding = cameraToggleKeyBinding;
         this.chestSearchKeyBinding = chestSearchKeyBinding;
         this.gearViewKeyBinding = gearViewKeyBinding;
+        this.invisibleEntityInspectorKeyBinding = invisibleEntityInspectorKeyBinding;
         this.waypointCycleKeyBinding = waypointCycleKeyBinding;
     }
 
@@ -88,6 +90,7 @@ public final class HaTickHandler {
         HaGhostWall.tick(client);
         HaWaypointManager.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            tickInvisibleEntityInspector(client, config);
             tickMacroToggle(client, config);
             tickAlchemyKilnAutomationToggle(client, config);
             HaAlchemyKilnAutomation.tick(client, config);
@@ -254,6 +257,27 @@ public final class HaTickHandler {
                 continue;
             }
             HaGearView.showTargetGear(client);
+        }
+    }
+
+    private void tickInvisibleEntityInspector(MinecraftClient client, HaConfig config) {
+        if (invisibleEntityInspectorKeyBinding == null) {
+            return;
+        }
+        if (client.currentScreen != null) {
+            while (invisibleEntityInspectorKeyBinding.wasPressed()) {
+                // Consume presses while another screen is open.
+            }
+            return;
+        }
+        while (invisibleEntityInspectorKeyBinding.wasPressed()) {
+            if (!config.invisibleEntityInspectorEnabled) {
+                if (client.player != null) {
+                    client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:\u00a7cInvisible Entity Inspector is OFF."), false);
+                }
+                continue;
+            }
+            HaInvisibleEntityInspector.inspect(client);
         }
     }
 
@@ -478,6 +502,7 @@ public final class HaTickHandler {
             || client.currentScreen instanceof HaChunkChestOverlayScreen
             || client.currentScreen instanceof HaChestSearchScreen
             || client.currentScreen instanceof HaGearViewScreen
+            || client.currentScreen instanceof HaInvisibleEntityInspectorScreen
             || client.currentScreen instanceof HaEvolutionForgeScreen
             || client.currentScreen instanceof HaManaAlertListScreen
             || client.currentScreen instanceof HaManaAlertEditScreen

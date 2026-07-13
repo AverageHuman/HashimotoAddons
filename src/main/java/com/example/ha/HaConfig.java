@@ -66,6 +66,11 @@ public final class HaConfig {
     public String gearViewKeyType = "mouse";
     public boolean mobEspEnabled = false;
     public String mobEspTargetName = "";
+    public boolean revealInvisibleMobsEnabled = false;
+    public boolean invisibleEntityInspectorEnabled = false;
+    public int invisibleEntityInspectorKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+    public int invisibleEntityInspectorScanCode = -1;
+    public String invisibleEntityInspectorKeyType = "keysym";
     public boolean triggerBotEnabled = false;
     public int triggerBotMacroIndex = 0;
     public double triggerBotCooldownSeconds = 1.0D;
@@ -426,6 +431,10 @@ public final class HaConfig {
         return getBoundKey(gearViewKeyType, gearViewKeyCode, gearViewKeyScanCode);
     }
 
+    public InputUtil.Key getInvisibleEntityInspectorKey() {
+        return getBoundKey(invisibleEntityInspectorKeyType, invisibleEntityInspectorKeyCode, invisibleEntityInspectorScanCode);
+    }
+
     void resetDangerousState() {
         swapEntries.clear();
         autoHealEnabled = false;
@@ -462,6 +471,11 @@ public final class HaConfig {
         gearViewKeyType = "mouse";
         mobEspEnabled = false;
         mobEspTargetName = "";
+        revealInvisibleMobsEnabled = false;
+        invisibleEntityInspectorEnabled = false;
+        invisibleEntityInspectorKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+        invisibleEntityInspectorScanCode = -1;
+        invisibleEntityInspectorKeyType = "keysym";
         triggerBotEnabled = false;
         triggerBotMacroIndex = 0;
         triggerBotCooldownSeconds = 1.0D;

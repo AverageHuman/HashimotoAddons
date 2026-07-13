@@ -48,6 +48,11 @@ final class SavedConfig {
     String gearViewKeyType = "mouse";
     boolean mobEspEnabled = false;
     String mobEspTargetName = "";
+    boolean revealInvisibleMobsEnabled = false;
+    boolean invisibleEntityInspectorEnabled = false;
+    int invisibleEntityInspectorKeyCode = GLFW.GLFW_KEY_UNKNOWN;
+    int invisibleEntityInspectorScanCode = -1;
+    String invisibleEntityInspectorKeyType = "keysym";
     boolean triggerBotEnabled = false;
     int triggerBotMacroIndex = 0;
     double triggerBotCooldownSeconds = 1.0D;
