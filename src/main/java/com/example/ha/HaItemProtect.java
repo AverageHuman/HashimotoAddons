@@ -78,6 +78,27 @@ public final class HaItemProtect {
         sendMessage(client, "\u00a7cThis item is protected by HashimotoAddons.");
     }
 
+    public static boolean protectIfAbsent(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+
+        String legacyProtectId = getProtectId(stack);
+        String protectionKey = legacyProtectId != null ? legacyProtectId : createProtectionKey(stack);
+        if (protectionKey == null) {
+            return false;
+        }
+
+        HaConfig config = HaConfig.get();
+        if (config.protectedItemIds.contains(protectionKey)) {
+            return false;
+        }
+
+        config.protectedItemIds.add(protectionKey);
+        config.save();
+        return true;
+    }
+
     public static boolean isProtected(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return false;

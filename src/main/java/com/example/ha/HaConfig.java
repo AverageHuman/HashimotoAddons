@@ -54,6 +54,7 @@ public final class HaConfig {
     public int defaultWeaponHotbarSlot = 0;
     public boolean itemLockEnabled = true;
     public Set<String> protectedItemIds = new HashSet<String>();
+    public final HaVerseDetectorConfig verseDetector = new HaVerseDetectorConfig();
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
@@ -166,6 +167,7 @@ public final class HaConfig {
         normalizeOverlaySettings();
         normalizeDangerousSettings();
         normalizeProtectionSettings();
+        verseDetector.normalize();
         normalizeSharedCollections();
     }
 
@@ -499,6 +501,7 @@ public final class HaConfig {
         afkFarmingAutoMoveJitterSeconds = 10.0D;
         criticalSoundEnabled = false;
         criticalSoundVolume = 100;
+        verseDetector.resetDangerousState();
     }
 
     private static int clamp(int value, int min, int max) {

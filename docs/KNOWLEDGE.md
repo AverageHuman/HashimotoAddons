@@ -13,6 +13,11 @@ This file contains reusable implementation knowledge, not session history. Updat
 - Hidden IDs remain the most precise identity mechanism when an item stack keeps them, but content keys let tag-light items such as armor or snowballs participate in protection.
 - Protection and slot-lock semantics should stay separate so item-instance protection can coexist with slot-based locking.
 
+## Verse Pickup Detection
+
+- `ClientPlayNetworkHandler.onItemPickupAnimation` receives an `ItemPickupAnimationS2CPacket` while the collected `ItemEntity` is still addressable in the client world; validate `collectorEntityId` against the local player before reading its stack.
+- Ground-pickup automation can snapshot player-inventory slot counts at that hook and resolve the destination slot after the following inventory update, avoiding container-transfer false positives.
+
 ## Safe And Full
 
 - Safe must hide dangerous feature UI, config, commands, behavior, and keybindings rather than merely showing them disabled.

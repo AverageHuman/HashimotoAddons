@@ -133,6 +133,7 @@ final class SavedConfig {
     boolean chatFilterEnabled = false;
     Set<Integer> lockedSlotIds = new HashSet<Integer>();
     Set<String> protectedItemIds = new HashSet<String>();
+    SavedVerseDetectorConfig verseDetector = new SavedVerseDetectorConfig();
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
     List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
     List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
@@ -140,6 +141,11 @@ final class SavedConfig {
     List<SavedManaAlertEntry> manaAlertEntries = new ArrayList<SavedManaAlertEntry>();
     List<SavedChatFilterEntry> chatFilterEntries = new ArrayList<SavedChatFilterEntry>();
     List<SavedDropNotifierEntry> dropNotifierEntries = new ArrayList<SavedDropNotifierEntry>();
+}
+
+final class SavedVerseDetectorConfig {
+    boolean enabled = true;
+    boolean autoThrowTrashVerseEnabled = true;
 }
 
 final class SavedSwapEntry {

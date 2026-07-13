@@ -171,6 +171,16 @@ public final class HaConfigScreen extends Screen {
                 }));
             }
         });
+        entries.add(new MenuEntry(HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? "Verse Detector Auto Throw Trash Verse" : "Verse Detector") {
+            @Override
+            void addButton(HaConfigScreen screen, int centerX, int y, HaConfig currentConfig) {
+                screen.addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Verse Detector"), button -> {
+                    if (screen.client != null) {
+                        screen.client.openScreen(new HaVerseDetectorScreen(screen));
+                    }
+                }));
+            }
+        });
         entries.add(new OpenScreenEntry("HP Alert") {
             @Override
             protected Screen createScreen(Screen parent) {

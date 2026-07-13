@@ -15,6 +15,9 @@ import com.example.ha.HaAfkFarming;
 import com.example.ha.HaAlchemyKilnAutomation;
 import com.example.ha.HaRitualBookTimer;
 import com.example.ha.HaCriticalSound;
+import com.example.ha.HaAutoThrowTrashVerse;
+import com.example.ha.HaBuildFlags;
+import com.example.ha.HaVerseDetector;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
@@ -49,6 +52,10 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$trackPickedUpItems(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
         HaDropTracker.onItemPickup(packet);
         HaElementTracker.onItemPickup(packet);
+        HaVerseDetector.onItemPickup(packet);
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            HaAutoThrowTrashVerse.onItemPickup(packet);
+        }
     }
 
     @Inject(method = "onEntitySpawn", at = @At("TAIL"))
@@ -74,6 +81,8 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaCriticalSound.onDisconnected();
         HaAfkFarming.onDisconnected();
         HaAlchemyKilnAutomation.onDisconnected();
+        HaAutoThrowTrashVerse.onDisconnected();
+        HaVerseDetector.onDisconnected();
         HaEvolutionForgeHelper.flushPendingSaves();
         HaConfigPersistence.flush(HaConfig.get());
     }

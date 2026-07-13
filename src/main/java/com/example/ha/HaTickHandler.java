@@ -80,6 +80,9 @@ public final class HaTickHandler {
         tickWaypointCycle(client);
         HaDropTracker.tick(client);
         HaDropNotifier.tick(client);
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            HaAutoThrowTrashVerse.tick(client);
+        }
         HaChestSearchIndex.get().tick(client);
         HaEvolutionForgeHelper.tick(client);
         HaExpTracker.tick(client);
