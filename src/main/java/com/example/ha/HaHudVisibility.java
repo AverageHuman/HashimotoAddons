@@ -43,6 +43,7 @@ public final class HaHudVisibility {
             || screen instanceof HaElementTrackerScreen
             || screen instanceof HaElementTrackerTargetScreen
             || screen instanceof HaElementTrackerOverlayScreen
+            || screen instanceof HaVerseDetectorScreen
             || screen instanceof HaAlchemyKilnAutomationScreen
             || screen instanceof HaMobEspScreen
             || screen instanceof HaInvisibleEntityInspectorScreen

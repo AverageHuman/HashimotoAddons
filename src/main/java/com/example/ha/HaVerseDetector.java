@@ -47,12 +47,14 @@ public final class HaVerseDetector {
             TITLE_STAY_TICKS,
             TITLE_FADE_OUT_TICKS
         );
+        HaVerseDetectorOverlay.show(stack, result, client.world);
         if (result.isProtectable()) {
             HaItemProtect.protectIfAbsent(stack);
         }
     }
 
     public static void onDisconnected() {
+        HaVerseDetectorOverlay.onDisconnected();
         // The detector has no queued state; the Full-only trash handler owns its queue.
     }
 }

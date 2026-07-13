@@ -1,5 +1,8 @@
 package com.example.ha;
 
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+
 import java.util.Locale;
 
 final class HaVerseClassifier {
@@ -31,6 +34,13 @@ final class HaVerseClassifier {
         return null;
     }
 
+    static Result classifyBeacon(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || stack.getItem() != Items.BEACON) {
+            return null;
+        }
+        return classify(stack.getName().getString());
+    }
+
     static String normalize(String rawName) {
         if (rawName == null || rawName.isEmpty()) {
             return "";
@@ -49,10 +59,20 @@ final class HaVerseClassifier {
     }
 
     enum Kind {
-        SMALL,
-        MEDIUM,
-        LARGE,
-        EXTRA_LARGE
+        SMALL(1),
+        MEDIUM(2),
+        LARGE(3),
+        EXTRA_LARGE(4);
+
+        final int overlayNumber;
+
+        Kind(int overlayNumber) {
+            this.overlayNumber = overlayNumber;
+        }
+
+        int overlayNumber() {
+            return overlayNumber;
+        }
     }
 
     static final class Result {
@@ -70,6 +90,10 @@ final class HaVerseClassifier {
 
         boolean isProtectable() {
             return kind == Kind.EXTRA_LARGE;
+        }
+
+        int overlayNumber() {
+            return kind.overlayNumber();
         }
     }
 

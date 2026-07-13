@@ -3,6 +3,7 @@ package com.example.ha.mixin;
 import com.example.ha.HaChestSearchSlotHighlight;
 import com.example.ha.HaElementRaritySlotHighlight;
 import com.example.ha.HaItemLockOverlay;
+import com.example.ha.HaVerseSlotOverlay;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,5 +18,6 @@ abstract class HandledScreenRenderMixin {
         HaChestSearchSlotHighlight.render((HandledScreen<?>) (Object) this, matrices);
         HaElementRaritySlotHighlight.render((HandledScreen<?>) (Object) this, matrices);
         HaItemLockOverlay.render((HandledScreen<?>) (Object) this, matrices, mouseX, mouseY);
+        HaVerseSlotOverlay.render((HandledScreen<?>) (Object) this, matrices);
     }
 }

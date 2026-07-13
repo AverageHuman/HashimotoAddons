@@ -16,6 +16,10 @@ description: Develop, review, refactor, test, document, hand off, build, or rele
 9. Promote durable discoveries according to `references/session-transition.md`.
 10. Do not build, change the version, commit, push, or release unless requested or included in the approved task.
 
+## Windows Text Encoding
+
+When inspecting source or documentation with Windows PowerShell, treat repository text as UTF-8. Use `Get-Content -Encoding UTF8` rather than relying on the Windows PowerShell 5.1 default, especially for UTF-8 files without a BOM. If command output itself must be consumed as UTF-8, set `$OutputEncoding` and `[Console]::OutputEncoding` explicitly. Distinguish display mojibake from actual file corruption by checking the bytes or using a UTF-8-aware reader before editing literals.
+
 Read only the reference relevant to the current work:
 
 - Feature and behavior changes: `references/feature-workflow.md`
