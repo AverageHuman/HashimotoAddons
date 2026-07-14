@@ -52,6 +52,7 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$trackPickedUpItems(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
         HaDropTracker.onItemPickup(packet);
         HaElementTracker.onItemPickup(packet);
+        HaEvolutionForgeHelper.onItemPickup(packet);
         HaVerseDetector.onItemPickup(packet);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             HaAutoThrowTrashVerse.onItemPickup(packet);

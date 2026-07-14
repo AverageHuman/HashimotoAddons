@@ -27,7 +27,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.network.ServerInfo;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.network.packet.s2c.play.ItemPickupAnimationS2CPacket;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.LiteralText;
@@ -206,6 +210,39 @@ public final class HaEvolutionForgeHelper {
         return updatedTooltip;
     }
 
+    public static void onItemPickup(ItemPickupAnimationS2CPacket packet) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (packet == null
+            || client == null
+            || client.player == null
+            || client.world == null
+            || !client.isOnThread()
+            || !HaConfig.get().evolutionForgeHelperEnabled) {
+            return;
+        }
+        if (packet.getCollectorEntityId() != client.player.getEntityId()) {
+            return;
+        }
+
+        Entity entity = client.world.getEntityById(packet.getEntityId());
+        if (!(entity instanceof ItemEntity)) {
+            return;
+        }
+
+        ItemStack stack = ((ItemEntity) entity).getStack();
+        if (!isVerseStatsBeacon(stack)) {
+            return;
+        }
+
+        List<Text> tooltip = getRawTooltip(client, stack);
+        load();
+        EvolutionForgeData data = getOrCreateData(getServerKey(client));
+        ItemVariant variant = resolveObservedItemVariant(stack, tooltip);
+        if (addObservedBounds(data, variant, tooltip, getEnhancementLevel(stack, tooltip))) {
+            save();
+        }
+    }
+
     public static int getCurrentServerItemCount() {
         return getDataForCurrentServer().items.size();
     }
@@ -254,6 +291,7 @@ public final class HaEvolutionForgeHelper {
         int beforeObservedBounds = getObservedBoundCount(data);
         int beforePrefixTokenCount = PREFIX_TOKEN_CANDIDATES.size();
         boolean shouldScanForgeData = isEvolutionForgeScreen(client);
+        boolean observedBoundsChanged = false;
 
         for (int i = 0; i < handler.slots.size(); i++) {
             Slot slot = handler.slots.get(i);
@@ -270,12 +308,18 @@ public final class HaEvolutionForgeHelper {
                 addStatRanges(data, variant, tooltip);
             }
             collectPrefixTokens(client, tooltip);
-            addObservedBounds(data, variant, tooltip, getEnhancementLevel(stack, tooltip));
+            observedBoundsChanged |= addObservedBounds(
+                data,
+                resolveObservedItemVariant(stack, tooltip),
+                tooltip,
+                getEnhancementLevel(stack, tooltip)
+            );
         }
 
         if (data.items.size() != beforeItems
             || getStatRangeCount(data) != beforeRanges
             || getObservedBoundCount(data) != beforeObservedBounds
+            || observedBoundsChanged
             || PREFIX_TOKEN_CANDIDATES.size() != beforePrefixTokenCount) {
             save();
         }
@@ -309,11 +353,17 @@ public final class HaEvolutionForgeHelper {
             addStatRanges(data, resolveItemVariant(stack.getName().getString(), tooltip), tooltip);
         }
         collectPrefixTokens(client, tooltip);
-        addObservedBounds(data, resolveItemVariant(stack.getName().getString(), tooltip), tooltip, getEnhancementLevel(stack, tooltip));
+        boolean observedBoundsChanged = addObservedBounds(
+            data,
+            resolveObservedItemVariant(stack, tooltip),
+            tooltip,
+            getEnhancementLevel(stack, tooltip)
+        );
 
         if (data.items.size() != beforeItems
             || getStatRangeCount(data) != beforeRanges
             || getObservedBoundCount(data) != beforeObservedBounds
+            || observedBoundsChanged
             || PREFIX_TOKEN_CANDIDATES.size() != beforePrefixTokenCount) {
             save();
         }
@@ -364,15 +414,16 @@ public final class HaEvolutionForgeHelper {
         }
     }
 
-    private static void addObservedBounds(EvolutionForgeData data, ItemVariant variant, List<Text> tooltip, int enhancementLevel) {
+    private static boolean addObservedBounds(EvolutionForgeData data, ItemVariant variant, List<Text> tooltip, int enhancementLevel) {
         if (data == null || variant == null || !variant.isValid() || tooltip == null || tooltip.isEmpty()) {
-            return;
+            return false;
         }
 
         ItemStatAdjustments adjustments = getItemStatAdjustments(tooltip);
         ItemEnhancementProfile enhancementProfile = getItemEnhancementProfile(tooltip);
         String key = variant.key();
         List<ObservedStatBound> bounds = data.observedBoundsByItem.get(key);
+        boolean changed = false;
         for (Text text : tooltip) {
             ParsedCurrentStat parsed = parseCurrentStat(text == null ? "" : text.getString());
             if (parsed == null) {
@@ -400,8 +451,9 @@ public final class HaEvolutionForgeHelper {
                 bounds = new ArrayList<ObservedStatBound>();
                 data.observedBoundsByItem.put(key, bounds);
             }
-            putObservedBound(bounds, bound);
+            changed |= putObservedBound(bounds, bound);
         }
+        return changed;
     }
 
     private static void addCandidate(Set<String> items, String rawLine) {
@@ -448,9 +500,22 @@ public final class HaEvolutionForgeHelper {
     }
 
     private static List<Text> appendStatRangeAnnotations(ItemStack stack, List<Text> tooltip) {
-        ItemVariant variant = resolveItemVariant(stack == null ? "" : stack.getName().getString(), tooltip);
-        List<StatRange> ranges = getRangesForStack(variant, tooltip);
-        List<ObservedStatBound> observedBounds = getObservedBoundsForStack(variant, tooltip);
+        boolean verseStatsBeacon = isVerseStatsBeacon(stack);
+        ItemVariant variant = verseStatsBeacon
+            ? resolveObservedItemVariant(stack, tooltip)
+            : resolveItemVariant(stack == null ? "" : stack.getName().getString(), tooltip);
+        List<StatRange> ranges = verseStatsBeacon
+            ? new ArrayList<StatRange>()
+            : getRangesForStack(variant, tooltip);
+        List<ObservedStatBound> observedBounds;
+        if (verseStatsBeacon) {
+            observedBounds = findObservedBoundsForItemName(getDataForCurrentServer(), variant);
+            if (observedBounds == null) {
+                observedBounds = new ArrayList<ObservedStatBound>();
+            }
+        } else {
+            observedBounds = getObservedBoundsForStack(variant, tooltip);
+        }
         if (ranges.isEmpty() && observedBounds.isEmpty()) {
             return tooltip;
         }
@@ -570,27 +635,42 @@ public final class HaEvolutionForgeHelper {
         ranges.add(newRange);
     }
 
-    private static void putObservedBound(List<ObservedStatBound> bounds, ObservedStatBound newBound) {
+    private static boolean putObservedBound(List<ObservedStatBound> bounds, ObservedStatBound newBound) {
         for (ObservedStatBound existing : bounds) {
             if (!matchesObservedBound(existing, newBound)) {
                 continue;
             }
-            if (newBound.hasMin && (!existing.hasMin || newBound.min < existing.min)) {
-                existing.hasMin = true;
-                existing.min = newBound.min;
-                existing.displayMin = newBound.displayMin;
+            HaObservedStatBoundMerge.State existingState = toMergeState(existing);
+            boolean changed = HaObservedStatBoundMerge.merge(existingState, toMergeState(newBound));
+            if (changed) {
+                applyMergeState(existing, existingState);
             }
-            if (newBound.hasMax && (!existing.hasMax || newBound.max > existing.max)) {
-                existing.hasMax = true;
-                existing.max = newBound.max;
-                existing.displayMax = newBound.displayMax;
-            }
-            if ((existing.unit == null || existing.unit.isEmpty()) && newBound.unit != null && !newBound.unit.isEmpty()) {
-                existing.unit = newBound.unit;
-            }
-            return;
+            return changed;
         }
         bounds.add(newBound);
+        return true;
+    }
+
+    private static HaObservedStatBoundMerge.State toMergeState(ObservedStatBound bound) {
+        HaObservedStatBoundMerge.State state = new HaObservedStatBoundMerge.State();
+        state.min = bound.min;
+        state.max = bound.max;
+        state.hasMin = bound.hasMin;
+        state.hasMax = bound.hasMax;
+        state.unit = bound.unit;
+        state.displayMin = bound.displayMin;
+        state.displayMax = bound.displayMax;
+        return state;
+    }
+
+    private static void applyMergeState(ObservedStatBound bound, HaObservedStatBoundMerge.State state) {
+        bound.min = state.min;
+        bound.max = state.max;
+        bound.hasMin = state.hasMin;
+        bound.hasMax = state.hasMax;
+        bound.unit = state.unit;
+        bound.displayMin = state.displayMin;
+        bound.displayMax = state.displayMax;
     }
 
     private static StatRange findRange(List<StatRange> ranges, String statName, String unit) {
@@ -1139,6 +1219,31 @@ public final class HaEvolutionForgeHelper {
         variant.subAccessory = isSubAccessoryTooltip(tooltip);
         variant.normalize();
         return variant;
+    }
+
+    private static ItemVariant resolveObservedItemVariant(ItemStack stack, List<Text> tooltip) {
+        String canonicalVerseName = resolveVerseStatsName(stack);
+        if (canonicalVerseName.isEmpty()) {
+            return resolveItemVariant(stack == null ? "" : stack.getName().getString(), tooltip);
+        }
+
+        ItemVariant variant = new ItemVariant();
+        variant.itemName = canonicalVerseName;
+        variant.itemRank = findItemRank(tooltip);
+        variant.subAccessory = isSubAccessoryTooltip(tooltip);
+        variant.normalize();
+        return variant;
+    }
+
+    private static boolean isVerseStatsBeacon(ItemStack stack) {
+        return !resolveVerseStatsName(stack).isEmpty();
+    }
+
+    private static String resolveVerseStatsName(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || stack.getItem() != Items.BEACON) {
+            return "";
+        }
+        return HaVerseStatsNameResolver.resolve(stack.getName().getString());
     }
 
     private static boolean isSubAccessoryTooltip(List<Text> tooltip) {

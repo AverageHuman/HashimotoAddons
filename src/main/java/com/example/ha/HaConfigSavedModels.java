@@ -146,6 +146,7 @@ final class SavedConfig {
 final class SavedVerseDetectorConfig {
     boolean enabled = true;
     boolean autoThrowTrashVerseEnabled = true;
+    int autoThrowTrashVerseDelayTicks = 0;
 }
 
 final class SavedSwapEntry {

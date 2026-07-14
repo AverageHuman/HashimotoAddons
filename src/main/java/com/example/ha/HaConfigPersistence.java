@@ -159,6 +159,7 @@ public final class HaConfigPersistence {
             config.verseDetector.enabled = saved.verseDetector.enabled;
             if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
                 config.verseDetector.autoThrowTrashVerseEnabled = saved.verseDetector.autoThrowTrashVerseEnabled;
+                config.verseDetector.autoThrowTrashVerseDelayTicks = saved.verseDetector.autoThrowTrashVerseDelayTicks;
             }
         }
         if (saved.elementTrackerTargets != null) {

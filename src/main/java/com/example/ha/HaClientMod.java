@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.text.LiteralText;
 import org.lwjgl.glfw.GLFW;
 
@@ -89,6 +90,8 @@ public final class HaClientMod implements ClientModInitializer {
                 .executes(context -> toggleWaypointEditMode()))
             .then(ClientCommandManager.literal("edithud")
                 .executes(context -> openHudEditor()))
+            .then(ClientCommandManager.literal("itemname")
+                .executes(context -> inspectHeldItemName()))
             .then(ClientCommandManager.literal("tracker")
                 .then(ClientCommandManager.literal("add")
                     .executes(context -> registerHeldTrackerItem(0L))
@@ -169,6 +172,32 @@ public final class HaClientMod implements ClientModInitializer {
     private int markExpDebugLog(String label) {
         HaExpTracker.addDebugMarker(label);
         sendMessage("Added Exp Tracker debug marker: " + (label == null || label.trim().isEmpty() ? "(no label)" : label.trim()));
+        return 1;
+    }
+
+    private int inspectHeldItemName() {
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        ItemStack stack = client == null || client.player == null
+            ? ItemStack.EMPTY
+            : client.player.getMainHandStack();
+        if (stack.isEmpty()) {
+            sendMessage("\u00a7cHold an item in your main hand before using /ha itemname.");
+            return 0;
+        }
+
+        String rawName = stack.getName().getString();
+        if (stack.getItem() != Items.BEACON) {
+            sendMessage("Item Name PoC: " + rawName + " -> \u00a7e対象外 (not a beacon)");
+            return 1;
+        }
+
+        String canonicalName = HaVerseStatsNameResolver.resolve(rawName);
+        if (canonicalName.isEmpty()) {
+            sendMessage("Item Name PoC: " + rawName + " -> \u00a7e対象外");
+            return 1;
+        }
+
+        sendMessage("Item Name PoC: " + rawName + " -> \u00a7a" + canonicalName);
         return 1;
     }
 

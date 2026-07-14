@@ -11,6 +11,7 @@ final class HaVerseDetectorConfigJsonMapper {
         result.addProperty("enabled", config != null && config.enabled);
         if (dangerousFeaturesEnabled) {
             result.addProperty("autoThrowTrashVerseEnabled", config != null && config.autoThrowTrashVerseEnabled);
+            result.addProperty("autoThrowTrashVerseDelayTicks", config == null ? 0 : config.autoThrowTrashVerseDelayTicks);
         }
         return result;
     }
@@ -24,6 +25,9 @@ final class HaVerseDetectorConfigJsonMapper {
         }
         if (dangerousFeaturesEnabled && source.has("autoThrowTrashVerseEnabled")) {
             config.autoThrowTrashVerseEnabled = source.get("autoThrowTrashVerseEnabled").getAsBoolean();
+        }
+        if (dangerousFeaturesEnabled && source.has("autoThrowTrashVerseDelayTicks")) {
+            config.autoThrowTrashVerseDelayTicks = source.get("autoThrowTrashVerseDelayTicks").getAsInt();
         }
     }
 }

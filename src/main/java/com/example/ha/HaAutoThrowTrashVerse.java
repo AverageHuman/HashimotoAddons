@@ -93,7 +93,11 @@ public final class HaAutoThrowTrashVerse {
             if (!changedSlots.isEmpty()) {
                 for (Integer inventoryIndex : changedSlots) {
                     if (!hasPendingTarget(inventoryIndex.intValue(), pickup.stackKey)) {
-                        PENDING_TARGETS.addLast(new PendingTarget(inventoryIndex.intValue(), pickup.stackKey));
+                        PENDING_TARGETS.addLast(new PendingTarget(
+                            inventoryIndex.intValue(),
+                            pickup.stackKey,
+                            HaConfig.get().verseDetector.autoThrowTrashVerseDelayTicks
+                        ));
                     }
                 }
                 PENDING_PICKUPS.remove(i);
@@ -123,6 +127,11 @@ public final class HaAutoThrowTrashVerse {
         if (HaItemProtect.isProtected(slot.getStack())) {
             PENDING_TARGETS.removeFirst();
             notify(client, "\u00a7eThe picked Trash Verse is protected; it was left untouched.");
+            return;
+        }
+
+        if (target.delayTicksRemaining > 0) {
+            target.delayTicksRemaining--;
             return;
         }
 
@@ -207,10 +216,12 @@ public final class HaAutoThrowTrashVerse {
     private static final class PendingTarget {
         final int inventoryIndex;
         final String stackKey;
+        int delayTicksRemaining;
 
-        PendingTarget(int inventoryIndex, String stackKey) {
+        PendingTarget(int inventoryIndex, String stackKey, int delayTicksRemaining) {
             this.inventoryIndex = inventoryIndex;
             this.stackKey = stackKey;
+            this.delayTicksRemaining = Math.max(0, delayTicksRemaining);
         }
     }
 }

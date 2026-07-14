@@ -39,6 +39,7 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 - Item keys should omit enhancement suffixes from `(+1)` through `(+12)`.
 - Item-name prefixes are defined in code and shared with Drop Tracker; `allowed_prefix_tokens.json` is not a runtime source of truth, while `prefix_token_candidates.json` remains diagnostic-only.
+- Verse beacons use their contained canonical `ヴァース(極小/小/中/大/特大)` token, including the `+` suffix, as the Observed Stat Bounds key; this bypass is beacon-only and must not change Verse Detector trash classification.
 - Subweapons and soul protectors use a different enhancement reverse-calculation rule from ordinary equipment.
 - HP booster contribution must be removed before learning or displaying base maximum-HP ranges.
 - Evolution Forge stat caches should be keyed by item name, item rank, and sub-accessory flag; legacy caches without rank metadata are treated as contaminated and dropped.
