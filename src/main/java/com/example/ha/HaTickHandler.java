@@ -85,6 +85,7 @@ public final class HaTickHandler {
         }
         HaChestSearchIndex.get().tick(client);
         HaEvolutionForgeHelper.tick(client);
+        HaItemContractNotifier.tick(client);
         HaExpTracker.tick(client);
         HaElementTracker.tick(client);
         HaSubSkillTimer.tick(client, config);

@@ -7,6 +7,7 @@ import com.example.ha.HaConfigPersistence;
 import com.example.ha.HaDropTracker;
 import com.example.ha.HaChestSearchIndex;
 import com.example.ha.HaEvolutionForgeHelper;
+import com.example.ha.HaItemContractNotifier;
 import com.example.ha.HaElementTracker;
 import com.example.ha.HaExpTracker;
 import com.example.ha.HaSubSkillTimer;
@@ -84,6 +85,7 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaAlchemyKilnAutomation.onDisconnected();
         HaAutoThrowTrashVerse.onDisconnected();
         HaVerseDetector.onDisconnected();
+        HaItemContractNotifier.onDisconnected();
         HaEvolutionForgeHelper.flushPendingSaves();
         HaConfigPersistence.flush(HaConfig.get());
     }
@@ -92,5 +94,6 @@ abstract class ClientPlayNetworkHandlerMixin {
     private void ha$captureChestSearchTarget(OpenScreenS2CPacket packet, CallbackInfo ci) {
         HaChestSearchIndex.get().onContainerScreenOpen(MinecraftClient.getInstance());
         HaEvolutionForgeHelper.onOpenScreen(packet.getSyncId(), packet.getName());
+        HaItemContractNotifier.onOpenScreen(packet.getSyncId(), packet.getName());
     }
 }

@@ -171,6 +171,12 @@ public final class HaConfigScreen extends Screen {
                 }));
             }
         });
+        entries.add(new OpenScreenEntry("Item Contract Notifier") {
+            @Override
+            protected Screen createScreen(Screen parent) {
+                return new HaItemContractNotifierScreen(parent);
+            }
+        });
         entries.add(new MenuEntry(HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? "Verse Detector Auto Throw Trash Verse" : "Verse Detector") {
             @Override
             void addButton(HaConfigScreen screen, int centerX, int y, HaConfig currentConfig) {

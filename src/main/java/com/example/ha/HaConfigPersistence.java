@@ -155,6 +155,12 @@ public final class HaConfigPersistence {
         config.chatFilterEnabled = saved.chatFilterEnabled;
         config.lockedSlotIds = saved.lockedSlotIds != null ? new HashSet<Integer>(saved.lockedSlotIds) : new HashSet<Integer>();
         config.protectedItemIds = saved.protectedItemIds != null ? new HashSet<String>(saved.protectedItemIds) : new HashSet<String>();
+        if (saved.itemContractNotifier != null) {
+            config.itemContractNotifier.enabled = saved.itemContractNotifier.enabled;
+        } else if (saved.itemContructNotifier != null) {
+            // Preserve the user's enabled state from the misspelled 1.11.0 key.
+            config.itemContractNotifier.enabled = saved.itemContructNotifier.enabled;
+        }
         if (saved.verseDetector != null) {
             config.verseDetector.enabled = saved.verseDetector.enabled;
             if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
@@ -401,6 +407,7 @@ public final class HaConfigPersistence {
         root.addProperty("damageTruncationEnabled", config.damageTruncationEnabled);
         root.add("lockedSlotIds", GSON.toJsonTree(new HashSet<Integer>(config.lockedSlotIds)));
         root.add("protectedItemIds", GSON.toJsonTree(new HashSet<String>(config.protectedItemIds)));
+        root.add("itemContractNotifier", HaItemContractNotifierConfigJsonMapper.toJson(config.itemContractNotifier));
         root.add("verseDetector", HaVerseDetectorConfigJsonMapper.toJson(config.verseDetector, HaBuildFlags.DANGEROUS_FEATURES_ENABLED));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries(config)));
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries(config)));

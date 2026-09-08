@@ -140,6 +140,8 @@ public final class HaButtonTooltips {
     private static void addMainMenuTooltip(List<String> lines, String label) {
         if (label.startsWith("Item Lock")) {
             lines.add("インベントリ内のロック済みスロットを保護します。");
+        } else if ("Item Contract Notifier".equals(label)) {
+            lines.add("ファストトラベル時のロスト防止確認の設定を開きます。");
         } else if ("HP Alert".equals(label)) {
             lines.add("HPが指定割合以下になった時の警告を設定します。");
         } else if ("Mana Alert".equals(label)) {

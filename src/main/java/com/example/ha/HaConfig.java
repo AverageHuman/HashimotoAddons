@@ -54,6 +54,7 @@ public final class HaConfig {
     public int defaultWeaponHotbarSlot = 0;
     public boolean itemLockEnabled = true;
     public Set<String> protectedItemIds = new HashSet<String>();
+    public final HaItemContractNotifierConfig itemContractNotifier = new HaItemContractNotifierConfig();
     public final HaVerseDetectorConfig verseDetector = new HaVerseDetectorConfig();
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;

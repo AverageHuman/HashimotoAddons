@@ -133,6 +133,9 @@ final class SavedConfig {
     boolean chatFilterEnabled = false;
     Set<Integer> lockedSlotIds = new HashSet<Integer>();
     Set<String> protectedItemIds = new HashSet<String>();
+    SavedItemContractNotifierConfig itemContractNotifier;
+    // Read-only compatibility field for configurations saved by 1.11.0's typo.
+    SavedItemContructNotifierConfig itemContructNotifier;
     SavedVerseDetectorConfig verseDetector = new SavedVerseDetectorConfig();
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
     List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
@@ -141,6 +144,14 @@ final class SavedConfig {
     List<SavedManaAlertEntry> manaAlertEntries = new ArrayList<SavedManaAlertEntry>();
     List<SavedChatFilterEntry> chatFilterEntries = new ArrayList<SavedChatFilterEntry>();
     List<SavedDropNotifierEntry> dropNotifierEntries = new ArrayList<SavedDropNotifierEntry>();
+}
+
+final class SavedItemContractNotifierConfig {
+    boolean enabled = false;
+}
+
+final class SavedItemContructNotifierConfig {
+    boolean enabled = false;
 }
 
 final class SavedVerseDetectorConfig {
