@@ -16,6 +16,7 @@ Thumbs.db
 # Runtime logs and temporary files
 *.log
 *.tmp
+.tmp-ffmpeg/**/doc/*.html
 __pycache__/
 *.py[cod]
 
