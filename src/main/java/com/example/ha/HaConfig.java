@@ -56,6 +56,7 @@ public final class HaConfig {
     public Set<String> protectedItemIds = new HashSet<String>();
     public final HaItemContractNotifierConfig itemContractNotifier = new HaItemContractNotifierConfig();
     public final HaVerseDetectorConfig verseDetector = new HaVerseDetectorConfig();
+    public final HaCommandKeyConfig commandKey = new HaCommandKeyConfig();
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
@@ -169,6 +170,7 @@ public final class HaConfig {
         normalizeDangerousSettings();
         normalizeProtectionSettings();
         verseDetector.normalize();
+        commandKey.normalize();
         normalizeSharedCollections();
     }
 
@@ -479,6 +481,7 @@ public final class HaConfig {
         invisibleEntityInspectorKeyCode = GLFW.GLFW_KEY_UNKNOWN;
         invisibleEntityInspectorScanCode = -1;
         invisibleEntityInspectorKeyType = "keysym";
+        commandKey.reset();
         triggerBotEnabled = false;
         triggerBotMacroIndex = 0;
         triggerBotCooldownSeconds = 1.0D;

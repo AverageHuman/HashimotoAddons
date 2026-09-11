@@ -10,7 +10,7 @@ import net.minecraft.text.Text;
 public final class HaDangerousFeaturesScreen extends Screen {
     private static final Text TITLE = new LiteralText("Dangerous Features");
     private static final int ITEMS_PER_PAGE = 7;
-    private static final int TOTAL_ITEMS = 14;
+    private static final int TOTAL_ITEMS = 15;
 
     private final Screen parent;
     private final int page;
@@ -163,6 +163,13 @@ public final class HaDangerousFeaturesScreen extends Screen {
                 addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Invisible Entity Inspector"), button -> {
                     if (client != null) {
                         client.openScreen(new HaInvisibleEntityInspectorScreen(this));
+                    }
+                }));
+                break;
+            case 14:
+                addButton(new ButtonWidget(centerX - 105, y, 210, 20, new LiteralText("Command Key"), button -> {
+                    if (client != null) {
+                        client.openScreen(new HaCommandKeyScreen(this));
                     }
                 }));
                 break;

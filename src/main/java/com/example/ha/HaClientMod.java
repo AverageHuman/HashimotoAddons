@@ -24,6 +24,7 @@ public final class HaClientMod implements ClientModInitializer {
     private static KeyBinding chestSearchKeyBinding;
     private static KeyBinding gearViewKeyBinding;
     private static KeyBinding invisibleEntityInspectorKeyBinding;
+    private static KeyBinding commandKeyBinding;
     private static KeyBinding waypointCycleKeyBinding;
     private HaTickHandler tickHandler;
 
@@ -35,6 +36,7 @@ public final class HaClientMod implements ClientModInitializer {
         KeyBinding macroBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateMacroToggleKeyBinding() : null;
         KeyBinding alchemyBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateAlchemyKilnAutomationKeyBinding() : null;
         KeyBinding inspectorBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateInvisibleEntityInspectorKeyBinding() : null;
+        KeyBinding commandBinding = HaBuildFlags.DANGEROUS_FEATURES_ENABLED ? getOrCreateCommandKeyBinding() : null;
         tickHandler = new HaTickHandler(
             macroBinding,
             alchemyBinding,
@@ -42,12 +44,14 @@ public final class HaClientMod implements ClientModInitializer {
             getOrCreateChestSearchKeyBinding(),
             getOrCreateGearViewKeyBinding(),
             inspectorBinding,
+            commandBinding,
             getOrCreateWaypointCycleKeyBinding()
         );
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             updateMacroToggleBinding(HaConfig.get().getMacroToggleKey());
             updateAlchemyKilnAutomationBinding(HaConfig.get().getAlchemyKilnAutomationKey());
             updateInvisibleEntityInspectorBinding(HaConfig.get().getInvisibleEntityInspectorKey());
+            updateCommandKeyBinding(HaConfig.get().commandKey.getKey());
         }
         updateCameraToggleBinding(HaConfig.get().getCameraToggleKey());
         updateChestSearchBinding(HaConfig.get().getChestSearchKey());
@@ -270,6 +274,14 @@ public final class HaClientMod implements ClientModInitializer {
         KeyBinding.updateKeysByCode();
     }
 
+    public static void updateCommandKeyBinding(InputUtil.Key key) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            return;
+        }
+        getOrCreateCommandKeyBinding().setBoundKey(key);
+        KeyBinding.updateKeysByCode();
+    }
+
     public static void updateWaypointCycleBinding(InputUtil.Key key) {
         getOrCreateWaypointCycleKeyBinding().setBoundKey(key);
         KeyBinding.updateKeysByCode();
@@ -357,6 +369,20 @@ public final class HaClientMod implements ClientModInitializer {
             );
         }
         return invisibleEntityInspectorKeyBinding;
+    }
+
+    private static KeyBinding getOrCreateCommandKeyBinding() {
+        if (commandKeyBinding == null) {
+            commandKeyBinding = KeyBindingHelper.registerKeyBinding(
+                new KeyBinding(
+                    "key.hashimotoaddons.command_key",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    "category.hashimotoaddons"
+                )
+            );
+        }
+        return commandKeyBinding;
     }
 
     private static KeyBinding getOrCreateWaypointCycleKeyBinding() {

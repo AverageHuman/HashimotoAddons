@@ -39,18 +39,20 @@ public final class HaTickHandler {
     private final KeyBinding chestSearchKeyBinding;
     private final KeyBinding gearViewKeyBinding;
     private final KeyBinding invisibleEntityInspectorKeyBinding;
+    private final KeyBinding commandKeyBinding;
     private final KeyBinding waypointCycleKeyBinding;
     private long swapHoldEndWorldTick = -1L;
     private InputUtil.Key simulatedHotbarKey = InputUtil.UNKNOWN_KEY;
     private boolean manaMissingNotified;
 
-    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding invisibleEntityInspectorKeyBinding, KeyBinding waypointCycleKeyBinding) {
+    public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding invisibleEntityInspectorKeyBinding, KeyBinding commandKeyBinding, KeyBinding waypointCycleKeyBinding) {
         this.macroToggleKeyBinding = macroToggleKeyBinding;
         this.alchemyKilnAutomationKeyBinding = alchemyKilnAutomationKeyBinding;
         this.cameraToggleKeyBinding = cameraToggleKeyBinding;
         this.chestSearchKeyBinding = chestSearchKeyBinding;
         this.gearViewKeyBinding = gearViewKeyBinding;
         this.invisibleEntityInspectorKeyBinding = invisibleEntityInspectorKeyBinding;
+        this.commandKeyBinding = commandKeyBinding;
         this.waypointCycleKeyBinding = waypointCycleKeyBinding;
     }
 
@@ -95,6 +97,7 @@ public final class HaTickHandler {
         HaWaypointManager.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickInvisibleEntityInspector(client, config);
+            tickCommandKey(client, config);
             tickMacroToggle(client, config);
             tickAlchemyKilnAutomationToggle(client, config);
             HaAlchemyKilnAutomation.tick(client, config);
@@ -282,6 +285,21 @@ public final class HaTickHandler {
                 continue;
             }
             HaInvisibleEntityInspector.inspect(client);
+        }
+    }
+
+    private void tickCommandKey(MinecraftClient client, HaConfig config) {
+        if (commandKeyBinding == null) {
+            return;
+        }
+        if (client.currentScreen != null) {
+            while (commandKeyBinding.wasPressed()) {
+                // Consume presses while another screen is open.
+            }
+            return;
+        }
+        while (commandKeyBinding.wasPressed()) {
+            HaCommandKey.execute(client, config.commandKey);
         }
     }
 

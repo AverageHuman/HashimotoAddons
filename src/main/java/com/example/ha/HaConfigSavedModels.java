@@ -137,6 +137,7 @@ final class SavedConfig {
     // Read-only compatibility field for configurations saved by 1.11.0's typo.
     SavedItemContructNotifierConfig itemContructNotifier;
     SavedVerseDetectorConfig verseDetector = new SavedVerseDetectorConfig();
+    SavedCommandKeyConfig commandKey;
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
     List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
     List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
@@ -158,6 +159,14 @@ final class SavedVerseDetectorConfig {
     boolean enabled = true;
     boolean autoThrowTrashVerseEnabled = true;
     int autoThrowTrashVerseDelayTicks = 0;
+}
+
+final class SavedCommandKeyConfig {
+    boolean enabled = false;
+    String command = "";
+    int keyCode = GLFW.GLFW_KEY_UNKNOWN;
+    int scanCode = -1;
+    String keyType = "keysym";
 }
 
 final class SavedSwapEntry {

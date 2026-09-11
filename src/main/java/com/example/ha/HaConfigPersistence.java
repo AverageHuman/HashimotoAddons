@@ -168,6 +168,9 @@ public final class HaConfigPersistence {
                 config.verseDetector.autoThrowTrashVerseDelayTicks = saved.verseDetector.autoThrowTrashVerseDelayTicks;
             }
         }
+        if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED && saved.commandKey != null) {
+            HaCommandKeyConfigJsonMapper.apply(saved.commandKey, config.commandKey);
+        }
         if (saved.elementTrackerTargets != null) {
             for (SavedElementTrackerTargetEntry savedEntry : saved.elementTrackerTargets) {
                 HaConfig.ElementTrackerTargetEntry entry = new HaConfig.ElementTrackerTargetEntry();
@@ -416,6 +419,7 @@ public final class HaConfigPersistence {
         root.add("elementTrackerTargets", GSON.toJsonTree(toSavedElementTrackerTargets(config)));
         root.add("elementTrackerObservedCounts", GSON.toJsonTree(toSavedElementTrackerObservedCounts(config)));
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
+            root.add("commandKey", GSON.toJsonTree(HaCommandKeyConfigJsonMapper.toSaved(config.commandKey)));
             root.addProperty("autoHealEnabled", config.autoHealEnabled);
             root.addProperty("autoHealHotbarSlot", config.autoHealHotbarSlot);
             root.addProperty("autoHealCooldownSeconds", config.autoHealCooldownSeconds);
