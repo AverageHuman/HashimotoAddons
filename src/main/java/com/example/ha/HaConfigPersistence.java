@@ -171,6 +171,9 @@ public final class HaConfigPersistence {
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED && saved.commandKey != null) {
             HaCommandKeyConfigJsonMapper.apply(saved.commandKey, config.commandKey);
         }
+        if (saved.mobSpawnCoordinate != null) {
+            HaMobSpawnCoordinateConfigJsonMapper.apply(saved.mobSpawnCoordinate, config.mobSpawnCoordinate);
+        }
         if (saved.elementTrackerTargets != null) {
             for (SavedElementTrackerTargetEntry savedEntry : saved.elementTrackerTargets) {
                 HaConfig.ElementTrackerTargetEntry entry = new HaConfig.ElementTrackerTargetEntry();
@@ -412,6 +415,7 @@ public final class HaConfigPersistence {
         root.add("protectedItemIds", GSON.toJsonTree(new HashSet<String>(config.protectedItemIds)));
         root.add("itemContractNotifier", HaItemContractNotifierConfigJsonMapper.toJson(config.itemContractNotifier));
         root.add("verseDetector", HaVerseDetectorConfigJsonMapper.toJson(config.verseDetector, HaBuildFlags.DANGEROUS_FEATURES_ENABLED));
+        root.add("mobSpawnCoordinate", GSON.toJsonTree(HaMobSpawnCoordinateConfigJsonMapper.toSaved(config.mobSpawnCoordinate)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries(config)));
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries(config)));
         root.add("chatFilterEntries", GSON.toJsonTree(toSavedChatFilterEntries(config)));

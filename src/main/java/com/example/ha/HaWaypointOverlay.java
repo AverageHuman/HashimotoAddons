@@ -23,22 +23,19 @@ public final class HaWaypointOverlay {
     }
 
     public static void render(WorldRenderContext context) {
-        if (context == null || context.camera() == null) {
-            return;
-        }
-
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.player == null || client.world == null) {
+        renderWaypoints(context, client, HaWaypointManager.getWaypointsForCurrentDimension(client), HaWaypointManager.isRenderFullBlocks());
+    }
+
+    static void renderWaypoints(WorldRenderContext context, MinecraftClient client, List<HaWaypointManager.WaypointEntry> waypoints, boolean fullBlock) {
+        if (context == null || context.camera() == null || client == null || client.player == null || client.world == null) {
             return;
         }
-
-        List<HaWaypointManager.WaypointEntry> waypoints = HaWaypointManager.getWaypointsForCurrentDimension(client);
         if (waypoints.isEmpty()) {
             return;
         }
 
         Vec3d cameraPos = context.camera().getPos();
-        boolean fullBlock = HaWaypointManager.isRenderFullBlocks();
         boolean hasVisibleWaypoint = false;
         boolean hasVisibleLabel = false;
         for (HaWaypointManager.WaypointEntry waypoint : waypoints) {

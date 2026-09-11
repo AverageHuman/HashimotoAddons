@@ -95,6 +95,7 @@ public final class HaTickHandler {
         HaSpotify.tick(client, config);
         HaGhostWall.tick(client);
         HaWaypointManager.tick(client);
+        HaMobSpawnCoordinate.tick(client);
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED) {
             tickInvisibleEntityInspector(client, config);
             tickCommandKey(client, config);

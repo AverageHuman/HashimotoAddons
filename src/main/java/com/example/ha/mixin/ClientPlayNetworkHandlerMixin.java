@@ -19,6 +19,7 @@ import com.example.ha.HaCriticalSound;
 import com.example.ha.HaAutoThrowTrashVerse;
 import com.example.ha.HaBuildFlags;
 import com.example.ha.HaVerseDetector;
+import com.example.ha.HaMobSpawnCoordinate;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
@@ -63,16 +64,19 @@ abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onEntitySpawn", at = @At("TAIL"))
     private void ha$trackExpEntitySpawn(EntitySpawnS2CPacket packet, CallbackInfo ci) {
         HaExpTracker.onEntitySpawn(packet);
+        HaMobSpawnCoordinate.onEntitySpawn(packet);
     }
 
     @Inject(method = "onMobSpawn", at = @At("TAIL"))
     private void ha$trackExpMobSpawn(MobSpawnS2CPacket packet, CallbackInfo ci) {
         HaExpTracker.onMobSpawn(packet);
+        HaMobSpawnCoordinate.onMobSpawn(packet);
     }
 
     @Inject(method = "onEntityTrackerUpdate", at = @At("TAIL"))
     private void ha$trackExpEntityMetadata(EntityTrackerUpdateS2CPacket packet, CallbackInfo ci) {
         HaExpTracker.onEntityTrackerUpdate(packet);
+        HaMobSpawnCoordinate.onEntityTrackerUpdate(packet);
     }
 
     @Inject(method = "onDisconnected", at = @At("HEAD"))
@@ -86,6 +90,7 @@ abstract class ClientPlayNetworkHandlerMixin {
         HaAutoThrowTrashVerse.onDisconnected();
         HaVerseDetector.onDisconnected();
         HaItemContractNotifier.onDisconnected();
+        HaMobSpawnCoordinate.onDisconnected();
         HaEvolutionForgeHelper.flushPendingSaves();
         HaConfigPersistence.flush(HaConfig.get());
     }

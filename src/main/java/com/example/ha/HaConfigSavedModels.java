@@ -138,6 +138,7 @@ final class SavedConfig {
     SavedItemContructNotifierConfig itemContructNotifier;
     SavedVerseDetectorConfig verseDetector = new SavedVerseDetectorConfig();
     SavedCommandKeyConfig commandKey;
+    SavedMobSpawnCoordinateConfig mobSpawnCoordinate;
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();
     List<SavedElementTrackerObservedCountEntry> elementTrackerObservedCounts = new ArrayList<SavedElementTrackerObservedCountEntry>();
     List<SavedSwapEntry> swapEntries = new ArrayList<SavedSwapEntry>();
@@ -167,6 +168,13 @@ final class SavedCommandKeyConfig {
     int keyCode = GLFW.GLFW_KEY_UNKNOWN;
     int scanCode = -1;
     String keyType = "keysym";
+}
+
+final class SavedMobSpawnCoordinateConfig {
+    boolean enabled = false;
+    String targetName = "";
+    int colorSlotIndex = 0;
+    boolean renderFullBlocks = false;
 }
 
 final class SavedSwapEntry {

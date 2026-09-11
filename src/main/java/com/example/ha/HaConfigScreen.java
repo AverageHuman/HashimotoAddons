@@ -236,6 +236,12 @@ public final class HaConfigScreen extends Screen {
                 return new HaWaypointScreen(parent);
             }
         });
+        entries.add(new OpenScreenEntry("Mob Spawn Coordinate") {
+            @Override
+            protected Screen createScreen(Screen parent) {
+                return new HaMobSpawnCoordinateScreen(parent);
+            }
+        });
         entries.add(new OpenScreenEntry("Damage Truncation") {
             @Override
             protected Screen createScreen(Screen parent) {

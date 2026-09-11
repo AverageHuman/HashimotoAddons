@@ -57,6 +57,7 @@ public final class HaConfig {
     public final HaItemContractNotifierConfig itemContractNotifier = new HaItemContractNotifierConfig();
     public final HaVerseDetectorConfig verseDetector = new HaVerseDetectorConfig();
     public final HaCommandKeyConfig commandKey = new HaCommandKeyConfig();
+    public final HaMobSpawnCoordinateConfig mobSpawnCoordinate = new HaMobSpawnCoordinateConfig();
     public boolean soulbindProtectionEnabled = true;
     public boolean chunkChestCounterEnabled = false;
     public int chunkChestOverlayX = 8;
@@ -171,6 +172,7 @@ public final class HaConfig {
         normalizeProtectionSettings();
         verseDetector.normalize();
         commandKey.normalize();
+        mobSpawnCoordinate.normalize();
         normalizeSharedCollections();
     }
 
