@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaChestSearchSlotHighlight;
 import com.example.ha.HaElementRaritySlotHighlight;
 import com.example.ha.HaItemLockOverlay;
@@ -15,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class HandledScreenRenderMixin {
     @Inject(method = "render", at = @At("RETURN"))
     private void ha$renderItemLockOverlay(MatrixStack matrices, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaChestSearchSlotHighlight.render((HandledScreen<?>) (Object) this, matrices);
         HaElementRaritySlotHighlight.render((HandledScreen<?>) (Object) this, matrices);
         HaItemLockOverlay.render((HandledScreen<?>) (Object) this, matrices, mouseX, mouseY);

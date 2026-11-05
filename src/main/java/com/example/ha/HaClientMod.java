@@ -58,26 +58,27 @@ public final class HaClientMod implements ClientModInitializer {
         updateGearViewBinding(HaConfig.get().getGearViewKey());
         updateWaypointCycleBinding(HaWaypointManager.getCycleColorKey());
         registerCommand();
+        ClientTickEvents.START_CLIENT_TICK.register(tickHandler::onStartClientTick);
         ClientTickEvents.END_CLIENT_TICK.register(tickHandler::onEndClientTick);
-        HudRenderCallback.EVENT.register(HaMacroStatusOverlay::render);
-        HudRenderCallback.EVENT.register(HaExtrasOverlay::render);
-        HudRenderCallback.EVENT.register(HaChunkChestOverlay::render);
-        HudRenderCallback.EVENT.register(HaDropTrackerOverlay::render);
-        HudRenderCallback.EVENT.register(HaExpTrackerOverlay::render);
-        HudRenderCallback.EVENT.register(HaElementTrackerOverlay::render);
-        HudRenderCallback.EVENT.register(HaMobHpDisplayOverlay::render);
-        HudRenderCallback.EVENT.register(HaSubSkillTimerOverlay::render);
-        HudRenderCallback.EVENT.register(HaRitualBookTimerOverlay::render);
-        HudRenderCallback.EVENT.register(HaSpotifyOverlay::render);
-        HudRenderCallback.EVENT.register(HaMobEspTracerOverlay::render);
-        HudRenderCallback.EVENT.register(HaAfkFarmingDebugOverlay::render);
-        HudRenderCallback.EVENT.register(HaAfkFarmingAutoMoveOverlay::render);
-        HudRenderCallback.EVENT.register(HaVerseDetectorOverlay::render);
-        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaChestSearchOverlay::render);
-        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaMobEspOverlay::render);
-        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(HaAfkFarmingCircleOverlay::render);
-        WorldRenderEvents.LAST.register(HaWaypointOverlay::render);
-        WorldRenderEvents.LAST.register(HaMobSpawnCoordinateOverlay::render);
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaMacroStatusOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaExtrasOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaChunkChestOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaDropTrackerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaExpTrackerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaElementTrackerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaMobHpDisplayOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaSubSkillTimerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaRitualBookTimerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaSpotifyOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaMobEspTracerOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaAfkFarmingDebugOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaAfkFarmingAutoMoveOverlay.render(matrices, delta); });
+        HudRenderCallback.EVENT.register((matrices, delta) -> { if (!HaPanicMode.isActive()) HaVerseDetectorOverlay.render(matrices, delta); });
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(context -> { if (!HaPanicMode.isActive()) HaChestSearchOverlay.render(context); });
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(context -> { if (!HaPanicMode.isActive()) HaMobEspOverlay.render(context); });
+        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(context -> { if (!HaPanicMode.isActive()) HaAfkFarmingCircleOverlay.render(context); });
+        WorldRenderEvents.LAST.register(context -> { if (!HaPanicMode.isActive()) HaWaypointOverlay.render(context); });
+        WorldRenderEvents.LAST.register(context -> { if (!HaPanicMode.isActive()) HaMobSpawnCoordinateOverlay.render(context); });
     }
 
     private void registerCommand() {
@@ -125,10 +126,12 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int protectHeldItem() {
+        if (HaPanicMode.isActive()) return 0;
         return HaItemProtect.toggleHeldItemProtection() ? 1 : 0;
     }
 
     private int toggleExtras() {
+        if (HaPanicMode.isActive()) return 0;
         HaConfig config = HaConfig.get();
         HaGhostWall.setExtrasEnabled(!config.extrasEnabled);
         sendMessage("Extras Visibility " + (HaConfig.get().extrasEnabled ? "\u00a7aEnabled" : "\u00a7cDisabled"));
@@ -136,6 +139,7 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int toggleEditMode() {
+        if (HaPanicMode.isActive()) return 0;
         HaConfig config = HaConfig.get();
         config.ghostWallEditMode = !config.ghostWallEditMode;
         config.save();
@@ -144,22 +148,26 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int openBlockGallery() {
+        if (HaPanicMode.isActive()) return 0;
         tickHandler.requestOpenBlockGalleryScreen();
         return 1;
     }
 
     private int openHudEditor() {
+        if (HaPanicMode.isActive()) return 0;
         tickHandler.requestOpenHudEditScreen();
         return 1;
     }
 
     private int toggleWaypointEditMode() {
+        if (HaPanicMode.isActive()) return 0;
         boolean enabled = HaWaypointManager.toggleEditMode();
         sendMessage("Waypoint Edit Mode " + (enabled ? "\u00a7aEnabled" : "\u00a7cDisabled"));
         return 1;
     }
 
     private int copyExpDebugLog() {
+        if (HaPanicMode.isActive()) return 0;
         if (HaExpTracker.copyDebugLogToClipboard()) {
             sendMessage("Copied Exp Tracker debug log to clipboard.");
             return 1;
@@ -169,18 +177,21 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int clearExpDebugLog() {
+        if (HaPanicMode.isActive()) return 0;
         HaExpTracker.clearDebugLog();
         sendMessage("Cleared Exp Tracker debug log and inserted a reset marker.");
         return 1;
     }
 
     private int markExpDebugLog(String label) {
+        if (HaPanicMode.isActive()) return 0;
         HaExpTracker.addDebugMarker(label);
         sendMessage("Added Exp Tracker debug marker: " + (label == null || label.trim().isEmpty() ? "(no label)" : label.trim()));
         return 1;
     }
 
     private int inspectHeldItemName() {
+        if (HaPanicMode.isActive()) return 0;
         net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
         ItemStack stack = client == null || client.player == null
             ? ItemStack.EMPTY
@@ -207,6 +218,7 @@ public final class HaClientMod implements ClientModInitializer {
     }
 
     private int registerHeldTrackerItem(long price) {
+        if (HaPanicMode.isActive()) return 0;
         ItemStack stack = net.minecraft.client.MinecraftClient.getInstance().player == null
             ? ItemStack.EMPTY
             : net.minecraft.client.MinecraftClient.getInstance().player.getMainHandStack();

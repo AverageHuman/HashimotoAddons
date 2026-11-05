@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaSoulbindProtection;
 import com.example.ha.HaChatFilter;
 import com.example.ha.HaConfig;
@@ -38,6 +40,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onGameMessage", at = @At("HEAD"), cancellable = true)
     private void ha$trackSoulbindMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaSoulbindProtection.onGameMessage(packet.getMessage());
         HaSubSkillTimer.onGameMessage(packet.getMessage());
         HaRitualBookTimer.onGameMessage(packet.getMessage(), packet.getLocation());
@@ -52,6 +55,7 @@ abstract class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onItemPickupAnimation", at = @At("HEAD"))
     private void ha$trackPickedUpItems(ItemPickupAnimationS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaDropTracker.onItemPickup(packet);
         HaElementTracker.onItemPickup(packet);
         HaEvolutionForgeHelper.onItemPickup(packet);
@@ -63,18 +67,21 @@ abstract class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onEntitySpawn", at = @At("TAIL"))
     private void ha$trackExpEntitySpawn(EntitySpawnS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaExpTracker.onEntitySpawn(packet);
         HaMobSpawnCoordinate.onEntitySpawn(packet);
     }
 
     @Inject(method = "onMobSpawn", at = @At("TAIL"))
     private void ha$trackExpMobSpawn(MobSpawnS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaExpTracker.onMobSpawn(packet);
         HaMobSpawnCoordinate.onMobSpawn(packet);
     }
 
     @Inject(method = "onEntityTrackerUpdate", at = @At("TAIL"))
     private void ha$trackExpEntityMetadata(EntityTrackerUpdateS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaExpTracker.onEntityTrackerUpdate(packet);
         HaMobSpawnCoordinate.onEntityTrackerUpdate(packet);
     }
@@ -97,6 +104,7 @@ abstract class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onOpenScreen", at = @At("HEAD"))
     private void ha$captureChestSearchTarget(OpenScreenS2CPacket packet, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaChestSearchIndex.get().onContainerScreenOpen(MinecraftClient.getInstance());
         HaEvolutionForgeHelper.onOpenScreen(packet.getSyncId(), packet.getName());
         HaItemContractNotifier.onOpenScreen(packet.getSyncId(), packet.getName());

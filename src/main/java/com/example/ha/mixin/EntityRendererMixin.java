@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaExpTracker;
 import com.example.ha.HaDamageTruncation;
 import com.example.ha.HaCriticalSound;
@@ -18,12 +20,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class EntityRendererMixin {
     @Inject(method = "renderLabelIfPresent", at = @At("HEAD"))
     private void ha$trackRenderedLabel(Entity entity, Text text, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         HaCriticalSound.onRenderedNameTag(entity, text);
         HaExpTracker.recordRenderedNameTag(entity, text);
     }
 
     @ModifyVariable(method = "renderLabelIfPresent", at = @At("HEAD"), argsOnly = true)
     private Text ha$truncateDamageLabel(Text text) {
-        return HaDamageTruncation.transformLabel(text);
+        return HaPanicMode.isActive() ? text : HaDamageTruncation.transformLabel(text);
     }
 }

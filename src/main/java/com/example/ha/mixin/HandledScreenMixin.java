@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaConfig;
 import com.example.ha.HaItemProtect;
 import com.example.ha.HaItemLockHelper;
@@ -23,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class HandledScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void ha$handleItemLock(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        if (HaPanicMode.isActive()) return;
         MinecraftClient client = MinecraftClient.getInstance();
         ItemStack cursorStack = ItemStack.EMPTY;
         if (client != null && client.player != null && client.player.inventory != null) {
@@ -83,6 +86,7 @@ abstract class HandledScreenMixin {
 
     @Inject(method = "onMouseClick", at = @At("HEAD"), cancellable = true)
     private void ha$preventLockedSlotMovement(Slot slot, int slotId, int button, SlotActionType actionType, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         MinecraftClient client = MinecraftClient.getInstance();
         if (client != null
             && client.player != null

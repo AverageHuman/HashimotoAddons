@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaWaypointManager;
 import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class MinecraftClientWaypointMixin {
     @Inject(method = "doItemUse", at = @At("HEAD"), cancellable = true)
     private void ha$placeWaypoint(CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (HaWaypointManager.tryUse((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
@@ -18,6 +21,7 @@ abstract class MinecraftClientWaypointMixin {
 
     @Inject(method = "doAttack", at = @At("HEAD"), cancellable = true)
     private void ha$removeWaypoint(CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (HaWaypointManager.tryAttack((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
@@ -25,6 +29,7 @@ abstract class MinecraftClientWaypointMixin {
 
     @Inject(method = "handleBlockBreaking", at = @At("HEAD"), cancellable = true)
     private void ha$holdWaypointBreak(boolean breaking, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (breaking && HaWaypointManager.shouldCancelBlockBreaking((MinecraftClient) (Object) this)) {
             ci.cancel();
         }

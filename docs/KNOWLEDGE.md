@@ -32,6 +32,9 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 ## HUD
 
+- Panic Mode is a session-only global runtime gate (`HaPanicMode.isActive()`). New tick, packet, input, command and render entry points must honor it; configuration persistence and disconnect cleanup must remain reachable. Do not overwrite feature settings to implement temporary suspension.
+- Restoring managed ghost-block states must be followed by a chunk mesh rebuild for Panic Mode; `extrasEnabled=false` alone is insufficient to guarantee immediate removal of stale fence geometry.
+
 - Existing slim/full HUD and positioning patterns can be found in tracker and Spotify overlay/screen classes.
 - Long Spotify text uses bounded-width scrolling with pauses at both ends.
 

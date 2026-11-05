@@ -56,6 +56,7 @@ public final class HaConfig {
     public Set<String> protectedItemIds = new HashSet<String>();
     public final HaItemContractNotifierConfig itemContractNotifier = new HaItemContractNotifierConfig();
     public final HaVerseDetectorConfig verseDetector = new HaVerseDetectorConfig();
+    public final HaPanicModeConfig panicMode = new HaPanicModeConfig();
     public final HaCommandKeyConfig commandKey = new HaCommandKeyConfig();
     public final HaMobSpawnCoordinateConfig mobSpawnCoordinate = new HaMobSpawnCoordinateConfig();
     public boolean soulbindProtectionEnabled = true;
@@ -171,6 +172,7 @@ public final class HaConfig {
         normalizeDangerousSettings();
         normalizeProtectionSettings();
         verseDetector.normalize();
+        panicMode.normalize();
         commandKey.normalize();
         mobSpawnCoordinate.normalize();
         normalizeSharedCollections();
