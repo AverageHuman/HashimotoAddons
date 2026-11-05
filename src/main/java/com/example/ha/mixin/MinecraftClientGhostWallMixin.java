@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaGhostWall;
 import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class MinecraftClientGhostWallMixin {
     @Inject(method = "doItemUse", at = @At("HEAD"), cancellable = true)
     private void ha$placeGhostWall(CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (HaGhostWall.tryUse((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
@@ -18,6 +21,7 @@ abstract class MinecraftClientGhostWallMixin {
 
     @Inject(method = "doAttack", at = @At("HEAD"), cancellable = true)
     private void ha$breakGhostWall(CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (HaGhostWall.tryAttack((MinecraftClient) (Object) this)) {
             ci.cancel();
         }
@@ -25,6 +29,7 @@ abstract class MinecraftClientGhostWallMixin {
 
     @Inject(method = "handleBlockBreaking", at = @At("HEAD"), cancellable = true)
     private void ha$holdBreakGhostWall(boolean breaking, CallbackInfo ci) {
+        if (HaPanicMode.isActive()) return;
         if (breaking && HaGhostWall.shouldCancelBlockBreaking((MinecraftClient) (Object) this)) {
             ci.cancel();
         }

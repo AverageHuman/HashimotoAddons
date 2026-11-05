@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaEvolutionForgeHelper;
 import java.util.List;
 import net.minecraft.client.item.TooltipContext;
@@ -15,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class ItemStackTooltipMixin {
     @Inject(method = "getTooltip", at = @At("RETURN"), cancellable = true)
     private void ha$appendEvolutionForgeMarker(PlayerEntity player, TooltipContext context, CallbackInfoReturnable<List<Text>> cir) {
+        if (HaPanicMode.isActive()) return;
         List<Text> tooltip = cir.getReturnValue();
         List<Text> updatedTooltip = HaEvolutionForgeHelper.applyTooltipAnnotations((ItemStack) (Object) this, tooltip);
         if (updatedTooltip != tooltip) {

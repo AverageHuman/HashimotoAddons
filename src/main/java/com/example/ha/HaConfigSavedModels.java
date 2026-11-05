@@ -137,6 +137,7 @@ final class SavedConfig {
     // Read-only compatibility field for configurations saved by 1.11.0's typo.
     SavedItemContructNotifierConfig itemContructNotifier;
     SavedVerseDetectorConfig verseDetector = new SavedVerseDetectorConfig();
+    SavedPanicModeConfig panicMode;
     SavedCommandKeyConfig commandKey;
     SavedMobSpawnCoordinateConfig mobSpawnCoordinate;
     List<SavedElementTrackerTargetEntry> elementTrackerTargets = new ArrayList<SavedElementTrackerTargetEntry>();

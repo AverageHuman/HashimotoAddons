@@ -32,6 +32,9 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 ## HUD
 
+- Panic Mode is a session-only global runtime gate (`HaPanicMode.isActive()`). New tick, packet, input, command and render entry points must honor it; configuration persistence and disconnect cleanup must remain reachable. Do not overwrite feature settings to implement temporary suspension.
+- Restoring managed ghost-block states must be followed by a chunk mesh rebuild for Panic Mode; `extrasEnabled=false` alone is insufficient to guarantee immediate removal of stale fence geometry.
+
 - Existing slim/full HUD and positioning patterns can be found in tracker and Spotify overlay/screen classes.
 - Long Spotify text uses bounded-width scrolling with pauses at both ends.
 
@@ -50,6 +53,7 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 ## Build And Reporting
 
+- Unused-code checks must include the Mixin JSON roots, Minecraft overrides, Gson DTO fields, same-file model types and both generated build-flag variants. A Java call count of zero alone is insufficient; see `UNUSED_CODE_AUDIT.md` for the deletion evidence, retained dynamic entrypoints and owner-authorized public API removal.
 - Safe and Full artifacts are grouped by version under `build/libs/<version>/`.
 - A successful local build does not prove that its source state was committed.
 - Minecraft 1.16.5 sound events still play `.ogg` assets from `assets/<namespace>/sounds`; if the owner wants the original MP3 bundled in the jar too, keep the MP3 beside the converted OGG and point `sounds.json` at the OGG filename.

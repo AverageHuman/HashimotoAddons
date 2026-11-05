@@ -1,7 +1,6 @@
 package com.example.ha;
 
 import java.util.Locale;
-import java.util.UUID;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -158,25 +157,6 @@ public final class HaItemProtect {
 
         String value = protectTag.getString(PROTECT_ID_KEY);
         return normalizeProtectId(value);
-    }
-
-    public static String ensureProtectId(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return null;
-        }
-
-        String existing = getProtectId(stack);
-        if (existing != null) {
-            return existing;
-        }
-
-        NbtCompound tag = stack.getOrCreateTag();
-        NbtCompound protectTag = tag.contains(PROTECT_TAG_KEY, 10) ? tag.getCompound(PROTECT_TAG_KEY) : new NbtCompound();
-        String protectId = UUID.randomUUID().toString();
-        protectTag.putString(PROTECT_ID_KEY, protectId);
-        tag.put(PROTECT_TAG_KEY, protectTag);
-        stack.setTag(tag);
-        return protectId;
     }
 
     public static String createProtectionKey(ItemStack stack) {

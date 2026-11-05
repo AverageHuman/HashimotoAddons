@@ -27,6 +27,10 @@ public final class HaElementTracker {
     private static long tickAccumulatorMillis;
     private static long lastTickMillis;
 
+    public static void resumeAfterPanic() {
+        lastTickMillis = System.currentTimeMillis();
+    }
+
     private HaElementTracker() {
     }
 

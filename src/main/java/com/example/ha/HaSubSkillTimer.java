@@ -72,10 +72,6 @@ public final class HaSubSkillTimer {
         return Math.max(0L, cooldownDurationMillis - elapsed);
     }
 
-    public static long getDurationMillis() {
-        return cooldownDurationMillis;
-    }
-
     public static float getRemainingRatio() {
         if (cooldownDurationMillis <= 0L) {
             return 0.0F;

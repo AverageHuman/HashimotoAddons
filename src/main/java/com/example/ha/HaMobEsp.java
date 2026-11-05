@@ -32,10 +32,6 @@ public final class HaMobEsp {
         return config.mobEspEnabled && !config.mobEspTargetName.isEmpty();
     }
 
-    public static boolean shouldGlow(Entity entity) {
-        return isNameCarrierMatch(entity);
-    }
-
     public static boolean isNameCarrierMatch(Entity entity) {
         HaConfig config = HaConfig.get();
         config.normalize();

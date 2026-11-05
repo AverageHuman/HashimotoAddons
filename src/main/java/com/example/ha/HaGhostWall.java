@@ -43,6 +43,7 @@ public final class HaGhostWall {
     }
 
     public static void tick(MinecraftClient client) {
+        if (HaPanicMode.isActive()) return;
         if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED || client == null || client.world == null) {
             return;
         }
@@ -139,11 +140,26 @@ public final class HaGhostWall {
         config.save();
 
         MinecraftClient client = MinecraftClient.getInstance();
-        if (enabled) {
+        if (enabled && !HaPanicMode.isActive()) {
             applyCurrentWorld(client);
         } else {
             restoreCurrentWorld(client);
         }
+    }
+
+    public static void suspendForPanic(MinecraftClient client) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) return;
+        restoreCurrentWorld(client);
+        useActionConsumedUntilRelease = false;
+        applyCooldownTicks = 0;
+        // Rebuild chunk meshes too: adjacent fence connections can retain stale geometry.
+        if (client != null && client.world != null) client.worldRenderer.reload();
+    }
+
+    public static void resumeAfterPanic(MinecraftClient client) {
+        if (!HaBuildFlags.DANGEROUS_FEATURES_ENABLED) return;
+        if (HaConfig.get().extrasEnabled) applyCurrentWorld(client);
+        applyCooldownTicks = 0;
     }
 
     public static void clearAll() {

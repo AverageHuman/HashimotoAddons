@@ -44,6 +44,7 @@ public final class HaTickHandler {
     private long swapHoldEndWorldTick = -1L;
     private InputUtil.Key simulatedHotbarKey = InputUtil.UNKNOWN_KEY;
     private boolean manaMissingNotified;
+    private boolean panicChangedThisTick;
 
     public HaTickHandler(KeyBinding macroToggleKeyBinding, KeyBinding alchemyKilnAutomationKeyBinding, KeyBinding cameraToggleKeyBinding, KeyBinding chestSearchKeyBinding, KeyBinding gearViewKeyBinding, KeyBinding invisibleEntityInspectorKeyBinding, KeyBinding commandKeyBinding, KeyBinding waypointCycleKeyBinding) {
         this.macroToggleKeyBinding = macroToggleKeyBinding;
@@ -68,8 +69,23 @@ public final class HaTickHandler {
         openHudEditScreenRequested = true;
     }
 
+    public void onStartClientTick(MinecraftClient client) {
+        panicChangedThisTick = HaPanicMode.tick(client, this);
+        if (HaPanicMode.isActive() || panicChangedThisTick) drainFeatureKeys();
+    }
+
     public void onEndClientTick(MinecraftClient client) {
+        if (HaPanicMode.isActive() || panicChangedThisTick) {
+            drainFeatureKeys();
+            if (openConfigScreenRequested && client.currentScreen == null) {
+                openConfigScreenRequested = false;
+                client.openScreen(new HaConfigScreen(null));
+            }
+            HaConfigPersistence.tick(HaConfig.get());
+            return;
+        }
         if (client.player == null || client.world == null) {
+            releaseSimulatedHotbarKey();
             return;
         }
 
@@ -162,6 +178,27 @@ public final class HaTickHandler {
             if (player != null) {
                 String suffix = config.macroEnabled ? "\u00a7aEnabled" : "\u00a7cDisabled";
                 player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:Macro " + suffix), false);
+            }
+        }
+    }
+
+    void suspendForPanic() {
+        releaseSimulatedHotbarKey();
+        healCooldownTicks = 0;
+        resetItemMacroTimers(HaConfig.get());
+        openBlockGalleryScreenRequested = false;
+        openHudEditScreenRequested = false;
+        drainFeatureKeys();
+    }
+
+    private void drainFeatureKeys() {
+        KeyBinding[] bindings = {macroToggleKeyBinding, alchemyKilnAutomationKeyBinding,
+            cameraToggleKeyBinding, chestSearchKeyBinding, gearViewKeyBinding,
+            invisibleEntityInspectorKeyBinding, commandKeyBinding, waypointCycleKeyBinding};
+        for (KeyBinding binding : bindings) {
+            if (binding != null) {
+                binding.setPressed(false);
+                while (binding.wasPressed()) { /* Discard queued presses, including the panic key. */ }
             }
         }
     }
@@ -437,10 +474,6 @@ public final class HaTickHandler {
                 entry.triggered = false;
             }
         }
-    }
-
-    private void pressHotbarSlot(MinecraftClient client, int slot) {
-        pressHotbarSlot(client, slot, 0);
     }
 
     private void pressHotbarSlot(MinecraftClient client, int slot, int holdTicks) {

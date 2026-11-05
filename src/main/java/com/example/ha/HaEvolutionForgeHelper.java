@@ -966,16 +966,6 @@ public final class HaEvolutionForgeHelper {
         return copy;
     }
 
-    private static double applyStatAdjustments(String statName, double value, ItemStatAdjustments adjustments) {
-        if (adjustments == null) {
-            return value;
-        }
-        if ("譛螟ｧHP".equals(statName) && adjustments.maxHpFlatBonus != 0.0D) {
-            return value - adjustments.maxHpFlatBonus;
-        }
-        return value;
-    }
-
     private static boolean shouldMarkTooltip(ItemStack stack, List<Text> tooltip) {
         EvolutionForgeData data = getDataForCurrentServer();
         if (data.items.isEmpty()) {

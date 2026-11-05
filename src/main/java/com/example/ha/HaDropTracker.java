@@ -48,6 +48,10 @@ public final class HaDropTracker {
     private static long tickAccumulatorMillis;
     private static long lastTickMillis;
 
+    public static void resumeAfterPanic() {
+        lastTickMillis = System.currentTimeMillis();
+    }
+
     private HaDropTracker() {
     }
 
@@ -98,11 +102,6 @@ public final class HaDropTracker {
     public static List<RegisteredItem> getRegisteredItems() {
         load();
         return REGISTERED_ITEMS;
-    }
-
-    public static int getRegisteredItemCount() {
-        load();
-        return REGISTERED_ITEMS.size();
     }
 
     public static long getEstimatedProfit() {

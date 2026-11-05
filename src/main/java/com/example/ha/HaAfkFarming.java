@@ -114,6 +114,10 @@ public final class HaAfkFarming {
         tickMobMacro(client, tickHandler, config, now);
     }
 
+    public static void suspendForPanic() {
+        resetRuntime(true);
+    }
+
     public static void onDisconnected() {
         HaConfig config = HaConfig.get();
         if (config.afkFarmingActive) {
@@ -121,10 +125,6 @@ public final class HaAfkFarming {
             config.save();
         }
         resetRuntime(true);
-    }
-
-    public static String getLastWebhookStatus() {
-        return lastWebhookStatus;
     }
 
     public static void sendWebhookTest(MinecraftClient client) {
@@ -740,6 +740,7 @@ public final class HaAfkFarming {
     }
 
     private static void sendWebhook(String webhookUrl, String content, boolean notifyPlayer) {
+        if (HaPanicMode.isActive()) return;
         String normalizedUrl = webhookUrl == null ? "" : webhookUrl.trim();
         if (normalizedUrl.isEmpty() || content == null || content.trim().isEmpty()) {
             lastWebhookStatus = "Skipped: empty webhook URL or content";
@@ -750,6 +751,7 @@ public final class HaAfkFarming {
         }
 
         WEBHOOK_EXECUTOR.execute(() -> {
+            if (HaPanicMode.isActive()) return;
             HttpURLConnection connection = null;
             try {
                 URL url = new URL(normalizedUrl);
@@ -796,7 +798,7 @@ public final class HaAfkFarming {
             return;
         }
         client.execute(() -> {
-            if (client.player != null) {
+            if (!HaPanicMode.isActive() && client.player != null) {
                 client.player.sendMessage(new LiteralText("[\u00a7l\u00a7bHashimotoAddons\u00a7r]:" + message), false);
             }
         });

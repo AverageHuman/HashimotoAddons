@@ -199,6 +199,10 @@ public final class HaConfigScreen extends Screen {
                 return new HaManaAlertListScreen(parent, 0);
             }
         });
+        entries.add(new OpenScreenEntry("Panic Mode") {
+            @Override
+            protected Screen createScreen(Screen parent) { return new HaPanicModeScreen(parent); }
+        });
         entries.add(new OpenScreenEntry("Camera") {
             @Override
             protected Screen createScreen(Screen parent) {

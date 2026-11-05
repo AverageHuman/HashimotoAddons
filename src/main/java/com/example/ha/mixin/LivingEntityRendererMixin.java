@@ -1,5 +1,7 @@
 package com.example.ha.mixin;
 
+import com.example.ha.HaPanicMode;
+
 import com.example.ha.HaBuildFlags;
 import com.example.ha.HaConfig;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -17,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class LivingEntityRendererMixin {
     @Inject(method = "isVisible", at = @At("HEAD"), cancellable = true)
     private void ha$revealInvisibleMobsAndPlayers(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
+        if (HaPanicMode.isActive()) return;
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED
             && HaConfig.get().revealInvisibleMobsEnabled
             && (entity instanceof MobEntity || entity instanceof PlayerEntity)
@@ -33,6 +36,7 @@ abstract class LivingEntityRendererMixin {
         boolean showOutline,
         CallbackInfoReturnable<RenderLayer> cir
     ) {
+        if (HaPanicMode.isActive()) return;
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED
             && HaConfig.get().revealInvisibleMobsEnabled
             && entity instanceof AbstractClientPlayerEntity

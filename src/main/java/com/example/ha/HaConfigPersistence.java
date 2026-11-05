@@ -171,6 +171,7 @@ public final class HaConfigPersistence {
         if (HaBuildFlags.DANGEROUS_FEATURES_ENABLED && saved.commandKey != null) {
             HaCommandKeyConfigJsonMapper.apply(saved.commandKey, config.commandKey);
         }
+        HaPanicModeConfigJsonMapper.apply(saved.panicMode, config.panicMode);
         if (saved.mobSpawnCoordinate != null) {
             HaMobSpawnCoordinateConfigJsonMapper.apply(saved.mobSpawnCoordinate, config.mobSpawnCoordinate);
         }
@@ -415,6 +416,7 @@ public final class HaConfigPersistence {
         root.add("protectedItemIds", GSON.toJsonTree(new HashSet<String>(config.protectedItemIds)));
         root.add("itemContractNotifier", HaItemContractNotifierConfigJsonMapper.toJson(config.itemContractNotifier));
         root.add("verseDetector", HaVerseDetectorConfigJsonMapper.toJson(config.verseDetector, HaBuildFlags.DANGEROUS_FEATURES_ENABLED));
+        root.add("panicMode", GSON.toJsonTree(HaPanicModeConfigJsonMapper.toSaved(config.panicMode)));
         root.add("mobSpawnCoordinate", GSON.toJsonTree(HaMobSpawnCoordinateConfigJsonMapper.toSaved(config.mobSpawnCoordinate)));
         root.add("hpAlertEntries", GSON.toJsonTree(toSavedHpAlertEntries(config)));
         root.add("manaAlertEntries", GSON.toJsonTree(toSavedManaAlertEntries(config)));
