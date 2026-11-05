@@ -83,8 +83,6 @@ public final class HaButtonTooltips {
             addMacroListTooltipV2(lines, label);
         } else if ("HaMacroEditScreen".equals(screenName)) {
             addMacroEditTooltipV2(lines, label);
-        } else if ("HaDangerousFeaturesScreen".equals(screenName)) {
-            addDangerousFeaturesTooltip(lines, label);
         } else if ("HaTriggerBotScreen".equals(screenName)) {
             addTriggerBotTooltip(lines, label);
         } else if ("HaCameraScreen".equals(screenName)) {
@@ -171,17 +169,6 @@ public final class HaButtonTooltips {
             lines.add("指定したアイテムのドロップを検知したときに通知します。");
         } else if ("Chat Filter".equals(label)) {
             lines.add("指定した文字を含むチャット表示を非表示にします。");
-        }
-    }
-
-    private static void addDangerousFeaturesTooltip(List<String> lines, String label) {
-        if ("Item Macro".equals(label)) {
-            lines.add("登録済みMacroの一覧を開きます。");
-        } else if (label.startsWith("Item Macro Sync")) {
-            lines.add("Item MacroがグローバルなMacro Toggleに従うかを切り替えます。");
-            lines.add("OFFにするとItem MacroはMacro Toggleと独立して動きます。");
-        } else if ("TriggerBot".equals(label)) {
-            lines.add("HP 50000超えの対象に対してMacroを発動する設定画面を開きます。");
         }
     }
 
@@ -403,25 +390,6 @@ public final class HaButtonTooltips {
         return stripped.trim();
     }
 
-    private static void addMacroListTooltip(List<String> lines, String label) {
-        if ("Add macro".equals(label)) {
-            lines.add("新しいmacroを追加します。");
-        } else if (isLikelyEntryButton(label)) {
-            lines.add("このmacroの編集画面を開きます。");
-        }
-    }
-
-    private static void addMacroEditTooltip(List<String> lines, String label) {
-        if (label.startsWith("Enabled")) {
-            lines.add("Item Macroでこのmacroを使うか切り替えます。");
-        } else if (label.startsWith("Slot")) {
-            lines.add("このmacroが押すホットバー枠を選びます。");
-        } else if (label.startsWith("Add")) {
-            lines.add("新しいmacroを保存します。");
-        } else if (isLikelyEntryButton(label)) {
-            lines.add("このmacroの設定を編集します。");
-        }
-    }
     private static void addMacroListTooltipV2(List<String> lines, String label) {
         if ("Add macro".equals(label)) {
             lines.add("新しいmacroを追加します。");

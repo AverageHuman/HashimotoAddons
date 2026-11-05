@@ -115,18 +115,6 @@ public final class HaDropTrackerOverlay {
         }
     }
 
-    private static int getFooterHeight() {
-        HaConfig config = HaConfig.get();
-        int rows = 2;
-        if (config.dropTrackerShowTimer) {
-            rows++;
-        }
-        if (config.dropTrackerShowHourlyProfit) {
-            rows++;
-        }
-        return rows * 12;
-    }
-
     private static String statusText() {
         return HaDropTracker.isActiveSession() ? "Tracking" : "Stopped";
     }

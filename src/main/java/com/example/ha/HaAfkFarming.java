@@ -127,10 +127,6 @@ public final class HaAfkFarming {
         resetRuntime(true);
     }
 
-    public static String getLastWebhookStatus() {
-        return lastWebhookStatus;
-    }
-
     public static void sendWebhookTest(MinecraftClient client) {
         HaConfig config = HaConfig.get();
         sendWebhook(config.afkFarmingWebhookUrl, "HashimotoAddons: Webhook test from mod.", true);

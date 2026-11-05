@@ -476,10 +476,6 @@ public final class HaTickHandler {
         }
     }
 
-    private void pressHotbarSlot(MinecraftClient client, int slot) {
-        pressHotbarSlot(client, slot, 0);
-    }
-
     private void pressHotbarSlot(MinecraftClient client, int slot, int holdTicks) {
         ClientPlayerEntity player = client.player;
         if (player == null || slot < 0 || slot > 8) {

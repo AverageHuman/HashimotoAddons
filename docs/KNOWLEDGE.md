@@ -53,6 +53,7 @@ This file contains reusable implementation knowledge, not session history. Updat
 
 ## Build And Reporting
 
+- Unused-code checks must include the Mixin JSON roots, Minecraft overrides, Gson DTO fields, same-file model types and both generated build-flag variants. A Java call count of zero alone is insufficient; see `UNUSED_CODE_AUDIT.md` for the deletion evidence, retained dynamic entrypoints and owner-authorized public API removal.
 - Safe and Full artifacts are grouped by version under `build/libs/<version>/`.
 - A successful local build does not prove that its source state was committed.
 - Minecraft 1.16.5 sound events still play `.ogg` assets from `assets/<namespace>/sounds`; if the owner wants the original MP3 bundled in the jar too, keep the MP3 beside the converted OGG and point `sounds.json` at the OGG filename.

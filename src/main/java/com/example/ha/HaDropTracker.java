@@ -104,11 +104,6 @@ public final class HaDropTracker {
         return REGISTERED_ITEMS;
     }
 
-    public static int getRegisteredItemCount() {
-        load();
-        return REGISTERED_ITEMS.size();
-    }
-
     public static long getEstimatedProfit() {
         load();
         long total = 0L;

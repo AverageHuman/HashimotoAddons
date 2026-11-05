@@ -114,12 +114,6 @@ public final class HaWaypointManager {
         return state.activeColorSlot;
     }
 
-    public static void setActiveColorSlot(int slot) {
-        ensureLoaded();
-        state.activeColorSlot = clampSlot(slot);
-        save();
-    }
-
     public static void setColorSlotFormatting(int slot, Formatting formatting) {
         ensureLoaded();
         if (formatting == null || !formatting.isColor()) {
@@ -340,22 +334,6 @@ public final class HaWaypointManager {
         return removed;
     }
 
-    public static boolean clearCurrentDimension(MinecraftClient client) {
-        String dimensionKey = getCurrentDimensionKey(client);
-        if (dimensionKey == null) {
-            return false;
-        }
-
-        ensureLoaded();
-        List<SavedWaypointEntry> removed = state.waypointsByDimension.remove(dimensionKey);
-        if (removed != null) {
-            invalidateWaypointRenderCache();
-            save();
-            return true;
-        }
-        return false;
-    }
-
     public static String getDisplayLabel(WaypointEntry entry) {
         if (entry == null) {
             return "";
@@ -431,10 +409,6 @@ public final class HaWaypointManager {
 
     public static String getRenderModeLabel() {
         return isRenderFullBlocks() ? "Full Block" : "Outline Only";
-    }
-
-    public static String getEditModeLabel() {
-        return isEditModeEnabled() ? "Enabled" : "Disabled";
     }
 
     public static final class WaypointEntry {
